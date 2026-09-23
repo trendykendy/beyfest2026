@@ -51,6 +51,26 @@ export function tierOf(stage: Stage): "wb" | "mb" | "lb" | "gf" | "group" {
   return "group";
 }
 
+// Plain-words round name for screens, from the engine's internal label:
+// "Phase 4 — MB R2" → "Mid bracket round 2", "Phase 7 — Grand Final" → "Grand final".
+export function roundName(roundLabel: string): string {
+  let s = roundLabel.replace(/^Phase \w+ — /, "");
+  if (s === "WB SF Losers Playoff") return "Winners 3rd-place play-off";
+  s = s
+    .replace(/\bWB\b/, "Winners")
+    .replace(/\bMB\b/, "Mid bracket")
+    .replace(/\bLB\b/, "Losers")
+    .replace(/\bMini-RR\b/, "mini round-robin")
+    .replace(/\bR(\d)\b/, "round $1")
+    .replace(/\bRound\b/, "round")
+    .replace(/\bSemis\b/, "semi-finals")
+    .replace(/\b(Semi|SF)\b/, "semi-final")
+    .replace(/\bQuarters\b/, "quarter-finals")
+    .replace(/\bFinal\b/, "final")
+    .replace(/\bMatch\b/, "match");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 // Human label for an unresolved participant slot (shown until a real player
 // lands in it), e.g. "Group 1 winner", "Winner of MB1", "WB-2nd".
 export function slotLabel(slot: Slot | null, groupCount: number): string {

@@ -12,6 +12,7 @@
     ordinal,
     tierOf,
     hasStage,
+    roundName,
     type PBMatch,
   } from "$lib/view";
   import BroadcastBracket from "$lib/components/tv/BroadcastBracket.svelte";
@@ -118,32 +119,14 @@
     data.matches.filter(isLive).sort((a, b) => a.orderIndex - b.orderIndex)[0] ?? null,
   );
 
-  // What the Match Centre's top strip shows, following the featured match's phase.
-  const mcContext = $derived.by(() => {
-    const s = spotMatch?.stage;
-    if (!s || s === "group") return "groups";
-    if (s === "wb_rr" || s === "lb_rr") return "rr";
-    return "bracket";
-  });
-  const bracketColumns = $derived.by(() => {
-    const ko = data.matches
-      .filter((m) => m.stage !== "group" && m.stage !== "wb_rr" && m.stage !== "lb_rr")
-      .sort((a, b) => a.orderIndex - b.orderIndex);
-    const cols: { label: string; matches: PBMatch[] }[] = [];
-    for (const m of ko) {
-      let c = cols.find((x) => x.label === m.roundLabel);
-      if (!c) {
-        c = { label: m.roundLabel, matches: [] };
-        cols.push(c);
-      }
-      c.matches.push(m);
-    }
-    return cols;
-  });
-  const shortLabel = (roundLabel: string) => {
-    const i = roundLabel.indexOf("— ");
-    return i >= 0 ? roundLabel.slice(i + 2) : roundLabel;
-  };
+  // Where the featured match sits, in plain words: "Group 2, match 4 of 6"
+  // for group games, "Mid bracket semi-final" for knockout ones.
+  function matchContext(m: PBMatch): string {
+    if (m.stage !== "group") return roundName(m.roundLabel);
+    const list = groupMatchesOf(m.groupIndex ?? 0);
+    const n = list.findIndex((x) => x.code === m.code) + 1;
+    return `${m.roundLabel}, match ${n} of ${list.length}`;
+  }
 
   // ── Helpers ─────────────────────────────────────────────────────────
   function sideName(m: PBMatch, which: 1 | 2): string {
@@ -339,106 +322,62 @@
 
     {:else if scene === "spotlight"}
       <div class="mc">
-        <div class="mc-top">
-          {#if mcContext === "groups"}
-            {#each data.groups as g (g.id)}
-              <div class="mini">
-                <div class="mini-h">{g.name}</div>
-                {#each groupStandings(data.players, data.matches, g.index) as row, i (row.playerId)}
-                  {@const dest = destinationOf(i + 1, g.size, structure?.knockoutType ?? "")}
-                  <div class="mini-row tier-{dest.tier}">
-                    <span class="mini-r">{i + 1}</span>
-                    <span class="mini-n">{names.get(row.playerId)}</span>
-                    <span class="mini-w">{row.wins}</span>
-                  </div>
-                {/each}
+        {#if spotMatch}
+          {@const t = pointsToWin(spotMatch.stage, spotMatch.roundLabel)}
+          {@const done = spotMatch.matchStatus === "done"}
+          {@const live = isLive(spotMatch)}
+          {@const av = (done ? spotMatch.p1Score : spotMatch.liveP1) ?? 0}
+          {@const bv = (done ? spotMatch.p2Score : spotMatch.liveP2) ?? 0}
+          {@const decided = done || (live && (av >= t || bv >= t))}
+          {@const wonA = decided && av > bv}
+          {@const wonB = decided && bv > av}
+          {@const showScore = done || live}
+          <div class="mc-status">
+            {#if done}<span class="mc-tag result">Result</span>
+            {:else if decided}<span class="mc-tag won"><Trophy /> Match won</span>
+            {:else if live}<span class="mc-tag live">Live</span>
+            {:else}<span class="mc-tag next">Up next</span>{/if}
+            <span class="mc-context">{matchContext(spotMatch)}</span>
+            <span class="mc-ft">First to {t}</span>
+          </div>
+
+          <div class="mc-duel tier-{tierOf(spotMatch.stage)}">
+            <div class="mc-side left" class:won={wonA} class:lost={wonB}>
+              <div class="mc-slab">
+                <div class="mc-name">{sideName(spotMatch, 1)}</div>
+                <div class="mc-score">{showScore ? av : "–"}</div>
               </div>
-            {/each}
-          {:else if mcContext === "rr"}
-            {#each [{ st: "wb_rr", title: "Winners" }, { st: "lb_rr", title: "Losers" }] as def (def.st)}
-              {#if structure && hasStage(data.matches, def.st)}
-                {@const stage = def.st as "wb_rr" | "lb_rr"}
-                {@const adv = miniRRAdvancers(structure, stage)}
-                <div class="mini mrr tier-{stage === 'wb_rr' ? 'wb' : 'lb'}">
-                  <div class="mini-h">{def.title} Mini-RR</div>
-                  {#each miniRRStandings(data.matches, stage) as row, i (row.playerId)}
-                    {@const f = rrFate(stage, i + 1, adv)}
-                    <div class="mini-row mrr-row" class:out={!f.adv}>
-                      <span class="mrr-seed">{stage === "wb_rr" ? "WB" : "LB"}-{ordinal(i + 1)}</span>
-                      <span class="mini-n">{names.get(row.playerId)}</span>
-                      <span class="mini-w">{row.wins}–{row.losses}</span>
-                    </div>
-                  {/each}
-                </div>
+              {#if wonA}<span class="mc-winner">Winner</span>{/if}
+            </div>
+            <div class="mc-vs" aria-label="versus">VS</div>
+            <div class="mc-side right" class:won={wonB} class:lost={wonA}>
+              <div class="mc-slab">
+                <div class="mc-score">{showScore ? bv : "–"}</div>
+                <div class="mc-name">{sideName(spotMatch, 2)}</div>
+              </div>
+              {#if wonB}<span class="mc-winner">Winner</span>{/if}
+            </div>
+          </div>
+
+          {@const otherLive = onNow && onNow.code !== spotMatch.code ? onNow : null}
+          {@const otherNext = nextUp && nextUp.code !== spotMatch.code ? nextUp : null}
+          {#if otherLive || otherNext}
+            <div class="onnow">
+              {#if otherLive}
+                <span class="onnow-tag live">On now</span>
+                <span class="onnow-match">
+                  {sideName(otherLive, 1)} <b>{otherLive.liveP1}–{otherLive.liveP2}</b> {sideName(otherLive, 2)}
+                </span>
               {/if}
-            {/each}
-          {:else}
-            <div class="mc-bracket">
-              {#each bracketColumns as col (col.label)}
-                <div class="mcb-col">
-                  <div class="mcb-h">{shortLabel(col.label)}</div>
-                  {#each col.matches as m (m.code)}
-                    {@const md = m.matchStatus === "done"}
-                    <div class="mcb-m tier-{tierOf(m.stage)}" class:done={md} class:cur={m.code === spotMatch?.code}>
-                      <span class="mcb-p" class:win={md && m.winner === m.p1}>{sideName(m, 1)}</span>
-                      <span class="mcb-s">{#if md}{m.p1Score}–{m.p2Score}{:else}v{/if}</span>
-                      <span class="mcb-p right" class:win={md && m.winner === m.p2}>{sideName(m, 2)}</span>
-                    </div>
-                  {/each}
-                </div>
-              {/each}
+              {#if otherNext}
+                <span class="onnow-tag">Next up</span>
+                <span class="onnow-match soft">{sideName(otherNext, 1)} <em>v</em> {sideName(otherNext, 2)}</span>
+              {/if}
             </div>
           {/if}
-        </div>
-
-        <div class="mc-hero">
-          {#if spotMatch}
-            {@const t = pointsToWin(spotMatch.stage, spotMatch.roundLabel)}
-            {@const done = spotMatch.matchStatus === "done"}
-            {@const live = isLive(spotMatch)}
-            {@const av = (done ? spotMatch.p1Score : spotMatch.liveP1) ?? 0}
-            {@const bv = (done ? spotMatch.p2Score : spotMatch.liveP2) ?? 0}
-            {@const decided = done || (live && (av >= t || bv >= t))}
-            {@const wonA = decided && av > bv}
-            {@const wonB = decided && bv > av}
-            <div class="hero tier-{tierOf(spotMatch.stage)}">
-              <div class="hero-tag" class:live={live && !decided} class:decided>
-                {#if done}Result{:else if decided}<span class="crown"><Trophy /></span>Match won{:else if live}<span class="live-dot"></span>Live{:else}Up Next{/if}
-                — {spotMatch.roundLabel}
-              </div>
-              <div class="hero-body">
-                <div class="hero-side" class:won={wonA}>
-                  <div class="hero-name">{sideName(spotMatch, 1)}</div>
-                  {#if done || live}<div class="hero-score">{av}</div>{/if}
-                  {#if done || live}<div class="win-slot">{#if wonA}<div class="win-badge">Winner</div>{/if}</div>{/if}
-                </div>
-                <div class="hero-mid">
-                  <div class="vs">vs</div>
-                  <div class="hero-code">{spotMatch.code}</div>
-                  <div class="hero-ft">first to {t}</div>
-                </div>
-                <div class="hero-side right" class:won={wonB}>
-                  <div class="hero-name">{sideName(spotMatch, 2)}</div>
-                  {#if done || live}<div class="hero-score">{bv}</div>{/if}
-                  {#if done || live}<div class="win-slot">{#if wonB}<div class="win-badge">Winner</div>{/if}</div>{/if}
-                </div>
-              </div>
-            </div>
-          {:else}
-            <div class="empty-scene">No matches to show yet.</div>
-          {/if}
-        </div>
-
-        <div class="mc-bottom">
-          {#if nextUp}
-            <div class="nextup">
-              <span class="nu-tag">Next Up</span>
-              <span class="nu-code">{nextUp.code}</span>
-              <span class="nu-match">{sideName(nextUp, 1)} <em>vs</em> {sideName(nextUp, 2)}</span>
-              <span class="nu-ft">First to {pointsToWin(nextUp.stage, nextUp.roundLabel)}</span>
-            </div>
-          {/if}
-        </div>
+        {:else}
+          <div class="empty-scene">No matches yet. They'll appear here once the groups are drawn.</div>
+        {/if}
       </div>
 
     {:else if scene === "champion"}
@@ -956,385 +895,155 @@
     font-weight: 700;
   }
 
-  /* Spotlight */
-  .hero {
-    --tier: var(--accent);
-    width: 100%;
-    max-width: 1600px;
-  }
-  .hero.tier-wb {
-    --tier: var(--wb);
-  }
-  .hero.tier-mb {
-    --tier: var(--mb);
-  }
-  .hero.tier-lb {
-    --tier: var(--lb);
-  }
-  .hero.tier-gf {
-    --tier: var(--gf);
-  }
-  .hero-tag {
-    text-align: center;
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.22em;
-    color: var(--accent);
-    font-size: 1.3rem;
-    margin-bottom: 40px;
-  }
-  .hero-tag.live {
-    color: var(--lb);
-  }
-  .hero-tag.decided {
-    color: var(--accent);
-  }
-  .crown {
-    margin-right: 8px;
-  }
-  .win-slot {
-    min-height: 30px;
-    margin-top: 12px;
-  }
-  .win-badge {
-    display: inline-block;
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-weight: 800;
-    font-size: 0.95rem;
-    color: var(--ink);
-    background: var(--accent);
-    padding: 4px 18px;
-    border-radius: 4px;
-  }
-  .live-dot {
-    display: inline-block;
-    width: 11px;
-    height: 11px;
-    border-radius: 50%;
-    background: var(--lb);
-    margin-right: 8px;
-    vertical-align: middle;
-    box-shadow: 0 0 10px var(--lb);
-    animation: livepulse 1.2s ease-in-out infinite;
-  }
-  @keyframes livepulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.3;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .live-dot {
-      animation: none;
-    }
-  }
-  .hero-body {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 48px;
-  }
-  .hero-side {
-    text-align: right;
-  }
-  .hero-side.right {
-    text-align: left;
-  }
-  .hero-name {
-    text-transform: uppercase;
-    font-family: var(--disp);
-    font-size: clamp(3rem, 7.5vw, 7rem);
-    letter-spacing: 0.02em;
-    line-height: 0.98;
-  }
-  .hero-side.won .hero-name {
-    color: var(--tier);
-  }
-  .hero-score {
-    font-family: var(--font-text);
-    font-stretch: 75%;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    font-size: clamp(4.5rem, 9vw, 8rem);
-    line-height: 1;
-    color: var(--tier);
-    margin-top: 6px;
-  }
-  .hero-mid {
-    text-align: center;
-  }
-  .vs {
-    font-family: var(--disp);
-    font-size: 4rem;
-    color: var(--tv-dim);
-    line-height: 1;
-    text-transform: uppercase;
-  }
-  .hero-code {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    letter-spacing: 0.16em;
-    color: var(--accent);
-    font-weight: 700;
-    font-size: 1.2rem;
-    margin-top: 12px;
-    text-transform: uppercase;
-  }
-  .hero-ft {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    letter-spacing: 0.14em;
-    color: var(--tv-dim);
-    font-size: 1rem;
-    text-transform: uppercase;
-  }
-  .empty-scene {
-    color: var(--tv-dim);
-    font-size: 1.4rem;
-  }
-
-  /* Match Centre layout: mini groups on top, hero in the middle, next up below */
+  /* ── Match centre: anime face-off ──────────────────────────────────
+     Two slanted white slabs (skewX, so the border and hard shadow survive —
+     clip-path would cut them), scores facing the gold VS in the middle. */
   .mc {
     width: 100%;
-    flex: 1;
-    align-self: stretch;
+    height: 100%;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+  }
+  .mc-status {
+    display: flex;
+    align-items: center;
     gap: 22px;
-    min-height: 0;
-  }
-  .mc-top {
-    display: flex;
-    gap: 22px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .mini {
-    background: var(--tv-plate);
-    border: 1px solid var(--tv-line);
-    border-radius: 8px;
-    padding: 12px 16px;
-    min-width: 250px;
-  }
-  .mini-h {
-    text-transform: uppercase;
-    font-family: var(--disp);
-    font-size: 1.5rem;
-    color: var(--accent);
-    margin-bottom: 7px;
-  }
-  .mini-row {
-    --row-tier: transparent;
-    display: grid;
-    grid-template-columns: 22px 1fr 24px;
-    gap: 8px;
-    align-items: center;
-    font-size: 1.05rem;
-    padding: 3px 0 3px 8px;
-    border-left: 3px solid var(--row-tier);
-  }
-  .mini-row.tier-wb {
-    --row-tier: var(--wb);
-  }
-  .mini-row.tier-mb {
-    --row-tier: var(--mb);
-  }
-  .mini-row.tier-lb {
-    --row-tier: var(--lb);
-  }
-  .mini-r {
-    color: var(--tv-dim);
-    text-align: center;
-  }
-  .mini-n {
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .mini-w {
-    text-align: center;
     font-family: var(--font-text);
-    font-stretch: 75%;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: var(--accent);
+    font-size: 1.9rem;
+    font-weight: 600;
   }
-  /* Mini round-robin variant of the top strip */
-  .mrr .mini-row {
-    grid-template-columns: 56px 1fr 44px;
-  }
-  .mrr.tier-wb {
-    --rr: var(--wb);
-  }
-  .mrr.tier-lb {
-    --rr: var(--lb);
-  }
-  .mrr-seed {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-weight: 800;
-    font-size: 0.74rem;
-    color: var(--rr, var(--accent));
-  }
-  .mrr-row.out {
-    opacity: 0.5;
-  }
-  .mrr .mini-w {
-    color: var(--tv-dim);
-    font-size: 0.9rem;
-  }
-  /* Compact bracket variant of the top strip */
-  .mc-bracket {
-    display: flex;
-    gap: 14px;
-    overflow-x: auto;
-    max-width: 100%;
-    padding-bottom: 4px;
-    align-items: stretch;
-  }
-  .mcb-col {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    justify-content: center;
-    min-width: 158px;
-  }
-  .mcb-h {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 0.62rem;
-    font-weight: 800;
-    color: var(--tv-dim);
-    text-align: center;
-  }
-  .mcb-m {
-    --tier: var(--neutral);
-    display: grid;
-    grid-template-columns: 1fr 34px 1fr;
-    gap: 4px;
+  .mc-tag {
+    display: inline-flex;
     align-items: center;
-    background: var(--tv-plate);
-    border: 1px solid var(--tv-line);
-    border-left: 3px solid var(--tier);
-    border-radius: 5px;
-    padding: 4px 7px;
-    font-size: 0.74rem;
-  }
-  .mcb-m.tier-wb {
-    --tier: var(--wb);
-  }
-  .mcb-m.tier-mb {
-    --tier: var(--mb);
-  }
-  .mcb-m.tier-lb {
-    --tier: var(--lb);
-  }
-  .mcb-m.tier-gf {
-    --tier: var(--gf);
-  }
-  .mcb-m.cur {
-    box-shadow: 0 0 0 2px var(--accent);
-  }
-  .mcb-p {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--tv-dim);
-  }
-  .mcb-m.done .mcb-p {
-    color: var(--text);
-  }
-  .mcb-p.right {
-    text-align: right;
-  }
-  .mcb-p.win {
-    color: var(--accent);
-    font-weight: 700;
-  }
-  .mcb-s {
-    text-align: center;
-    color: var(--tv-dim);
-    font-family: var(--font-text);
-    font-stretch: 75%;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    font-size: 0.85rem;
-  }
-  .mc-hero {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 0;
-  }
-  .mc-bottom {
-    display: flex;
-    justify-content: center;
-  }
-  .nextup {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    background: var(--tv-plate);
-    border: 1px solid var(--tv-line);
-    border-left: 5px solid var(--accent);
-    border-radius: 8px;
-    padding: 14px 30px;
-  }
-  .nu-tag {
-    font-family: var(--lbl);
-    font-stretch: 75%;
+    gap: 10px;
+    font-family: var(--font-display);
     text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: var(--accent);
-    font-weight: 800;
-    font-size: 0.95rem;
+    font-size: 2.2rem;
+    line-height: 1;
+    padding: 10px 26px 12px 20px;
+    clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
   }
-  .nu-code {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--tv-dim);
-    font-weight: 700;
-    font-size: 0.9rem;
+  .mc-tag.live {
+    background: var(--red);
+    color: var(--paper);
   }
-  .nu-match {
-    font-family: var(--name-family);
-    font-stretch: 62%;
-    text-transform: uppercase;
-    font-weight: 700;
-    font-size: 1.55rem;
-    letter-spacing: 0.02em;
+  .mc-tag.next,
+  .mc-tag.won {
+    background: var(--gold);
+    color: var(--ink);
   }
-  .nu-match em {
-    color: var(--tv-dim);
-    font-style: normal;
-    margin: 0 8px;
+  .mc-tag.result {
+    background: var(--ink);
+    color: var(--paper);
   }
-  .nu-ft {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--tv-dim);
-    font-size: 0.76rem;
+  .mc-context {
+    color: var(--paper);
+  }
+  .mc-ft {
+    color: var(--on-field-soft);
   }
 
+  .mc-duel {
+    --tier: var(--gold);
+    width: 100%;
+    max-width: 1720px;
+    display: grid;
+    grid-template-columns: 1fr 200px 1fr;
+    align-items: center;
+  }
+  .mc-duel.tier-wb {
+    --tier: var(--wb);
+  }
+  .mc-duel.tier-lb {
+    --tier: var(--lb);
+  }
+  .mc-side {
+    position: relative;
+    min-width: 0;
+  }
+  .mc-slab {
+    transform: skewX(-10deg);
+    background: var(--paper);
+    color: var(--ink);
+    border: 4px solid var(--ink);
+    border-top: 16px solid var(--tier);
+    box-shadow: 12px 12px 0 var(--ink);
+    display: flex;
+    flex-direction: column;
+    padding: 26px 48px 20px;
+    min-width: 0;
+  }
+  /* Un-skew the text so letters stay true italic, not sheared twice. */
+  .mc-slab > * {
+    transform: skewX(10deg);
+  }
+  .mc-name {
+    font-family: var(--font-display);
+    font-stretch: 62%;
+    text-transform: uppercase;
+    font-size: 7.5rem;
+    line-height: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 8px;
+  }
+  /* Name on top, huge score underneath pushed toward the VS. */
+  .right .mc-name {
+    order: -1;
+    text-align: right;
+  }
+  .mc-score {
+    font-family: var(--font-display);
+    font-size: 17rem;
+    line-height: 0.82;
+    font-variant-numeric: tabular-nums;
+    align-self: flex-end;
+    padding-right: 12px;
+  }
+  .right .mc-score {
+    align-self: flex-start;
+  }
+  .mc-side.lost .mc-slab {
+    background: #dfe3f2;
+    color: var(--ink-soft);
+  }
+  .mc-winner {
+    position: absolute;
+    bottom: -28px;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: 1.9rem;
+    line-height: 1;
+    background: var(--gold);
+    color: var(--ink);
+    border: 3px solid var(--ink);
+    padding: 8px 22px 10px;
+  }
+  .left .mc-winner {
+    left: 40px;
+  }
+  .right .mc-winner {
+    right: 40px;
+  }
+  /* Outlined gold VS — a text stroke, not a blur/glow filter, so it's cheap. */
+  .mc-vs {
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 8rem;
+    line-height: 1;
+    color: var(--gold);
+    -webkit-text-stroke: 4px var(--ink);
+    paint-order: stroke fill;
+  }
+  .empty-scene {
+    color: var(--on-field-soft);
+    font-size: 1.8rem;
+  }
 
   /* Champion + standby */
   .champ-scene,
