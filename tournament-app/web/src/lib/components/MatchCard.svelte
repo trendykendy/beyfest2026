@@ -85,7 +85,8 @@
     margin-bottom: 4px;
   }
   .code {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     font-size: 0.62rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -93,7 +94,8 @@
     font-weight: 700;
   }
   .target {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     font-size: 0.58rem;
     letter-spacing: 0.06em;
     font-weight: 700;
@@ -134,7 +136,10 @@
     color: var(--tier);
   }
   .score {
-    font-family: "Bebas Neue", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     font-size: 1.1rem;
     line-height: 1;
     min-width: 18px;

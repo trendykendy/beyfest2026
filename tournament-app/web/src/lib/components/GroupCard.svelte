@@ -106,7 +106,8 @@
     font-size: 0.9rem;
   }
   th {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.64rem;
@@ -141,7 +142,8 @@
   }
   .chip {
     --c: var(--neutral);
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     font-size: 0.62rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;

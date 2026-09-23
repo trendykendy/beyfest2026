@@ -55,7 +55,7 @@
   <div class="rs-head">
     <span class="code">{match.code}</span>
     <span class="ft" class:hot={target > 5}>First to {target}</span>
-    {#if rounds.length}<button type="button" class="undo" onclick={undo}>↶ Undo</button>{/if}
+    {#if rounds.length}<button type="button" class="undo" onclick={undo}>Undo</button>{/if}
   </div>
 
   <div class="rs-body">
@@ -123,7 +123,8 @@
     margin-bottom: 10px;
   }
   .code {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-weight: 700;
@@ -131,7 +132,8 @@
     color: var(--muted);
   }
   .ft {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.66rem;
@@ -174,7 +176,10 @@
     color: var(--green);
   }
   .score {
-    font-family: "Bebas Neue", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     font-size: 2.6rem;
     line-height: 1;
     margin: 2px 0 8px;
@@ -204,7 +209,8 @@
     color: var(--text);
     border-radius: 7px;
     padding: 7px 11px;
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 700;

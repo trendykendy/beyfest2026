@@ -83,7 +83,10 @@
     margin-bottom: 8px;
   }
   h4 {
-    font-family: "Bebas Neue", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     font-size: 1.15rem;
     letter-spacing: 0.04em;
     color: var(--tier);
@@ -105,7 +108,8 @@
     border-bottom: none;
   }
   .seed {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-size: 0.66rem;

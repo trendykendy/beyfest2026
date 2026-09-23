@@ -7,6 +7,7 @@
   import GroupCard from "$lib/components/GroupCard.svelte";
   import Bracket from "$lib/components/Bracket.svelte";
   import MiniRRTable from "$lib/components/MiniRRTable.svelte";
+  import Trophy from "$lib/components/Trophy.svelte";
 
   let { data } = $props();
 
@@ -47,7 +48,7 @@
     {#if champion}
       <div class="champ">
         <span class="tag">Tournament Champion</span>
-        <span class="champ-name">🏆 {champion}</span>
+        <span class="champ-name"><Trophy /> {champion}</span>
       </div>
     {/if}
 
@@ -154,7 +155,7 @@
     color: var(--gf);
   }
   .champ-name {
-    font-family: "Bebas Neue", sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(2rem, 6vw, 3.4rem);
     letter-spacing: 0.04em;
   }
@@ -212,7 +213,8 @@
     margin-bottom: 12px;
   }
   .lg {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-size: 0.7rem;

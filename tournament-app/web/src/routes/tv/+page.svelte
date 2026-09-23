@@ -15,6 +15,7 @@
     type PBMatch,
   } from "$lib/view";
   import BroadcastBracket from "$lib/components/tv/BroadcastBracket.svelte";
+  import Trophy from "$lib/components/Trophy.svelte";
 
   let { data } = $props();
 
@@ -33,11 +34,21 @@
 
   const SCENE_TITLE: Record<string, string> = {
     standby: "Beyfest 2026",
-    groups: "Group Stage",
-    rr: "Mini Round-Robins",
-    bracket: "Knockout Bracket",
-    spotlight: "Match Centre",
+    groups: "Group stage",
+    rr: "Mini round-robins",
+    bracket: "Knockout bracket",
+    spotlight: "Match centre",
     champion: "Champion",
+  };
+  // Katakana shown above each scene title. Every glyph here must exist in the
+  // font subset (static/fonts/delagothic_kana.woff2) — see theme.css header.
+  const SCENE_KANA: Record<string, string> = {
+    standby: "スタンバイ",
+    groups: "グループステージ",
+    rr: "ラウンドロビン",
+    bracket: "ノックアウト",
+    spotlight: "マッチセンター",
+    champion: "チャンピオン",
   };
 
   const scenes = $derived.by(() => {
@@ -180,15 +191,16 @@
   });
 </script>
 
-<div class="tv" data-look="ascent" class:cursor-hide={!barVisible} class:bar-open={barVisible}>
-  <div class="look-fx" aria-hidden="true"></div>
-
+<div class="tv" class:cursor-hide={!barVisible} class:bar-open={barVisible}>
   <header class="strip">
     <div class="brand">
-      <span class="bmain">Beyfest 2026</span>
-      <span class="bsub">Triple Threat</span>
+      <span class="bmain">Beyfest</span>
+      <span class="bkana" lang="ja">トリプルスレット</span>
     </div>
-    <div class="scene-name">{SCENE_TITLE[scene]}</div>
+    <div class="scene-name">
+      <span class="scene-kana" lang="ja">{SCENE_KANA[scene]}</span>
+      <span class="scene-en">{SCENE_TITLE[scene]}</span>
+    </div>
     <div class="meta">{#if data.tournament}{data.tournament.playerCount} bladers{/if}</div>
   </header>
 
@@ -347,7 +359,7 @@
             {@const wonB = decided && bv > av}
             <div class="hero tier-{tierOf(spotMatch.stage)}">
               <div class="hero-tag" class:live={live && !decided} class:decided>
-                {#if done}Result{:else if decided}<span class="crown">🏆</span>Match Won{:else if live}<span class="live-dot"></span>Live{:else}Up Next{/if}
+                {#if done}Result{:else if decided}<span class="crown"><Trophy /></span>Match won{:else if live}<span class="live-dot"></span>Live{:else}Up Next{/if}
                 — {spotMatch.roundLabel}
               </div>
               <div class="hero-body">
@@ -388,7 +400,7 @@
     {:else if scene === "champion"}
       {@const gf = data.matches.find((m) => m.stage === "gf")}
       <div class="champ-scene">
-        <div class="trophy">🏆</div>
+        <div class="trophy"><Trophy size="1em" label="Trophy" /></div>
         <div class="champ-label">Tournament Champion</div>
         <div class="champ-name">{names.get(champ)}</div>
         {#if gf}
@@ -415,30 +427,29 @@
         <button onclick={() => (spotIndex = Math.min(spotIndex + 1, featured.length - 1))}>›</button>
       </span>
     {/if}
-    <button class="full" onclick={toggleFull}>⛶</button>
+    <button class="full" onclick={toggleFull}>Full screen</button>
   </nav>
 </div>
 
 <style>
-  /* ─── Premium Gold — cinematic arena broadcast (Valorant-style) ─── */
+  /* Ultramarine field with static diagonal speed lines — painted once, no
+     photo, blur or glow, so it stays smooth on a Raspberry Pi. */
   .tv {
     position: fixed;
     inset: 0;
-    --accent: oklch(0.82 0.15 84);
-    --accent-deep: oklch(0.64 0.13 76);
+    --accent: var(--gold);
+    --accent-deep: var(--gold);
     --bg:
-      radial-gradient(135% 105% at 50% 40%, transparent 26%, oklch(0.05 0.015 60 / 0.5) 68%, oklch(0.03 0.01 55 / 0.94) 100%),
-      linear-gradient(180deg, oklch(0.05 0.015 62 / 0.5), oklch(0.04 0.012 55 / 0.8)),
-      url(/bg-arena.jpg) center 16% / cover no-repeat,
-      oklch(0.06 0.015 55);
-    --tv-plate: oklch(0.12 0.018 62 / 0.9);
-    --tv-plate2: oklch(0.16 0.022 64 / 0.9);
-    --tv-line: oklch(0.82 0.15 84 / 0.22);
-    --tv-dim: oklch(0.72 0.03 76);
-    --disp: "Anton", "Bebas Neue", system-ui, sans-serif;
-    --lbl: "Barlow Condensed", system-ui, sans-serif;
-    --num: "Bebas Neue", sans-serif;
-    --name-family: "Barlow Condensed", system-ui, sans-serif;
+      repeating-linear-gradient(-62deg, transparent 0 46px, rgb(255 255 255 / 0.035) 46px 48px),
+      var(--field);
+    --tv-plate: var(--field-deep);
+    --tv-plate2: var(--dark2);
+    --tv-line: var(--field-line);
+    --tv-dim: var(--on-field-soft);
+    --disp: var(--font-display);
+    --lbl: var(--font-text);
+    --num: var(--font-text);
+    --name-family: var(--font-text);
     --name-transform: uppercase;
     --name-weight: 700;
     --rank-skew: 0deg;
@@ -450,16 +461,10 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    font-family: "Barlow", sans-serif;
+    font-family: var(--font-text);
   }
   .cursor-hide {
     cursor: none;
-  }
-  .look-fx {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
   }
   .strip,
   .stage,
@@ -472,33 +477,49 @@
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    padding: 20px 46px;
-    border-bottom: 1px solid var(--tv-line);
+    padding: 16px 46px;
+    background: var(--field-deep);
+    border-bottom: var(--outline) solid var(--ink);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
   }
   .bmain {
     font-family: var(--disp);
-    font-size: 2rem;
-    letter-spacing: 0.04em;
+    font-size: 1.9rem;
     line-height: 1;
+    color: var(--ink);
+    background: var(--gold);
+    padding: 8px 30px 10px 18px;
+    clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
   }
-  .bsub {
-    font-family: var(--lbl);
-    text-transform: uppercase;
-    letter-spacing: 0.28em;
-    color: var(--accent);
-    font-size: 0.78rem;
-    margin-left: 12px;
+  .bkana {
+    font-family: var(--disp);
+    font-size: 1.05rem;
+    color: var(--on-field-soft);
   }
   .scene-name {
-    font-family: var(--disp);
-    font-size: 2.4rem;
-    letter-spacing: 0.05em;
-    color: var(--accent);
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
     line-height: 1;
+  }
+  .scene-kana {
+    font-family: var(--disp);
+    font-size: 0.95rem;
+    color: var(--gold);
+  }
+  .scene-en {
+    font-family: var(--disp);
+    font-size: 2.3rem;
+    color: var(--paper);
   }
   .meta {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.18em;
     color: var(--tv-dim);
@@ -536,10 +557,10 @@
   }
   .board {
     background: linear-gradient(180deg, var(--tv-plate2), var(--tv-plate));
-    border: 1px solid var(--tv-line);
-    border-radius: 12px;
+    border: var(--outline) solid var(--ink);
+    border-radius: 0;
     padding: 18px 20px;
-    box-shadow: 0 14px 44px oklch(0 0 0 / 0.42);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
   }
   .board-head {
     display: flex;
@@ -558,6 +579,7 @@
   }
   .sub {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--tv-dim);
@@ -573,6 +595,7 @@
   .thead {
     color: var(--tv-dim);
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-size: 0.66rem;
@@ -604,7 +627,7 @@
     width: 30px;
     height: 30px;
     background: var(--accent);
-    color: #14110a;
+    color: var(--ink);
     font-family: var(--disp);
     font-size: 1.25rem;
     border-radius: 4px;
@@ -616,6 +639,7 @@
   }
   .name {
     font-family: var(--name-family);
+    font-stretch: 62%;
     font-weight: var(--name-weight);
     font-size: 1.25rem;
     text-transform: var(--name-transform);
@@ -627,7 +651,10 @@
   .c-n {
     text-align: center;
     font-variant-numeric: tabular-nums;
-    font-family: var(--num);
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     font-size: 1.2rem;
   }
   .c-n.w {
@@ -637,6 +664,7 @@
   .dest {
     text-align: right;
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.72rem;
@@ -684,6 +712,7 @@
   }
   .seed {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-weight: 800;
@@ -692,6 +721,7 @@
   .fate {
     text-align: right;
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.8rem;
@@ -723,6 +753,7 @@
   .hero-tag {
     text-align: center;
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.22em;
     color: var(--accent);
@@ -745,11 +776,12 @@
   .win-badge {
     display: inline-block;
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.16em;
     font-weight: 800;
     font-size: 0.95rem;
-    color: #14110a;
+    color: var(--ink);
     background: var(--accent);
     padding: 4px 18px;
     border-radius: 4px;
@@ -801,7 +833,10 @@
     color: var(--tier);
   }
   .hero-score {
-    font-family: var(--num);
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     font-size: clamp(4.5rem, 9vw, 8rem);
     line-height: 1;
     color: var(--tier);
@@ -819,6 +854,7 @@
   }
   .hero-code {
     font-family: var(--lbl);
+    font-stretch: 75%;
     letter-spacing: 0.16em;
     color: var(--accent);
     font-weight: 700;
@@ -828,6 +864,7 @@
   }
   .hero-ft {
     font-family: var(--lbl);
+    font-stretch: 75%;
     letter-spacing: 0.14em;
     color: var(--tv-dim);
     font-size: 1rem;
@@ -902,7 +939,10 @@
   }
   .mini-w {
     text-align: center;
-    font-family: var(--num);
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     color: var(--accent);
   }
   /* Mini round-robin variant of the top strip */
@@ -917,6 +957,7 @@
   }
   .mrr-seed {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     font-weight: 800;
@@ -948,6 +989,7 @@
   }
   .mcb-h {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-size: 0.62rem;
@@ -1002,7 +1044,10 @@
   .mcb-s {
     text-align: center;
     color: var(--tv-dim);
-    font-family: var(--num);
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     font-size: 0.85rem;
   }
   .mc-hero {
@@ -1028,6 +1073,7 @@
   }
   .nu-tag {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.16em;
     color: var(--accent);
@@ -1036,6 +1082,7 @@
   }
   .nu-code {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--tv-dim);
@@ -1044,6 +1091,7 @@
   }
   .nu-match {
     font-family: var(--name-family);
+    font-stretch: 62%;
     text-transform: uppercase;
     font-weight: 700;
     font-size: 1.55rem;
@@ -1056,6 +1104,7 @@
   }
   .nu-ft {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--tv-dim);
@@ -1101,7 +1150,10 @@
   }
   .gfix-s {
     text-align: center;
-    font-family: var(--num);
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     color: var(--tv-dim);
     font-size: 0.95rem;
     text-transform: uppercase;
@@ -1118,10 +1170,10 @@
   }
   .trophy {
     font-size: clamp(4rem, 12vw, 9rem);
-    filter: drop-shadow(0 0 34px color-mix(in oklch, var(--accent) 50%, transparent));
   }
   .champ-label {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.35em;
     color: var(--accent);
@@ -1147,6 +1199,7 @@
   }
   .sb-sub {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.4em;
     color: var(--accent);
@@ -1171,9 +1224,8 @@
     justify-content: center;
     flex-wrap: wrap;
     padding: 12px;
-    background: oklch(0.06 0.02 264 / 0.9);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid var(--tv-line);
+    background: var(--field-deep);
+    border-top: var(--outline) solid var(--ink);
     transition:
       transform 0.25s ease,
       opacity 0.25s ease;
@@ -1189,6 +1241,7 @@
   }
   .opbar button {
     font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-weight: 700;
@@ -1196,13 +1249,13 @@
     padding: 7px 12px;
     border-radius: 7px;
     border: 1px solid var(--tv-line);
-    background: oklch(1 0 0 / 0.05);
+    background: var(--dark3);
     color: var(--text);
     cursor: pointer;
   }
   .opbar button.active {
     background: var(--accent);
-    color: #14110a;
+    color: var(--ink);
     border-color: var(--accent);
   }
   .spot-nav {
@@ -1211,38 +1264,6 @@
     gap: 8px;
     color: var(--tv-dim);
     font-variant-numeric: tabular-nums;
-  }
-
-  /* Subtle gold god-ray glow layered over the arena photo */
-  .look-fx {
-    background: radial-gradient(58% 42% at 50% 0%, oklch(0.82 0.15 84 / 0.14), transparent 72%);
-  }
-  /* HUD corner-reticle framing on the content area */
-  .stage::before,
-  .stage::after {
-    content: "";
-    position: absolute;
-    width: 46px;
-    height: 46px;
-    border: 2px solid var(--accent);
-    opacity: 0.55;
-    z-index: 1;
-    pointer-events: none;
-  }
-  .stage::before {
-    top: 8px;
-    left: 24px;
-    border-right: none;
-    border-bottom: none;
-  }
-  .stage::after {
-    bottom: 8px;
-    right: 24px;
-    border-left: none;
-    border-top: none;
-  }
-  :global(.bb-links) {
-    filter: drop-shadow(0 0 5px oklch(0.82 0.15 84 / 0.5));
   }
 
   @media (prefers-reduced-motion: reduce) {

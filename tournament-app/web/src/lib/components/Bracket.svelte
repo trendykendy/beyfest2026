@@ -74,7 +74,8 @@
     --tier: var(--gf);
   }
   .col-head {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.68rem;

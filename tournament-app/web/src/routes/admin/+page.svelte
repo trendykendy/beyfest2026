@@ -10,6 +10,7 @@
   import Bracket from "$lib/components/Bracket.svelte";
   import MiniRRTable from "$lib/components/MiniRRTable.svelte";
   import RoundScorer from "$lib/components/RoundScorer.svelte";
+  import Trophy from "$lib/components/Trophy.svelte";
 
   let { data, form } = $props();
 
@@ -139,7 +140,7 @@
     {#if champion}
       <div class="champ">
         <span class="tag">Champion</span>
-        <span class="champ-name">🏆 {champion}</span>
+        <span class="champ-name"><Trophy /> {champion}</span>
       </div>
     {/if}
 
@@ -310,7 +311,7 @@
   }
   textarea {
     resize: vertical;
-    font-family: "Barlow", sans-serif;
+    font-family: var(--font-text);
   }
   .preview {
     font-size: 0.9rem;
@@ -348,7 +349,8 @@
     gap: 6px;
   }
   .mcode {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     font-size: 0.66rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -410,7 +412,8 @@
     opacity: 1;
   }
   .fgroup {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     font-size: 0.66rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -436,7 +439,8 @@
     color: var(--text);
   }
   .next-chip {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     font-size: 0.62rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -463,7 +467,7 @@
     font-size: 0.72rem;
   }
   .champ-name {
-    font-family: "Bebas Neue", sans-serif;
+    font-family: var(--font-display);
     font-size: 2rem;
     letter-spacing: 0.04em;
   }

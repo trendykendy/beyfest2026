@@ -3,6 +3,7 @@
   import { nameMap, tierOf } from "$lib/view";
   import type { StructureSpec } from "@beyfest/engine";
   import MatchPlate from "./MatchPlate.svelte";
+  import Trophy from "../Trophy.svelte";
 
   let {
     matches,
@@ -186,7 +187,7 @@
             <div class="bb-col-body">
               {#each col as m (m.code)}
                 <div class="bb-node" class:is-gf={m.stage === "gf"} bind:this={nodeEls[m.code]}>
-                  {#if m.stage === "gf"}<div class="gf-crown">🏆</div>{/if}
+                  {#if m.stage === "gf"}<div class="gf-crown"><Trophy /></div>{/if}
                   <MatchPlate match={m} {names} {groupCount} />
                 </div>
               {/each}
@@ -275,7 +276,8 @@
     min-width: 0;
   }
   .bb-col-head {
-    font-family: var(--lbl, sans-serif);
+    font-family: var(--lbl);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-weight: 800;
@@ -304,6 +306,5 @@
     left: 50%;
     transform: translateX(-50%);
     font-size: 1.5rem;
-    filter: drop-shadow(0 0 12px color-mix(in oklch, var(--gf) 60%, transparent));
   }
 </style>

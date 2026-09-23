@@ -47,10 +47,10 @@
     --tier: var(--accent);
     position: relative;
     background: var(--tv-plate2);
-    border: 1px solid var(--tv-line);
-    border-left: 3px solid var(--tier);
+    border: var(--outline) solid var(--ink);
+    border-left: 6px solid var(--tier);
     min-width: 240px;
-    box-shadow: 0 10px 26px oklch(0 0 0 / 0.5);
+    box-shadow: 4px 4px 0 var(--ink);
   }
   .tier-wb {
     --tier: var(--wb);
@@ -73,18 +73,20 @@
     align-items: center;
     justify-content: space-between;
     background: var(--accent);
-    color: #14110a;
+    color: var(--ink);
     padding: 3px 9px;
   }
   .pcode {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     font-weight: 800;
     font-size: 0.74rem;
   }
   .pft {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-size: 0.6rem;
@@ -104,7 +106,8 @@
     border-top: 1px solid var(--tv-line);
   }
   .nm {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.02em;
@@ -127,7 +130,10 @@
     font-weight: 800;
   }
   .sc {
-    font-family: var(--num, "Bebas Neue", sans-serif);
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     font-size: 1.75rem;
     line-height: 1;
     min-width: 24px;
