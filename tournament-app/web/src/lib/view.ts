@@ -88,11 +88,12 @@ export function slotLabel(slot: Slot | null, groupCount: number): string {
     case "loser":
       return `Loser of ${slot.match}`;
     case "rrRank": {
-      const tier = slot.stage === "wb_rr" ? "WB" : "LB";
-      return `${tier}-${ordinal(slot.rank)}`;
+      // Placement in a mini round-robin, in words people can read off a TV.
+      const rr = slot.stage === "wb_rr" ? "Winners round-robin" : "Losers round-robin";
+      return slot.rank === 1 ? `${rr} winner` : `${rr} ${ordinal(slot.rank)}`;
     }
     case "poolDraw":
-      return "Group middle";
+      return "Drawn from group middles";
   }
 }
 

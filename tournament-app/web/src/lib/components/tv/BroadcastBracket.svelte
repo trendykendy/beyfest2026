@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PBMatch, PBPlayer } from "$lib/view";
-  import { nameMap, tierOf } from "$lib/view";
+  import { nameMap, tierOf, roundName } from "$lib/view";
   import type { StructureSpec } from "@beyfest/engine";
   import MatchPlate from "./MatchPlate.svelte";
   import Trophy from "../Trophy.svelte";
@@ -60,10 +60,6 @@
     return { cols, edges };
   });
 
-  function shortLabel(roundLabel: string): string {
-    const i = roundLabel.indexOf("— ");
-    return i >= 0 ? roundLabel.slice(i + 2) : roundLabel;
-  }
 
   // ── Connectors (measured in unscaled layout space via offset*) + fit ──
   let boxEl = $state<HTMLElement>();
@@ -182,7 +178,7 @@
         {#each layout.cols as col, ci (ci)}
           <div class="bb-col">
             {#if col.length}
-              <div class="bb-col-head">{shortLabel(col[0].roundLabel)}</div>
+              <div class="bb-col-head">{roundName(col[0].roundLabel)}</div>
             {/if}
             <div class="bb-col-body">
               {#each col as m (m.code)}
@@ -227,7 +223,7 @@
   }
   .link {
     fill: none;
-    stroke-width: 2.5;
+    stroke-width: 4;
     stroke-linejoin: round;
     stroke: var(--bb-link, oklch(0.7 0.03 250));
     opacity: 0.9;
@@ -276,15 +272,13 @@
     min-width: 0;
   }
   .bb-col-head {
-    font-family: var(--lbl);
-    font-stretch: 75%;
+    font-family: var(--font-display);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 800;
-    font-size: 0.9rem;
-    color: var(--accent, oklch(0.8 0.15 85));
-    opacity: 0.85;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--paper);
     text-align: center;
+    white-space: nowrap;
   }
   .bb-col-body {
     display: flex;
