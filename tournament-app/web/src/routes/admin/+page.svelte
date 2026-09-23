@@ -467,6 +467,7 @@
     font-size: 0.72rem;
   }
   .champ-name {
+    text-transform: uppercase;
     font-family: var(--font-display);
     font-size: 2rem;
     letter-spacing: 0.04em;

@@ -39,8 +39,10 @@
   --neutral: var(--on-field-soft);
 
   /* Type */
-  --font-display: "Dela Gothic One", system-ui, sans-serif;
-  --font-text: "Archivo", system-ui, sans-serif;
+  /* Display = Saira Black Italic via the "Beyfest Display" alias (fonts.css);
+     text = Saira. Set font-stretch to condense: 75% labels, 62% long names. */
+  --font-display: "Beyfest Display", "Saira", system-ui, sans-serif;
+  --font-text: "Saira", system-ui, sans-serif;
 
   /* Slab geometry */
   --outline: 3px;
@@ -88,9 +90,10 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 900;
+  text-transform: uppercase;
   letter-spacing: 0.01em;
-  line-height: 1.1;
+  line-height: 1;
 }
 
 .label,

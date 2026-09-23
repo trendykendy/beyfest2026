@@ -56,6 +56,7 @@
     color: var(--text);
   }
   .brand-main {
+    text-transform: uppercase;
     font-family: var(--font-display);
     font-size: 1.6rem;
     letter-spacing: 0.06em;

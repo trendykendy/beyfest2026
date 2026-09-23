@@ -106,8 +106,8 @@
     border-top: 1px solid var(--tv-line);
   }
   .nm {
-    font-family: var(--font-text);
-    font-stretch: 75%;
+    font-family: var(--font-display);
+    font-stretch: 70%;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.02em;
@@ -130,7 +130,7 @@
     font-weight: 800;
   }
   .sc {
-    font-family: var(--font-text);
+    font-family: var(--font-display);
     font-stretch: 75%;
     font-weight: 800;
     font-variant-numeric: tabular-nums;

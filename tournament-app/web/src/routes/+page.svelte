@@ -155,6 +155,7 @@
     color: var(--gf);
   }
   .champ-name {
+    text-transform: uppercase;
     font-family: var(--font-display);
     font-size: clamp(2rem, 6vw, 3.4rem);
     letter-spacing: 0.04em;

@@ -448,8 +448,8 @@
     --tv-dim: var(--on-field-soft);
     --disp: var(--font-display);
     --lbl: var(--font-text);
-    --num: var(--font-text);
-    --name-family: var(--font-text);
+    --num: var(--font-display);
+    --name-family: var(--font-display);
     --name-transform: uppercase;
     --name-weight: 700;
     --rank-skew: 0deg;
@@ -487,6 +487,7 @@
     gap: 16px;
   }
   .bmain {
+    text-transform: uppercase;
     font-family: var(--disp);
     font-size: 1.9rem;
     line-height: 1;
@@ -496,6 +497,7 @@
     clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
   }
   .bkana {
+    text-transform: uppercase;
     font-family: var(--disp);
     font-size: 1.05rem;
     color: var(--on-field-soft);
@@ -508,11 +510,13 @@
     line-height: 1;
   }
   .scene-kana {
+    text-transform: uppercase;
     font-family: var(--disp);
     font-size: 0.95rem;
     color: var(--gold);
   }
   .scene-en {
+    text-transform: uppercase;
     font-family: var(--disp);
     font-size: 2.3rem;
     color: var(--paper);
@@ -621,6 +625,7 @@
     --row-tier: var(--lb);
   }
   .rank {
+    text-transform: uppercase;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -824,6 +829,7 @@
     text-align: left;
   }
   .hero-name {
+    text-transform: uppercase;
     font-family: var(--disp);
     font-size: clamp(3rem, 7.5vw, 7rem);
     letter-spacing: 0.02em;
@@ -899,11 +905,10 @@
     min-width: 250px;
   }
   .mini-h {
+    text-transform: uppercase;
     font-family: var(--disp);
     font-size: 1.5rem;
     color: var(--accent);
-    font-style: italic;
-    transform: skewX(-6deg);
     margin-bottom: 7px;
   }
   .mini-row {
@@ -1181,6 +1186,7 @@
     margin-top: 10px;
   }
   .champ-name {
+    text-transform: uppercase;
     font-family: var(--disp);
     font-size: clamp(4rem, 14vw, 10rem);
     letter-spacing: 0.02em;
@@ -1192,6 +1198,7 @@
     margin-top: 10px;
   }
   .sb-main {
+    text-transform: uppercase;
     font-family: var(--disp);
     font-size: clamp(4rem, 14vw, 11rem);
     letter-spacing: 0.03em;
