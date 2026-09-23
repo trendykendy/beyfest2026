@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { invalidateAll } from "$app/navigation";
   import { pb } from "$lib/pbBrowser";
+  import { EVENT } from "$lib/config";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
   import {
     groupStandings,
@@ -205,18 +206,23 @@
       <span class="bkana" lang="ja">トリプルスレット</span>
     </div>
     <div class="scene-name">
-      <span class="scene-kana" lang="ja">{SCENE_KANA[scene]}</span>
-      <span class="scene-en">{SCENE_TITLE[scene]}</span>
+      <!-- Standby and Champion carry their own giant title; don't repeat it. -->
+      {#if scene !== "standby" && scene !== "champion"}
+        <span class="scene-kana" lang="ja">{SCENE_KANA[scene]}</span>
+        <span class="scene-en">{SCENE_TITLE[scene]}</span>
+      {/if}
     </div>
     <div class="meta">{#if data.tournament}{data.tournament.playerCount} bladers{/if}</div>
   </header>
 
   <main class="stage">
     {#if scene === "standby"}
-      <div class="standby">
-        <div class="sb-main">Beyfest 2026</div>
-        <div class="sb-sub">Triple Threat</div>
-        <div class="sb-note">Waiting for the draw.</div>
+      <div class="finale">
+        <div class="finale-kana" lang="ja">ベイフェスト</div>
+        <div class="big-slab"><span>Beyfest 2026</span></div>
+        <div class="finale-title">Triple Threat</div>
+        <div class="finale-sub">{EVENT.date}, {EVENT.place}</div>
+        <div class="finale-note">The groups are drawn once everyone has checked in.</div>
       </div>
 
     {:else if scene === "groups"}
@@ -422,15 +428,18 @@
 
     {:else if scene === "champion"}
       {@const gf = data.matches.find((m) => m.stage === "gf")}
-      <div class="champ-scene">
-        <div class="trophy"><Trophy size="1em" label="Trophy" /></div>
-        <div class="champ-label">Tournament Champion</div>
-        <div class="champ-name">{names.get(champ)}</div>
+      <div class="finale">
+        <div class="finale-kana" lang="ja">チャンピオン</div>
+        <div class="champ-row">
+          <Trophy size="15rem" label="Trophy" />
+          <div class="big-slab"><span>{names.get(champ)}</span></div>
+        </div>
+        <div class="finale-title">Beyfest 2026 champion</div>
         {#if gf}
-          <div class="champ-sub">
-            beat {names.get(gf.winner === gf.p1 ? gf.p2 : gf.p1)}
+          <div class="finale-sub">
+            Beat {names.get(gf.winner === gf.p1 ? gf.p2 : gf.p1)}
             {Math.max(gf.p1Score ?? 0, gf.p2Score ?? 0)}–{Math.min(gf.p1Score ?? 0, gf.p2Score ?? 0)}
-            in the Grand Final
+            in the grand final
           </div>
         {/if}
       </div>
@@ -1023,55 +1032,65 @@
     font-size: 1.8rem;
   }
 
-  /* Champion + standby */
-  .champ-scene,
-  .standby {
+  /* ── Champion + standby: one big gold slab, the loudest thing in the app ── */
+  .finale {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
+    gap: 22px;
   }
-  .trophy {
-    font-size: clamp(4rem, 12vw, 9rem);
-  }
-  .champ-label {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.35em;
-    color: var(--accent);
-    font-size: 1.2rem;
-    margin-top: 10px;
-  }
-  .champ-name {
-    text-transform: uppercase;
-    font-family: var(--disp);
-    font-size: clamp(4rem, 14vw, 10rem);
-    letter-spacing: 0.02em;
+  .finale-kana {
+    font-family: var(--font-display);
+    font-size: 3rem;
     line-height: 1;
+    color: var(--gold);
   }
-  .champ-sub {
-    color: var(--tv-dim);
-    font-size: 1.15rem;
-    margin-top: 10px;
+  .big-slab {
+    transform: skewX(-10deg);
+    background: var(--gold);
+    color: var(--ink);
+    border: 5px solid var(--ink);
+    box-shadow: 16px 16px 0 var(--ink);
+    padding: 10px 70px 18px;
+    max-width: 1500px;
   }
-  .sb-main {
+  .big-slab > span {
+    display: block;
+    transform: skewX(10deg);
+    font-family: var(--font-display);
+    font-stretch: 62%;
     text-transform: uppercase;
-    font-family: var(--disp);
-    font-size: clamp(4rem, 14vw, 11rem);
-    letter-spacing: 0.03em;
+    font-size: 12rem;
     line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .sb-sub {
-    font-family: var(--lbl);
-    font-stretch: 75%;
+  .champ-row {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+  }
+  .finale-title {
+    font-family: var(--font-display);
     text-transform: uppercase;
-    letter-spacing: 0.4em;
-    color: var(--accent);
-    font-size: 1.4rem;
-    margin-top: 8px;
+    font-size: 4rem;
+    line-height: 1;
+    color: var(--paper);
+    margin-top: 18px;
   }
-  .sb-note {
-    color: var(--tv-dim);
-    margin-top: 24px;
-    font-size: 1.2rem;
+  .finale-sub {
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 2.2rem;
+    color: var(--paper);
+  }
+  .finale-note {
+    font-family: var(--font-text);
+    font-weight: 500;
+    font-size: 1.7rem;
+    color: var(--on-field-soft);
   }
 
   /* Operator bar */
