@@ -136,9 +136,11 @@
   }
   function rrFate(stage: "wb_rr" | "lb_rr", rank: number, advancers: number) {
     if (stage === "wb_rr")
-      return rank === 1 ? { text: "to Grand Final", adv: true } : { text: "to Mid Bracket", adv: true };
-    return rank <= advancers ? { text: "to Mid Bracket", adv: true } : { text: "Eliminated", adv: false };
+      return rank === 1 ? { text: "Grand final", tier: "gf" } : { text: "Mid bracket", tier: "mb" };
+    return rank <= advancers ? { text: "Mid bracket", tier: "mb" } : { text: "Out", tier: "out" };
   }
+  const rrMatchesOf = (stage: string) =>
+    data.matches.filter((m) => m.stage === stage).sort((a, b) => a.orderIndex - b.orderIndex);
 
   // ── Operator control ────────────────────────────────────────────────
   let barVisible = $state(true);
@@ -282,31 +284,69 @@
       </div>
 
     {:else if scene === "rr"}
-      <div class="rr-wrap">
-        {#each [{ st: "wb_rr", title: "Winners Mini-RR" }, { st: "lb_rr", title: "Losers Mini-RR" }] as def (def.st)}
-          {#if structure && hasStage(data.matches, def.st)}
-            {@const stage = def.st as "wb_rr" | "lb_rr"}
-            {@const adv = miniRRAdvancers(structure, stage)}
-            {@const total = data.matches.filter((m) => m.stage === stage).length}
-            {@const played = data.matches.filter((m) => m.stage === stage && m.matchStatus === "done").length}
-            <section class="board rr tier-{stage === 'wb_rr' ? 'wb' : 'lb'}">
-              <div class="board-head">
-                <h2>{def.title}</h2>
-                <span class="sub">{played}/{total} played</span>
-              </div>
-              {#each miniRRStandings(data.matches, stage) as row, i (row.playerId)}
-                {@const f = rrFate(stage, i + 1, adv)}
-                <div class="trow-rr" class:out={!f.adv}>
-                  <span class="seed">{stage === "wb_rr" ? "WB" : "LB"}-{ordinal(i + 1)}</span>
-                  <span class="name">{names.get(row.playerId)}</span>
-                  <span class="c-n">{row.wins}–{row.losses}</span>
-                  <span class="c-n">{row.pointsFor}</span>
-                  <span class="fate" class:adv={f.adv}>{f.text}</span>
+      <div class="gs roomy">
+        <div class="gs-grid rr-grid">
+          {#each [{ st: "wb_rr", title: "Winners round-robin", note: "Winner goes straight to the grand final" }, { st: "lb_rr", title: "Losers round-robin", note: "Last chance to stay in" }] as def (def.st)}
+            {#if structure && hasStage(data.matches, def.st)}
+              {@const stage = def.st as "wb_rr" | "lb_rr"}
+              {@const adv = miniRRAdvancers(structure, stage)}
+              {@const list = rrMatchesOf(stage)}
+              {@const played = list.filter((m) => m.matchStatus === "done").length}
+              <section class="gs-slab rr-slab rr-{stage === 'wb_rr' ? 'wb' : 'lb'}">
+                <header class="gs-head">
+                  <h2>{def.title}</h2>
+                  <span class="gs-progress">{played === list.length ? "Final standings" : `${played} of ${list.length} played`}</span>
+                </header>
+                <p class="rr-note">{def.note}</p>
+                <div class="gs-cols" aria-hidden="true">
+                  <span></span><span></span><span>W–L</span><span>+/−</span><span>Goes to</span>
                 </div>
-              {/each}
-            </section>
-          {/if}
-        {/each}
+                {#each miniRRStandings(data.matches, stage) as row, i (row.playerId)}
+                  {@const f = rrFate(stage, i + 1, adv)}
+                  <div class="gs-row tier-{f.tier === 'out' ? 'lb' : f.tier === 'gf' ? 'wb' : 'mb'}">
+                    <span class="gs-rank">{i + 1}</span>
+                    <span class="gs-name">{names.get(row.playerId)}</span>
+                    <span class="gs-wl">{row.wins}–{row.losses}</span>
+                    <span class="gs-diff">{row.pointDiff > 0 ? "+" : ""}{row.pointDiff}</span>
+                    <span class="gs-dest rr-dest-{f.tier}" class:projected={played < list.length}>{f.text}</span>
+                  </div>
+                {/each}
+                <ol class="gs-fixtures">
+                  {#each list as m (m.code)}
+                    {@const st = fixtureState(m)}
+                    {@const w1 = st === "done" && (m.p1Score ?? 0) > (m.p2Score ?? 0)}
+                    {@const w2 = st === "done" && (m.p2Score ?? 0) > (m.p1Score ?? 0)}
+                    <li class="gs-fx {st}">
+                      <span class="gs-fx-p" class:win={w1} class:lose={w2}>{sideName(m, 1)}</span>
+                      <span class="gs-fx-mid">
+                        {#if st === "done"}{m.p1Score}–{m.p2Score}
+                        {:else if st === "live"}{m.liveP1}–{m.liveP2}
+                        {:else if st === "next"}Next
+                        {:else}v{/if}
+                      </span>
+                      <span class="gs-fx-p right" class:win={w2} class:lose={w1}>{sideName(m, 2)}</span>
+                    </li>
+                  {/each}
+                </ol>
+              </section>
+            {/if}
+          {/each}
+        </div>
+
+        {#if onNow || nextUp}
+          <div class="onnow">
+            {#if onNow}
+              <span class="onnow-tag live">On now</span>
+              <span class="onnow-match">
+                {sideName(onNow, 1)} <b>{onNow.liveP1}–{onNow.liveP2}</b> {sideName(onNow, 2)}
+              </span>
+            {/if}
+            {#if nextUp}
+              <span class="onnow-tag">Next up</span>
+              <span class="onnow-match soft">{sideName(nextUp, 1)} <em>v</em> {sideName(nextUp, 2)}</span>
+            {/if}
+          </div>
+        {/if}
       </div>
 
     {:else if scene === "bracket"}
@@ -527,60 +567,6 @@
     padding-bottom: 96px;
   }
 
-  .board {
-    background: linear-gradient(180deg, var(--tv-plate2), var(--tv-plate));
-    border: var(--outline) solid var(--ink);
-    border-radius: 0;
-    padding: 18px 20px;
-    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
-  }
-  .board-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
-    border-bottom: 2px solid color-mix(in oklch, var(--accent) 55%, transparent);
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-  }
-  .board-head h2 {
-    font-family: var(--disp);
-    font-size: 1.9rem;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-  }
-  .sub {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--tv-dim);
-    font-size: 0.76rem;
-  }
-  .name {
-    font-family: var(--name-family);
-    font-stretch: 62%;
-    font-weight: var(--name-weight);
-    font-size: 1.25rem;
-    text-transform: var(--name-transform);
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .c-n {
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-    font-family: var(--font-text);
-    font-stretch: 75%;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    font-size: 1.2rem;
-  }
-  .c-n.w {
-    color: var(--accent);
-    font-size: 1.4rem;
-  }
 
   /* ── Group stage ─────────────────────────────────────────────────
      White telop slabs on the field. Sized for reading across a hall at
@@ -840,59 +826,51 @@
     color: var(--on-field-soft);
   }
 
-  /* Mini-RR */
-  .rr-wrap {
-    display: flex;
-    gap: 30px;
-    align-items: flex-start;
+  /* ── Mini round-robins: the group slabs, with a tier-coloured header ── */
+  .rr-grid {
+    grid-template-columns: repeat(auto-fit, minmax(0, 780px));
     justify-content: center;
-    width: 100%;
-    max-width: 1320px;
   }
-  .rr {
-    flex: 1;
+  .rr-slab .gs-cols,
+  .rr-slab .gs-row {
+    grid-template-columns: 44px 1fr 88px 64px 150px;
   }
-  .rr.tier-wb {
-    --rr-tier: var(--wb);
+  .rr-wb .gs-head {
+    background: var(--green);
+    color: var(--ink);
   }
-  .rr.tier-lb {
-    --rr-tier: var(--lb);
+  .rr-lb .gs-head {
+    background: var(--red);
   }
-  .trow-rr {
-    display: grid;
-    grid-template-columns: 92px 1fr 70px 44px 150px;
-    align-items: center;
-    gap: 8px;
-    background: linear-gradient(90deg, oklch(1 0 0 / 0.06), oklch(1 0 0 / 0.02));
-    border-radius: var(--plate-radius);
-    clip-path: polygon(0 0, 100% 0, calc(100% - var(--plate-cut)) 100%, 0 100%);
-    padding: 10px 8px;
-    margin-bottom: 6px;
-    font-size: 1.18rem;
+  .rr-wb .gs-progress {
+    color: var(--ink);
   }
-  .trow-rr.out {
-    opacity: 0.55;
+  .rr-lb .gs-progress {
+    color: var(--paper);
   }
-  .seed {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-weight: 800;
-    color: var(--rr-tier);
+  .rr-note {
+    margin: 0;
+    padding: 10px 20px 0;
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 1.3rem;
+    color: var(--ink-soft);
   }
-  .fate {
-    text-align: right;
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.8rem;
-    color: var(--tv-dim);
+  .gs-dest.rr-dest-gf {
+    background: var(--ink);
+    color: var(--gold);
   }
-  .fate.adv {
-    color: var(--rr-tier);
-    font-weight: 700;
+  .gs-dest.rr-dest-mb {
+    background: var(--gold);
+  }
+  .gs-dest.rr-dest-out {
+    background: #dfe3f2;
+    color: var(--ink-soft);
+  }
+  /* Projected (round-robin not finished) beats the outcome colours above. */
+  .rr-slab .gs-dest.projected {
+    background: transparent;
+    color: var(--ink-soft);
   }
 
   /* ── Match centre: anime face-off ──────────────────────────────────
