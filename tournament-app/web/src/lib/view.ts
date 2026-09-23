@@ -144,7 +144,10 @@ export function groupStandings(
   groupIndex: number,
 ): StandingRow[] {
   const ids = players.filter((p) => p.groupIndex === groupIndex).map((p) => p.id);
-  return computeStandings(ids, matches.map(toEngineMatch));
+  // Group-stage matches only: a knockout rematch between group-mates must not
+  // count towards the group table.
+  const groupMatches = matches.filter((m) => m.stage === "group" && m.groupIndex === groupIndex);
+  return computeStandings(ids, groupMatches.map(toEngineMatch));
 }
 
 export function nameMap(players: PBPlayer[]): Map<string, string> {

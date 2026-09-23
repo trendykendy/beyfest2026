@@ -137,3 +137,37 @@ describe("pool draw avoids same-group pairings where possible", () => {
     }
   });
 });
+
+describe("group placings are frozen once the knockout starts", () => {
+  // Group-mates can meet again in the knockout (e.g. two Group 1 players in a
+  // Mid-bracket semi). That rematch must not count towards the group table.
+  test("knockout rematches never change finalGroupRank", () => {
+    let rematches = 0;
+    for (const n of COUNTS) {
+      for (let seed = 0; seed < 25; seed++) {
+        const rng = makeRng(n * 977 + seed * 13 + 1);
+        const stage = createGroupStage(makePlayers(n), rng);
+        const state: State = { structure: stage.structure, players: stage.players, matches: stage.matches };
+        for (const gm of state.matches.filter((m) => m.stage === "group")) playMatch(state, gm.code, rng);
+        resolve(state);
+        const before = new Map(state.players.map((p) => [p.id, p.finalGroupRank]));
+
+        generateKnockout(state, rng);
+        let guard = 0;
+        while (guard++ < 200) {
+          const next = state.matches.find((m) => m.stage !== "group" && m.status === "ready");
+          if (!next) break;
+          playMatch(state, next.code, rng);
+        }
+
+        const groupOf = new Map(state.players.map((p) => [p.id, p.group]));
+        rematches += state.matches.filter(
+          (m) => m.stage !== "group" && m.p1 && m.p2 && groupOf.get(m.p1) === groupOf.get(m.p2),
+        ).length;
+        for (const p of state.players) expect(p.finalGroupRank).toBe(before.get(p.id)!);
+      }
+    }
+    // Guard against a vacuous pass: the scenario must actually occur.
+    expect(rematches).toBeGreaterThan(0);
+  });
+});
