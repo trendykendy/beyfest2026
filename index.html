@@ -1,0 +1,2156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beyfest 2026 — Triple Threat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,600;0,700;1,400&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:    oklch(0.58 0.22 28);
+      --green:  oklch(0.62 0.22 145);
+      --gold:   oklch(0.75 0.18 80);
+      --blue:   oklch(0.60 0.20 250);
+      --dark:   oklch(0.08 0.02 250);
+      --dark2:  oklch(0.11 0.025 250);
+      --dark3:  oklch(0.15 0.025 250);
+      --text:   oklch(0.92 0.01 250);
+      --muted:  oklch(0.62 0.03 250);
+    }
+
+    html { scroll-behavior: auto; }
+
+    body {
+      background: var(--dark);
+      color: var(--text);
+      font-family: 'Barlow', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 40px;
+      background: oklch(0.08 0.02 250 / 0.45);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      backdrop-filter: blur(18px) saturate(140%);
+      border-bottom: 1px solid oklch(0.92 0.01 250 / 0.06);
+    }
+    .nav-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      text-decoration: none;
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--gold); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(to bottom, var(--dark) 0%, var(--dark) 55%, oklch(0.02 0.01 250) 100%);
+      overflow: visible;
+      padding: 0;
+    }
+    .hero-image {
+      position: relative;
+      z-index: 5; /* banner sits on TOP of bolts so the upper portion of bolts is hidden behind the banner edge */
+      width: 100vw;
+      /* Container is taller than the image itself: the artwork renders at the
+         top at full opacity, leaving an empty band below that the mask fades
+         to transparent. This way the banner art (incl. text near the bottom)
+         is never touched by the fade. */
+      aspect-ratio: 1672 / 1080;
+      max-height: calc(95vh * 1080 / 941);
+      background-image: url('uploads/ChatGPT Image May 5, 2026, 04_25_24 PM.png');
+      background-size: 100% 87.1%;  /* 941/1080 ≈ 87.1% → image fills the upper portion */
+      background-position: top center;
+      background-repeat: no-repeat;
+      background-color: var(--dark);
+      margin-top: 0;
+      /* Mask is fully opaque through the entire image region, then dissolves
+         across the empty band below — no fade ever touches the artwork. */
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 87%, rgba(0,0,0,0.55) 94%, transparent 100%);
+              mask-image: linear-gradient(to bottom, #000 0%, #000 87%, rgba(0,0,0,0.55) 94%, transparent 100%);
+    }
+    /* Soft veil that dissolves the banner's hard bottom edge into the storm
+       below \u2014 transparent at the top, deepening to the page bg as it approaches
+       (and crosses) the seam where the clouds emerge. */
+    .hero-image::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -160px;
+      height: 420px;
+      pointer-events: none;
+      /* Many closely-spaced stops with eased alpha ramp → no visible banding,
+         a long graceful dissolve into the page background. */
+      background: linear-gradient(
+        to bottom,
+        rgba(13, 13, 13, 0) 0%,
+        rgba(13, 13, 13, 0.05) 18%,
+        rgba(13, 13, 13, 0.14) 32%,
+        rgba(13, 13, 13, 0.28) 45%,
+        rgba(13, 13, 13, 0.46) 57%,
+        rgba(13, 13, 13, 0.66) 70%,
+        rgba(13, 13, 13, 0.84) 82%,
+        rgba(13, 13, 13, 0.95) 92%,
+        var(--dark) 100%
+      );
+    }
+    /* Wrapper around the banner so storm-clouds can anchor to the banner's
+       bottom edge while still participating in the ROOT stacking context
+       (no z-index here → no stacking context, so children's z-index escapes). */
+    .banner-wrap {
+      position: relative;
+      width: 100vw;
+    }
+    /* Roiling storm clouds UNDER the banner — z:1 places them just above the
+       lightning (z:0) and below everything else (hero-content z:2, etc). */
+    .storm-clouds {
+      position: absolute;
+      left: -8%;
+      right: -8%;
+      top: calc(87.1% - 200px); /* raised; long transparent top band keeps dense fog where it was */
+      height: 1180px; /* stretch down through the hero content to the "What is Beyfest?" eyebrow */
+      z-index: 6; /* above the banner image (z:5) so fog rolls OVER the artwork */
+      pointer-events: none;
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 14%, rgba(0,0,0,0.08) 21%, rgba(0,0,0,0.3) 27%, rgba(0,0,0,0.62) 33%, rgba(0,0,0,0.9) 39%, #000 44%, #000 52%, rgba(0,0,0,0.8) 64%, rgba(0,0,0,0.55) 76%, rgba(0,0,0,0.28) 88%, transparent 100%);
+              mask-image: linear-gradient(to bottom, transparent 0%, transparent 14%, rgba(0,0,0,0.08) 21%, rgba(0,0,0,0.3) 27%, rgba(0,0,0,0.62) 33%, rgba(0,0,0,0.9) 39%, #000 44%, #000 52%, rgba(0,0,0,0.8) 64%, rgba(0,0,0,0.55) 76%, rgba(0,0,0,0.28) 88%, transparent 100%);
+    }
+    .storm-clouds .cloud-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 116%;
+      height: 100%;
+      display: block;
+      will-change: transform;
+    }
+    /* Gentle back-and-forth sway instead of a one-way loop — alternate +
+       ease-in-out means the drift eases to a stop and reverses, so there is
+       never a hard jump-cut when the animation repeats. */
+    .storm-clouds .cloud-back {
+      animation: storm-drift-back 56s ease-in-out infinite alternate;
+      opacity: 1;
+    }
+    .storm-clouds .cloud-front {
+      animation: storm-drift-front 34s ease-in-out infinite alternate;
+      opacity: 0.92;
+    }
+    @keyframes storm-drift-back {
+      from { transform: translate3d(-6%, 0, 0); }
+      to   { transform: translate3d(6%, 0, 0); }
+    }
+    @keyframes storm-drift-front {
+      from { transform: translate3d(5%, 0, 0); }
+      to   { transform: translate3d(-7%, 0, 0); }
+    }
+    /* Fracture is anchored to the top of .about and extends UP behind the banner.
+       Mask fades the bottom so bolts taper into nothing before "What is Beyfest?". */
+    .hero-fracture {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -380px;
+      height: 820px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.45s ease-out;
+      z-index: 0; /* furthest back — distant-storm energy */
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 80%, transparent 95%);
+              mask-image: linear-gradient(to bottom, #000 0%, #000 80%, transparent 95%);
+    }
+    .hero-fracture.is-active {
+      opacity: 0.6;
+    }
+    .hero-fracture svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+    /* Three stacked layers per bolt: outer blur glow → mid colored → bright white core */
+    .bolt-glow {
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      opacity: 0.45;
+      filter: blur(6px);
+    }
+    .bolt-mid {
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      opacity: 0.95;
+    }
+    .bolt-core {
+      stroke: #fff;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      opacity: 0.95;
+      filter: drop-shadow(0 0 1.5px #fff);
+    }
+    /* color variants applied to glow + mid */
+    .bolt-gold .bolt-glow,
+    .bolt-gold .bolt-mid { stroke: var(--gold); }
+    .bolt-red .bolt-glow,
+    .bolt-red .bolt-mid { stroke: var(--red); }
+    .bolt-green .bolt-glow,
+    .bolt-green .bolt-mid { stroke: var(--green); }
+    .hero-content {
+      position: relative;
+      z-index: 7; /* above banner (5) and fog (6) so it reads as the focal layer */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 26px;
+      /* Rise up into the storm zone right beneath the banner art instead of
+         floating in a black void far below it. */
+      margin-top: clamp(-60px, -2.5vw, -10px);
+      padding: 0 24px 110px;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(0.8rem, 1.1vw, 1rem);
+      font-weight: 700;
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      color: var(--gold);
+      opacity: 0;
+      animation: fadeUp 0.8s 0.15s forwards;
+    }
+    /* Dramatic three-line tagline — each phrase carries one of the arena
+       colors so the type itself spells out the triple-threat concept. */
+    .hero-tagline {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      margin: 0;
+      font-family: 'Bebas Neue', sans-serif;
+      font-weight: 400;
+      line-height: 0.92;
+      letter-spacing: 0.03em;
+      font-size: clamp(2.6rem, 7vw, 6rem);
+    }
+    .tag-word {
+      display: block;
+      opacity: 0;
+      transform: translateY(18px);
+      animation: fadeUp 0.7s forwards;
+      text-shadow: 0 2px 30px rgba(0,0,0,0.6);
+    }
+    .tag-word.tw-red   { color: var(--red);   animation-delay: 0.30s; }
+    .tag-word.tw-gold  { color: var(--gold);  animation-delay: 0.45s;
+                         filter: drop-shadow(0 0 26px oklch(0.75 0.18 80 / 0.45)); }
+    .tag-word.tw-green { color: var(--green); animation-delay: 0.60s; }
+
+    .hero-meta {
+      opacity: 0;
+      animation: fadeUp 0.8s 0.8s forwards;
+    }
+    .hero-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text);
+      padding: 9px 20px;
+      border: 1px solid oklch(0.92 0.01 250 / 0.16);
+      border-radius: 999px;
+      background: oklch(0.11 0.025 250 / 0.5);
+      -webkit-backdrop-filter: blur(8px);
+              backdrop-filter: blur(8px);
+    }
+    .chip-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 10px var(--gold);
+      animation: chipPulse 2.4s ease-in-out infinite;
+    }
+    @keyframes chipPulse {
+      0%, 100% { opacity: 1;   transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(0.7); }
+    }
+    .hero-cta {
+      display: flex;
+      gap: 16px;
+      margin-top: 6px;
+      opacity: 0;
+      animation: fadeUp 0.8s 1.0s forwards;
+    }
+    .btn {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 14px 36px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: var(--gold);
+      color: var(--dark);
+      box-shadow: 0 0 24px oklch(0.75 0.18 80 / 0.5);
+    }
+    .btn-primary:hover { box-shadow: 0 0 40px oklch(0.75 0.18 80 / 0.8); }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 2px solid oklch(0.92 0.01 250 / 0.3);
+    }
+    .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+    .hero-scroll-hint {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      opacity: 0.4;
+      animation: bounce 2s infinite;
+    }
+    .scroll-line {
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(to bottom, transparent, var(--gold));
+    }
+    .scroll-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    /* ── SECTION SHARED ── */
+    section {
+      padding: 100px 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+    .section-eyebrow {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      letter-spacing: 0.04em;
+      line-height: 1;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+    .section-divider {
+      width: 60px;
+      height: 3px;
+      margin-bottom: 40px;
+    }
+
+    /* ── ABOUT ── */
+    .about {
+      background: linear-gradient(to bottom, oklch(0.02 0.01 250) 0%, oklch(0.03 0.012 250) 300px, var(--dark) 560px, var(--dark2) 820px);
+      position: relative;
+      overflow: visible;
+    }
+    .about > .container {
+      position: relative;
+      z-index: 8; /* above the storm fog (z:6) so the heading/body stay crisp */
+    }
+    .about::before {
+      content: '';
+      position: absolute;
+      top: -200px; right: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, oklch(0.75 0.18 80 / 0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .about-text p {
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.8;
+      margin-bottom: 16px;
+    }
+    .about-text p strong { color: var(--text); }
+    .about-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 40px;
+    }
+    .stat-card {
+      background: var(--dark3);
+      border: 1px solid oklch(0.92 0.01 250 / 0.06);
+      padding: 24px;
+    }
+    .stat-number {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      line-height: 1;
+      color: var(--gold);
+    }
+    .stat-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .about-arena {
+      position: relative;
+    }
+    .about-arena img {
+      width: 100%;
+      border: 1px solid oklch(0.92 0.01 250 / 0.1);
+      display: block;
+    }
+    .arena-label {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, var(--dark2), transparent);
+      padding: 32px 24px 20px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-end;
+    }
+    .threat-badge {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .threat-badge .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .badge-red { border: 1px solid var(--red); color: var(--red); }
+    .badge-red .dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+    .badge-green { border: 1px solid var(--green); color: var(--green); }
+    .badge-green .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .badge-gold { border: 1px solid var(--gold); color: var(--gold); }
+    .badge-gold .dot { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+
+    /* ── ARENAS ── */
+    .arenas {
+      background: var(--dark);
+      position: relative;
+      overflow: hidden;
+    }
+    .arenas-banner {
+      position: relative;
+      max-width: 1400px;
+      margin: 0 auto 80px;
+      padding: 0 40px;
+    }
+    .arenas-banner img {
+      width: 100%;
+      display: block;
+      border: 1px solid oklch(0.92 0.01 250 / 0.08);
+      filter: brightness(0.85) saturate(1.1);
+    }
+    .arena-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .arena-row {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      min-height: 480px;
+      background: var(--dark2);
+    }
+    .arena-row.reverse {
+      grid-template-columns: 1fr 1.1fr;
+    }
+    .arena-row.reverse .arena-img-wrap { order: 2; }
+    .arena-row.reverse .arena-content { order: 1; }
+    .arena-img-wrap {
+      position: relative;
+      overflow: hidden;
+    }
+    .arena-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      transition: transform 0.6s, filter 0.4s;
+      filter: saturate(0.9);
+      display: block;
+    }
+    .arena-row:hover .arena-img-wrap img {
+      transform: scale(1.04);
+      filter: saturate(1.1);
+    }
+    .arena-img-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .arena-row.gold .arena-img-wrap::after { box-shadow: inset 0 0 0 1px var(--gold); opacity: 0.4; }
+    .arena-row.green .arena-img-wrap::after { box-shadow: inset 0 0 0 1px var(--green); opacity: 0.4; }
+    .arena-row.red .arena-img-wrap::after { box-shadow: inset 0 0 0 1px var(--red); opacity: 0.4; }
+    .arena-content {
+      padding: 64px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .arena-numeral {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 7rem;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      opacity: 0.18;
+      margin-bottom: -32px;
+    }
+    .arena-row.gold .arena-numeral { color: var(--gold); }
+    .arena-row.green .arena-numeral { color: var(--green); }
+    .arena-row.red .arena-numeral { color: var(--red); }
+    .arena-codename {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .arena-row.gold .arena-codename { color: var(--gold); }
+    .arena-row.green .arena-codename { color: var(--green); }
+    .arena-row.red .arena-codename { color: var(--red); }
+    .arena-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .arena-model {
+      font-family: 'Barlow', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+    .arena-desc {
+      font-size: 1rem;
+      color: oklch(0.78 0.02 250);
+      line-height: 1.75;
+      margin-bottom: 28px;
+    }
+    .arena-traits {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .arena-trait {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border: 1px solid oklch(0.92 0.01 250 / 0.15);
+      color: var(--muted);
+    }
+    .arena-row.gold .arena-trait.favored { border-color: var(--gold); color: var(--gold); }
+    .arena-row.green .arena-trait.favored { border-color: var(--green); color: var(--green); }
+    .arena-row.red .arena-trait.favored { border-color: var(--red); color: var(--red); }
+
+    /* ── RULES ── */
+    .rules { background: var(--dark); position: relative; overflow: hidden; }
+    .rules::before {
+      content: '';
+      position: absolute;
+      top: 10%; left: -200px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, oklch(0.58 0.22 28 / 0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .rules-intro {
+      max-width: 720px;
+      margin-bottom: 64px;
+    }
+    .rules-intro p {
+      color: oklch(0.78 0.02 250);
+      font-size: 1.1rem;
+      line-height: 1.75;
+      margin-bottom: 16px;
+    }
+    .rules-intro p strong { color: var(--gold); font-weight: 600; }
+
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2px;
+      margin-bottom: 80px;
+    }
+    .rules-card {
+      background: var(--dark2);
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .rules-card.full { grid-column: 1 / -1; }
+    .rules-card-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid oklch(0.92 0.01 250 / 0.08);
+    }
+    .rules-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.5rem;
+      line-height: 1;
+      color: var(--gold);
+      letter-spacing: 0.04em;
+    }
+    .rules-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.7rem;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      color: var(--text);
+    }
+    .rules-card p, .rules-card li {
+      color: oklch(0.78 0.02 250);
+      font-size: 0.96rem;
+      line-height: 1.7;
+    }
+    .rules-card p { margin-bottom: 12px; }
+    .rules-card ul {
+      list-style: none;
+      padding: 0;
+    }
+    .rules-card li {
+      padding: 8px 0 8px 20px;
+      position: relative;
+      border-bottom: 1px solid oklch(0.92 0.01 250 / 0.05);
+    }
+    .rules-card li:last-child { border-bottom: 0; }
+    .rules-card li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 18px;
+      width: 8px;
+      height: 1px;
+      background: var(--gold);
+    }
+    .rules-card li strong {
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    /* Scoring table */
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    .score-table th {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: left;
+      padding: 12px 16px;
+      border-bottom: 1px solid oklch(0.92 0.01 250 / 0.1);
+    }
+    .score-table th:last-child { text-align: right; }
+    .score-table td {
+      padding: 16px;
+      border-bottom: 1px solid oklch(0.92 0.01 250 / 0.05);
+      color: oklch(0.85 0.02 250);
+      font-size: 0.95rem;
+    }
+    .score-table td:last-child {
+      text-align: right;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: 0.04em;
+    }
+    .score-table tr:nth-child(1) td:last-child { color: var(--green); }
+    .score-table tr:nth-child(2) td:last-child { color: var(--gold); }
+    .score-table tr:nth-child(3) td:last-child { color: var(--red); }
+    .score-table tr:last-child td { border-bottom: 0; }
+
+    /* Bracket flow */
+    .bracket-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr 1fr;
+      gap: 16px;
+      align-items: center;
+      margin-top: 24px;
+    }
+    .bracket-node {
+      background: var(--dark3);
+      padding: 20px;
+      border-top: 2px solid;
+      text-align: center;
+    }
+    .bracket-node.start { border-color: var(--gold); }
+    .bracket-node.winners { border-color: var(--green); }
+    .bracket-node.losers { border-color: var(--red); }
+    .bracket-node-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .bracket-node-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.2rem;
+      letter-spacing: 0.05em;
+      color: var(--text);
+    }
+    .bracket-arrow {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+    .bracket-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Match progression */
+    .match-points {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 20px;
+    }
+    .mp-card {
+      background: var(--dark3);
+      padding: 24px 20px;
+      text-align: center;
+      border-top: 2px solid;
+    }
+    .mp-card:nth-child(1) { border-color: var(--muted); }
+    .mp-card:nth-child(2) { border-color: var(--gold); }
+    .mp-card:nth-child(3) { border-color: var(--red); }
+    .mp-stage {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .mp-target {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      line-height: 1;
+      color: var(--text);
+    }
+    .mp-target span { color: var(--gold); }
+    .mp-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: oklch(0.72 0.02 250);
+      margin-top: 6px;
+    }
+
+    .rules-footnote {
+      max-width: 640px;
+      padding: 32px;
+      background: var(--dark2);
+      border-left: 3px solid var(--gold);
+    }
+    .rules-footnote p {
+      font-style: italic;
+      color: oklch(0.85 0.02 250);
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+    .rules-footnote p + p { margin-top: 12px; }
+    .rules-footnote-cite {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      font-style: normal;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold) !important;
+      margin-top: 12px;
+    }
+
+    /* ── FORMAT ── */
+    .format { background: var(--dark); }
+    .format-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 48px;
+    }
+    .format-card {
+      background: var(--dark2);
+      padding: 40px 32px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+    .format-card:hover { transform: translateY(-4px); }
+    .format-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .format-card:nth-child(1)::before { background: var(--red); box-shadow: 0 0 12px var(--red); }
+    .format-card:nth-child(2)::before { background: var(--gold); box-shadow: 0 0 12px var(--gold); }
+    .format-card:nth-child(3)::before { background: var(--green); box-shadow: 0 0 12px var(--green); }
+    .format-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 4rem;
+      line-height: 1;
+      opacity: 0.12;
+      position: absolute;
+      top: 16px; right: 24px;
+    }
+    .format-card:nth-child(1) .format-num { color: var(--red); }
+    .format-card:nth-child(2) .format-num { color: var(--gold); }
+    .format-card:nth-child(3) .format-num { color: var(--green); }
+    .format-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .format-desc {
+      font-size: 0.95rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* ── FIGHTERS ── */
+    .fighters { background: var(--dark2); }
+    .fighters-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 56px;
+    }
+    .fighters-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+    }
+    .fighter-card {
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      aspect-ratio: 2/3;
+    }
+    .fighter-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+      transition: transform 0.5s, filter 0.3s;
+      filter: saturate(0.9);
+      display: block;
+    }
+    .fighter-card:hover img {
+      transform: scale(1.04);
+      filter: saturate(1.1);
+    }
+    .fighter-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, oklch(0.08 0.02 250 / 0.95) 0%, oklch(0.08 0.02 250 / 0.4) 40%, transparent 70%);
+    }
+    .fighter-info {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 32px 28px;
+    }
+    .fighter-jp {
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .fighter-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem;
+      letter-spacing: 0.06em;
+      line-height: 1;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .fighter-card:nth-child(1) .fighter-color-bar { background: var(--blue); box-shadow: 0 0 12px var(--blue); }
+    .fighter-card:nth-child(2) .fighter-color-bar { background: var(--green); box-shadow: 0 0 12px var(--green); }
+    .fighter-card:nth-child(3) .fighter-color-bar { background: var(--red); box-shadow: 0 0 12px var(--red); }
+    .fighter-color-bar {
+      height: 3px;
+      width: 40px;
+      margin-bottom: 12px;
+      transition: width 0.3s;
+    }
+    .fighter-card:hover .fighter-color-bar { width: 80px; }
+    .fighter-bio {
+      font-size: 0.88rem;
+      color: oklch(0.72 0.03 250);
+      line-height: 1.6;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+    .fighter-card:hover .fighter-bio { max-height: 80px; }
+    .fighter-placeholder {
+      width: 100%;
+      height: 100%;
+      background: var(--dark3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .fighter-placeholder-icon {
+      width: 80px; height: 80px;
+      border: 2px dashed oklch(0.92 0.01 250 / 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      color: oklch(0.92 0.01 250 / 0.15);
+    }
+    .fighter-placeholder-text {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: oklch(0.92 0.01 250 / 0.2);
+    }
+
+    /* ── VS BATTLE SHOWCASE ── */
+    .battles { background: var(--dark); overflow: hidden; }
+    .battles-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 56px;
+    }
+    .battle-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .battle-card {
+      position: relative;
+      overflow: hidden;
+      height: 340px;
+      cursor: pointer;
+      transition: height 0.5s cubic-bezier(.2,.7,.2,1);
+    }
+    .battle-card.expanded {
+      height: 620px;
+    }
+    .battle-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      transition: transform 0.5s, filter 0.4s;
+      filter: brightness(0.75) saturate(0.9);
+      display: block;
+    }
+    .battle-card:hover img {
+      transform: scale(1.03);
+      filter: brightness(0.9) saturate(1.1);
+    }
+    .battle-card.expanded img {
+      filter: brightness(0.55) saturate(1.05);
+    }
+    .battle-card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right,
+        oklch(0.08 0.02 250 / 0.7) 0%,
+        transparent 35%,
+        transparent 65%,
+        oklch(0.08 0.02 250 / 0.7) 100%
+      );
+      pointer-events: none;
+    }
+    .battle-info {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      padding: 28px 40px;
+      pointer-events: none;
+    }
+    .battle-tag {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+    .battle-headline {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .battle-headline .vs {
+      color: var(--red);
+      font-size: 1.4rem;
+      letter-spacing: 0.1em;
+    }
+    .battle-expand-hint {
+      position: absolute;
+      top: 24px; right: 32px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .battle-expand-hint::after {
+      content: '+';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px; height: 22px;
+      border: 1px solid var(--muted);
+      border-radius: 50%;
+      font-size: 1rem;
+      transition: transform 0.3s, border-color 0.3s, color 0.3s;
+    }
+    .battle-card.expanded .battle-expand-hint::after {
+      content: '×';
+      border-color: var(--gold);
+      color: var(--gold);
+      transform: rotate(180deg);
+    }
+    .battle-detail {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      padding: 40px;
+      max-width: 720px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.4s 0.1s, transform 0.4s 0.1s;
+      pointer-events: none;
+    }
+    .battle-card.expanded .battle-detail {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .battle-card.expanded .battle-info {
+      transform: translateY(-260px);
+      transition: transform 0.5s cubic-bezier(.2,.7,.2,1);
+    }
+    .battle-detail-meta {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid oklch(0.92 0.01 250 / 0.15);
+    }
+    .battle-detail-meta div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .battle-detail-meta .label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .battle-detail-meta .value {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.05em;
+    }
+    .battle-detail-meta .value.gold { color: var(--gold); }
+    .battle-detail-meta .value.green { color: var(--green); }
+    .battle-detail-meta .value.red { color: var(--red); }
+    .battle-detail p {
+      color: oklch(0.85 0.02 250);
+      font-size: 0.98rem;
+      line-height: 1.7;
+      max-width: 640px;
+    }
+
+    /* ── PAST EVENTS ── */
+    .past { background: var(--dark2); }
+    .past-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      margin-top: 48px;
+    }
+    .past-card {
+      position: relative;
+      overflow: hidden;
+      height: 420px;
+      cursor: pointer;
+    }
+    .past-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+      transition: transform 0.5s, filter 0.3s;
+      filter: brightness(0.6) saturate(0.8);
+      display: block;
+    }
+    .past-card:hover img {
+      transform: scale(1.04);
+      filter: brightness(0.75) saturate(1.0);
+    }
+    .past-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, oklch(0.08 0.02 250 / 0.95) 0%, transparent 60%);
+    }
+    .past-info {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 32px;
+    }
+    .past-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .past-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      color: var(--text);
+    }
+    .past-sub {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ── REGISTER CTA ── */
+    .register {
+      background: var(--dark);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .register::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, oklch(0.75 0.18 80 / 0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .register-content { position: relative; z-index: 1; }
+    .register-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3rem, 8vw, 7rem);
+      letter-spacing: 0.04em;
+      line-height: 1;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .register-sub {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto 36px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: oklch(0.05 0.015 250);
+      padding: 48px 0;
+      border-top: 1px solid oklch(0.92 0.01 250 / 0.06);
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+    }
+    .footer-copy {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .footer-copy a { color: var(--muted); text-decoration: none; }
+    .footer-copy a:hover { color: var(--gold); }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+    .footer-links a {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .footer-links a:hover { color: var(--gold); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50%       { transform: translateX(-50%) translateY(8px); }
+    }
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    /* ── SPINNING BEY DECORATIONS ── */
+    .bey-spin {
+      position: absolute;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      opacity: 0.06;
+      pointer-events: none;
+      animation: spin-slow 8s linear infinite;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      nav { padding: 16px 24px; }
+      .nav-links { display: none; }
+      .container { padding: 0 24px; }
+      .about-grid { grid-template-columns: 1fr; gap: 48px; }
+      .format-grid { grid-template-columns: 1fr; }
+      .rules-grid { grid-template-columns: 1fr; }
+      .bracket-flow { grid-template-columns: 1fr; }
+      .match-points { grid-template-columns: 1fr; }
+      .rules-card { padding: 28px 24px; }
+      .fighters-grid { grid-template-columns: 1fr; }
+      .fighter-card { aspect-ratio: 3/4; }
+      .battle-card { height: 240px; }
+      .past-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; gap: 24px; text-align: center; }
+      .fighters-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .arena-row, .arena-row.reverse { grid-template-columns: 1fr; min-height: 0; }
+      .arena-row.reverse .arena-img-wrap { order: 0; }
+      .arena-row.reverse .arena-content { order: 0; }
+      .arena-img-wrap { aspect-ratio: 4/3; }
+      .arena-content { padding: 40px 28px; }
+      .arena-name { font-size: 2.2rem; }
+      .arena-numeral { font-size: 5rem; margin-bottom: -20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">Beyfest 2026</a>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#arenas">Arenas</a></li>
+      <li><a href="#rules">Rules</a></li>
+      <!-- <li><a href="#fighters">Fighters</a></li> -->
+      <!-- <li><a href="#battles">Battles</a></li> -->
+      <li><a href="#past">Past Events</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="banner-wrap">
+      <div class="hero-image"></div>
+      <div class="storm-clouds" aria-hidden="true">
+        <svg class="cloud-layer cloud-back" viewBox="0 0 1200 640" preserveAspectRatio="none">
+          <defs>
+            <filter id="storm-back" x="0%" y="0%" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.0085 0.022" numOctaves="2" seed="3">
+                <animate attributeName="baseFrequency" dur="30s" values="0.0085 0.022;0.012 0.028;0.0085 0.022" repeatCount="indefinite" />
+              </feTurbulence>
+              <feColorMatrix type="matrix" values="0 0 0 0 0.04
+                                                   0 0 0 0 0.06
+                                                   0 0 0 0 0.11
+                                                   0 0 0 2.2 -0.35" />
+            </filter>
+          </defs>
+          <rect width="1200" height="640" filter="url(#storm-back)" />
+        </svg>
+        <svg class="cloud-layer cloud-front" viewBox="0 0 1200 640" preserveAspectRatio="none">
+          <defs>
+            <filter id="storm-front" x="0%" y="0%" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.018 0.04" numOctaves="2" seed="11">
+                <animate attributeName="baseFrequency" dur="22s" values="0.018 0.04;0.024 0.05;0.018 0.04" repeatCount="indefinite" />
+              </feTurbulence>
+              <feColorMatrix type="matrix" values="0 0 0 0 0.02
+                                                   0 0 0 0 0.03
+                                                   0 0 0 0 0.06
+                                                   0 0 0 2.7 -0.55" />
+            </filter>
+          </defs>
+          <rect width="1200" height="640" filter="url(#storm-front)" />
+        </svg>
+      </div>
+    </div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">トリプルスレット &nbsp;·&nbsp; Triple Threat</p>
+      <h1 class="hero-tagline">
+        <span class="tag-word tw-red">Three Arenas.</span>
+        <span class="tag-word tw-gold">One Champion.</span>
+        <span class="tag-word tw-green">No Regrets.</span>
+      </h1>
+      <div class="hero-meta">
+        <span class="hero-chip">
+          <span class="chip-dot"></span>
+          November 7, 2026 &nbsp;·&nbsp; Innishannon
+        </span>
+      </div>
+      <div class="hero-cta">
+        <a href="#about" class="btn btn-primary">Learn More</a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const fracture = document.getElementById('heroFracture');
+      const layer = document.getElementById('boltLayer');
+      if (!fracture || !layer) return;
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+
+      const VIEW_H = 820;
+
+      // ── PROCEDURAL JAGGED PATH (midpoint displacement) ──
+      // Subdivides recursively until segments are smaller than `detail`.
+      // Smaller detail + larger displace = real-lightning chaos.
+      function jaggedPath(x0, y0, x1, y1, displace, detail) {
+        let pts = [[x0, y0], [x1, y1]];
+        let d = displace;
+        while (d > detail) {
+          const next = [pts[0]];
+          for (let i = 0; i < pts.length - 1; i++) {
+            const [ax, ay] = pts[i];
+            const [bx, by] = pts[i + 1];
+            const dx = bx - ax, dy = by - ay;
+            const len = Math.hypot(dx, dy) || 1;
+            const nx = -dy / len, ny = dx / len;
+            const off = (Math.random() - 0.5) * d;
+            const mx = (ax + bx) / 2 + nx * off;
+            const my = (ay + by) / 2 + ny * off;
+            next.push([mx, my]);
+            next.push([bx, by]);
+          }
+          pts = next;
+          d *= 0.5;
+        }
+        return 'M' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' L');
+      }
+
+      // ── 3 TRUNK BLUEPRINT ──
+      // Just three: red (left), gold (center, biggest), green (right).
+      // Each has a chunked trunk (3 segments, taper width down the page) plus
+      // a recursive branch tree forked off at multiple t-points.
+      const TRUNKS = [
+        { x: 230, color: 'bolt-red',   width: 17, delay: 0.05 },
+        { x: 600, color: 'bolt-gold',  width: 25, delay: 0.00 },
+        { x: 970, color: 'bolt-green', width: 17, delay: 0.05 },
+      ];
+
+      // Builds a recursive tree of branches descending downward+outward.
+      // Each branch is jagged, generates 1-3 children with reduced length
+      // and width until the limits are hit. Mimics real lightning capillaries.
+      function buildBranchTree(originX, originY, dirAngle, length, depth, color, baseWidth, out, parentDelay) {
+        if (depth > 4 || length < 14 || baseWidth < 0.45) return;
+        const tx = originX + Math.sin(dirAngle) * length;
+        const ty = originY + Math.cos(dirAngle) * length;
+        // Clamp branch endpoints to viewBox so they don't fly off
+        const cy = Math.max(0, Math.min(VIEW_H, ty));
+        const widths = [baseWidth, baseWidth * 0.32, Math.max(0.45, baseWidth * 0.11)];
+        out.push({
+          x0: originX, y0: originY, x1: tx, y1: cy,
+          displace: length * 0.42, // very jagged
+          detail: 1.4,
+          widths, color,
+          delay: parentDelay,
+        });
+        // sub-branches
+        const subCount = depth < 1 ? 2 : depth < 3 ? 2 : 1;
+        for (let i = 0; i < subCount; i++) {
+          const t = 0.25 + Math.random() * 0.55;
+          const ox = originX + (tx - originX) * t;
+          const oy = originY + (cy - originY) * t;
+          // wide spread for capillary look (±~1.4 rad)
+          const newAngle = dirAngle + (Math.random() - 0.5) * 1.6;
+          const newLength = length * (0.38 + Math.random() * 0.30);
+          const newWidth = baseWidth * (0.42 + Math.random() * 0.22);
+          buildBranchTree(ox, oy, newAngle, newLength, depth + 1, color, newWidth, out,
+                          parentDelay + 0.04 + Math.random() * 0.05);
+        }
+      }
+
+      // Trunk: 3 chained jagged segments down the page, each thinner than the last.
+      // Then sub-branches sprout off the trunk's intermediate points + many random t-values.
+      function buildTrunk(trunk) {
+        const segs = [];
+        // Trunk waypoints — wander around trunk.x but always head downward
+        const waypoints = [
+          [trunk.x, 0],
+          [trunk.x + (Math.random() - 0.5) * 126, VIEW_H * 0.35],
+          [trunk.x + (Math.random() - 0.5) * 156, VIEW_H * 0.70],
+          [trunk.x + (Math.random() - 0.5) * 96, VIEW_H * 0.98],
+        ];
+        for (let i = 0; i < waypoints.length - 1; i++) {
+          const [sx, sy] = waypoints[i];
+          const [ex, ey] = waypoints[i + 1];
+          // Taper width down the trunk
+          const widthScale = i === 0 ? 1.0 : i === 1 ? 0.72 : 0.45;
+          const w0 = trunk.width * widthScale;
+          segs.push({
+            x0: sx, y0: sy, x1: ex, y1: ey,
+            displace: 108 - i * 18,  // strong displacement → very jagged
+            detail: 1.2,            // tiny detail threshold → many subdivisions
+            widths: [w0, w0 * 0.30, Math.max(0.6, w0 * 0.10)],
+            color: trunk.color,
+            delay: trunk.delay + i * 0.06,
+            isTrunk: true,
+          });
+        }
+        // Branches off each waypoint joint (and a few random spots)
+        for (let i = 0; i < waypoints.length - 1; i++) {
+          const branchCount = 1 + Math.floor(Math.random() * 2);
+          for (let b = 0; b < branchCount; b++) {
+            const t = Math.random();
+            const ox = waypoints[i][0] + (waypoints[i + 1][0] - waypoints[i][0]) * t;
+            const oy = waypoints[i][1] + (waypoints[i + 1][1] - waypoints[i][1]) * t;
+            const dir = (Math.random() - 0.5) * 1.4; // mostly downward, wide spread
+            const len = 108 + Math.random() * 174;
+            const w = trunk.width * (i === 0 ? 0.55 : i === 1 ? 0.40 : 0.25);
+            buildBranchTree(ox, oy, dir, len, 0, trunk.color, w, segs,
+                            trunk.delay + 0.10 + i * 0.04);
+          }
+        }
+        return segs;
+      }
+
+      // Render every segment as 3 layered strokes (glow / mid / core) into a target <g>.
+      // We render INTO an existing group so each strike can clear+repopulate per trunk.
+      function renderInto(group, segments) {
+        while (group.firstChild) group.removeChild(group.firstChild);
+        segments.forEach((seg) => {
+          const d = jaggedPath(seg.x0, seg.y0, seg.x1, seg.y1, seg.displace, seg.detail);
+          [
+            { cls: 'bolt-glow', w: seg.widths[0] },
+            { cls: 'bolt-mid',  w: seg.widths[1] },
+            { cls: 'bolt-core', w: seg.widths[2] },
+          ].forEach((L) => {
+            const p = document.createElementNS(SVG_NS, 'path');
+            p.setAttribute('class', L.cls);
+            p.setAttribute('d', d);
+            p.setAttribute('stroke-width', L.w);
+            group.appendChild(p);
+          });
+        });
+      }
+
+      // One <g> per trunk so we can opacity-toggle & re-render independently.
+      const trunkGroups = TRUNKS.map((t) => {
+        const g = document.createElementNS(SVG_NS, 'g');
+        g.setAttribute('class', t.color);
+        g.style.opacity = '0';
+        layer.appendChild(g);
+        return { trunk: t, group: g };
+      });
+
+      // ── STRIKE ANIMATION ──
+      // Real lightning: instant attack, 1-3 sub-flash strobes, fast decay.
+      // Each strike re-rolls the procedural path so no two strikes look alike.
+      function strike(tg) {
+        renderInto(tg.group, buildTrunk(tg.trunk));
+        const g = tg.group;
+        const t0 = performance.now();
+        const dur = 260 + Math.random() * 280; // 260-540ms total visible
+        // 1-3 sub-flash punches at random times in the first 60% of duration
+        const flashCount = 1 + Math.floor(Math.random() * 3);
+        const flashes = [];
+        for (let i = 0; i < flashCount; i++) flashes.push(Math.random() * dur * 0.55);
+        flashes.sort((a, b) => a - b);
+
+        function tick() {
+          const t = performance.now() - t0;
+          if (t > dur) { g.style.opacity = '0'; return; }
+          // Envelope: instant ramp (≤20ms) then linear decay
+          let env = t < 20 ? t / 20 : Math.max(0, 1 - (t - 20) / (dur - 20));
+          // Punch from sub-flashes
+          let punch = 0;
+          for (const ft of flashes) {
+            const dt = Math.abs(t - ft);
+            if (dt < 35) punch = Math.max(punch, 1 - dt / 35);
+          }
+          g.style.opacity = String(Math.min(1, env * 0.65 + punch * 0.85));
+          requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
+
+      // ── STRIKE SCHEDULER ──
+      // Only fires once the user has scrolled past the banner. One strike at a
+      // time, random 0.6-3.0s gaps. Reschedules itself in a loop while active.
+      let active = false;
+      let pending = false;
+      function scheduleNext() {
+        if (pending || !active) return;
+        pending = true;
+        const delay = 600 + Math.random() * 2400;
+        setTimeout(() => {
+          pending = false;
+          if (!active) return;
+          const tg = trunkGroups[Math.floor(Math.random() * trunkGroups.length)];
+          strike(tg);
+          scheduleNext();
+        }, delay);
+      }
+
+      function onScroll() {
+        const sy = window.scrollY || window.pageYOffset || 0;
+        const was = active;
+        active = sy > 80;
+        fracture.classList.toggle('is-active', active);
+        if (active && !was) scheduleNext();
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    });
+  </script>
+
+  <!-- ABOUT -->
+  <section class="about" id="about">
+    <div class="hero-fracture" id="heroFracture">
+      <svg viewBox="0 0 1200 820" preserveAspectRatio="none" aria-hidden="true">
+        <g id="boltLayer"></g>
+      </svg>
+    </div>
+    <div class="container">
+      <div class="about-grid">
+        <div class="about-text">
+          <p class="section-eyebrow">What is Beyfest?</p>
+          <h2 class="section-title">Three Arenas.<br/>One Champion.</h2>
+          <div class="section-divider" style="background: var(--gold);"></div>
+          <p>Beyfest is back — and this time, <strong>the arena itself is your opponent</strong>. The 2026 edition introduces the Triple Threat format: three distinct battle arenas, randomly assigned before each bout. You don't just need to master your bey — you need to adapt on the fly.</p>
+          <p>Born from backyard beys and fueled by genuine competition, Beyfest has grown into the most hyped private Beyblade tournament in the community. Every arena throws different physics, different chaos, different stakes. Come prepared for all three.</p>
+          <div class="about-stats">
+            <div class="stat-card">
+              <div class="stat-number">3</div>
+              <div class="stat-label">Possible Arenas</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">2</div>
+              <div class="stat-label">Past Tournaments</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">∞</div>
+              <div class="stat-label">Strategic Depth</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">0</div>
+              <div class="stat-label">Chance Conor Wins Again</div>
+            </div>
+          </div>
+        </div>
+        <div class="about-arena">
+          <img src="uploads/ChatGPT Image May 5, 2026, 04_25_24 PM.png" alt="The Three Arenas of Triple Threat" />
+          <div class="arena-label">
+            <span class="threat-badge badge-red"><span class="dot"></span>Drop Attack</span>
+            <span class="threat-badge badge-gold"><span class="dot"></span>Xtreme Battle</span>
+            <span class="threat-badge badge-green"><span class="dot"></span>Double Xtreme</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARENAS -->
+  <section class="arenas" id="arenas">
+    <div class="container">
+      <p class="section-eyebrow">The Battlegrounds</p>
+      <h2 class="section-title">The Three Arenas</h2>
+      <div class="section-divider" style="background: linear-gradient(to right, var(--red), var(--gold), var(--green));"></div>
+      <p style="color: var(--muted); font-size: 1.05rem; max-width: 640px; line-height: 1.7; margin-bottom: 64px;">Before every bout, fate spins the wheel. One of these three stadiums is randomly selected — and the strategy you walked in with may suddenly mean nothing. Know your terrain. Know your bey. Pray for a draw that suits you.</p>
+    </div>
+
+    <div class="arena-stack">
+
+      <!-- Arena I: Gold — Xtreme Battle -->
+      <div class="arena-row gold">
+        <div class="arena-img-wrap">
+          <img src="uploads/ChatGPT Image May 5, 2026, 09_37_22 PM.png" alt="Xtreme Battle Beystadium" />
+        </div>
+        <div class="arena-content">
+          <div class="arena-numeral">I</div>
+          <p class="arena-codename">The Neutral Ground</p>
+          <h3 class="arena-name">Xtreme Battle Beystadium</h3>
+          <p class="arena-model">Standard build · No bias</p>
+          <p class="arena-desc">The middle path. The honest fight. A balanced bowl that rewards skill above all else — no gimmicks, no mechanical interference, no terrain tricks. If your bey can't compete here, it can't compete anywhere. The arena where champions are forged by stamina.</p>
+          <div class="arena-traits">
+            <span class="arena-trait favored">Skill</span>
+            <span class="arena-trait favored">Balance</span>
+            <span class="arena-trait">Pure Combat</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arena II: Green — BX-00 Double Xtreme Motorised -->
+      <div class="arena-row green reverse">
+        <div class="arena-img-wrap">
+          <img src="uploads/ChatGPT Image May 5, 2026, 04_30_59 PM.png" alt="BX-00 Double Xtreme Motorised Beystadium" />
+        </div>
+        <div class="arena-content">
+          <div class="arena-numeral">II</div>
+          <p class="arena-codename">The Crusher</p>
+          <h3 class="arena-name">Double Xtreme Motorised</h3>
+          <p class="arena-model">BX-00 · Mechanical platform</p>
+          <p class="arena-desc">A living arena. The motorised central platform rises and falls without warning, crushing space between combatants and the acceleration rails, forcing a brutal close-quarters brawl. There's nowhere to run, no perimeter to circle. Pure attrition. The bey with strength and bone-density wins.</p>
+          <div class="arena-traits">
+            <span class="arena-trait favored">Stamina</span>
+            <span class="arena-trait favored">Strength</span>
+            <span class="arena-trait">Close Quarters</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arena III: Red — Drop Attack -->
+      <div class="arena-row red">
+        <div class="arena-img-wrap">
+          <img src="uploads/ChatGPT Image May 5, 2026, 04_45_21 PM.png" alt="Drop Attack Beystadium" />
+        </div>
+        <div class="arena-content">
+          <div class="arena-numeral">III</div>
+          <p class="arena-codename">Death From Above</p>
+          <h3 class="arena-name">Drop Attack Beystadium</h3>
+          <p class="arena-model">Elevated rail · Vertical assault</p>
+          <p class="arena-desc">The arena that rewards aggression. Beys ride the upper rail and rain down on opponents from above, turning the fight three-dimensional. Hesitate and you'll be hit before you see it coming. Speed wins. Aggression wins. A clean line down the rail wins. Defenders need not apply.</p>
+          <div class="arena-traits">
+            <span class="arena-trait favored">Speed</span>
+            <span class="arena-trait favored">Aggression</span>
+            <span class="arena-trait">Vertical Game</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- RULES -->
+  <section class="rules" id="rules">
+    <div class="container">
+      <p class="section-eyebrow">Tournament Rules</p>
+      <h2 class="section-title">How It Works</h2>
+      <div class="section-divider" style="background: linear-gradient(to right, var(--red), var(--gold), var(--green));"></div>
+
+      <div class="rules-intro">
+        <p>Beyfest 2026 is <strong>less rigid, more chaotic, and built for pure competition</strong>. The format is simple on paper but unpredictable in practice — first to 5 takes most matches, but everything else is shaped by the arena fate drops you into.</p>
+        <p>Between battles, swap parts. Change your bey. Adjust your approach. There are no locked builds — only adaptation. Every match begins the same way: a random arena, a clean launch, and no certainty beyond the next point.</p>
+      </div>
+
+      <div class="rules-grid">
+
+        <!-- 1. Stadium System -->
+        <div class="rules-card">
+          <div class="rules-card-header">
+            <span class="rules-num">01</span>
+            <h3 class="rules-title">Stadium System</h3>
+          </div>
+          <p>All three Triple Threat stadiums are in active rotation. Before every match, one is randomly selected by draw — and that single stadium is used for the entire match.</p>
+          <ul>
+            <li><strong>No re-rolls.</strong> The first draw is the only draw.</li>
+            <li><strong>No selection.</strong> You don't get a say in your battlefield.</li>
+            <li><strong>No preference.</strong> The arena does not care who you are.</li>
+          </ul>
+        </div>
+
+        <!-- 2. Equipment -->
+        <div class="rules-card">
+          <div class="rules-card-header">
+            <span class="rules-num">02</span>
+            <h3 class="rules-title">Equipment Rules</h3>
+          </div>
+          <p>Builds are open. The toolbox is yours.</p>
+          <ul>
+            <li>Any Beyblade parts may be used</li>
+            <li>Players may swap parts freely between battles</li>
+            <li>Multiple Beyblades may be used within a single match</li>
+            <li>All builds permitted — provided they're <strong>safe and functional</strong></li>
+          </ul>
+        </div>
+
+        <!-- 3. Scoring -->
+        <div class="rules-card">
+          <div class="rules-card-header">
+            <span class="rules-num">03</span>
+            <h3 class="rules-title">Scoring</h3>
+          </div>
+          <p>Three ways to score. Each more decisive than the last.</p>
+          <table class="score-table">
+            <thead>
+              <tr><th>Result</th><th>Points</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Spin Finish — last bey spinning</td><td>1</td></tr>
+              <tr><td>Knockout — ring-out</td><td>2</td></tr>
+              <tr><td>Dominant Stadium Finish</td><td>3</td></tr>
+            </tbody>
+          </table>
+          <p style="margin-top: 16px; font-size: 0.88rem; font-style: italic;">Simultaneous stop or unclear result? The battle is replayed immediately.</p>
+        </div>
+
+        <!-- 4. Battle Procedure -->
+        <div class="rules-card">
+          <div class="rules-card-header">
+            <span class="rules-num">04</span>
+            <h3 class="rules-title">Battle Procedure</h3>
+          </div>
+          <ul>
+            <li>Stadium is randomly drawn</li>
+            <li>Players prepare beyblades</li>
+            <li>Launch call: <strong>"3, 2, 1, Let It Rip!"</strong></li>
+            <li>Both players launch simultaneously</li>
+            <li>Result is judged — points awarded</li>
+            <li>Repeat until match point target is hit</li>
+          </ul>
+        </div>
+
+        <!-- 5. Match Structure (full width) -->
+        <div class="rules-card full">
+          <div class="rules-card-header">
+            <span class="rules-num">05</span>
+            <h3 class="rules-title">Match Structure</h3>
+          </div>
+          <p style="margin-bottom: 24px;">A two-stage tournament. Group stage seeds your fate. Knockout stage tests it.</p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;">
+            <div>
+              <p style="font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px;">Group Stage</p>
+              <ul>
+                <li>First to <strong>5 points</strong> wins the match</li>
+                <li>Round-robin within groups</li>
+                <li>Standings by match wins</li>
+                <li>Tiebreakers by points difference</li>
+              </ul>
+            </div>
+            <div>
+              <p style="font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px;">Knockout Qualification</p>
+              <ul>
+                <li>Group winners advance to <strong>Winners Bracket</strong></li>
+                <li>Everyone else falls into <strong>Losers Bracket</strong></li>
+                <li>Double elimination overall</li>
+                <li>Two losses and you're out</li>
+              </ul>
+            </div>
+          </div>
+
+          <p style="font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px;">Match Point Progression</p>
+          <div class="match-points">
+            <div class="mp-card">
+              <p class="mp-stage">Early Knockout</p>
+              <div class="mp-target">First to <span>5</span></div>
+              <p class="mp-label">Points</p>
+            </div>
+            <div class="mp-card">
+              <p class="mp-stage">Semi-Finals</p>
+              <div class="mp-target">First to <span>7</span></div>
+              <p class="mp-label">Points</p>
+            </div>
+            <div class="mp-card">
+              <p class="mp-stage">Grand Final</p>
+              <div class="mp-target">First to <span>9</span></div>
+              <p class="mp-label">Points</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Conduct -->
+        <div class="rules-card full">
+          <div class="rules-card-header">
+            <span class="rules-num">06</span>
+            <h3 class="rules-title">Conduct &amp; Fair Play</h3>
+          </div>
+          <p>Beyfest runs on trust and competitive respect. Don't be the reason it doesn't.</p>
+          <ul>
+            <li>No early or delayed launches to gain advantage</li>
+            <li>No interference with the stadium during battle</li>
+            <li>Judge or group decisions are <strong>final</strong></li>
+            <li>Matches proceed at a steady pace — no stalling</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Final note -->
+      <div class="rules-footnote">
+        <p>"Beyfest is not about perfect balance. It's about performance under changing conditions. Adapt quickly, or die because you fought the change."</p>
+        <p class="rules-footnote-cite">— Tansureke Nagasano, Beyfest International 5-Time Champion</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FIGHTERS (disabled for now)
+  <section class="fighters" id="fighters">
+    <div class="container">
+      <div class="fighters-header">
+        <div>
+          <p class="section-eyebrow">The Competitors</p>
+          <h2 class="section-title">Know Your Threats</h2>
+        </div>
+        <p style="color: var(--muted); font-size: 0.9rem; max-width: 280px; text-align: right; font-style: italic;">Hover a fighter to reveal their lore</p>
+      </div>
+      <div class="fighters-grid">
+
+        Fighter 1: The Stancemancer
+        <div class="fighter-card">
+          <img src="uploads/ChatGPT Image May 3, 2026, 07_13_13 PM.png" alt="The Stancemancer" />
+          <div class="fighter-overlay"></div>
+          <div class="fighter-info">
+            <p class="fighter-jp">スタンスマンサー</p>
+            <h3 class="fighter-name">The Stancemancer</h3>
+            <div class="fighter-color-bar"></div>
+            <p class="fighter-bio">A master of posture and precision. His beyblade flows like water — but hits like a freight train. Don't let the glasses fool you.</p>
+          </div>
+        </div>
+
+        Fighter 2: The Joyzerker
+        <div class="fighter-card">
+          <img src="uploads/ChatGPT Image May 3, 2026, 07_13_31 PM.png" alt="The Joyzerker" />
+          <div class="fighter-overlay"></div>
+          <div class="fighter-info">
+            <p class="fighter-jp">ジョイザーカー</p>
+            <h3 class="fighter-name">The Joyzerker</h3>
+            <div class="fighter-color-bar"></div>
+            <p class="fighter-bio">Joy on the outside. Zerker on the inside. This dual-natured destroyer wields chaotic energy that no opponent can predict — or survive.</p>
+          </div>
+        </div>
+
+        Fighter 3: TBD
+        <div class="fighter-card">
+          <div class="fighter-placeholder">
+            <div class="fighter-placeholder-icon">?</div>
+            <p class="fighter-placeholder-text">Fighter TBD</p>
+            <p class="fighter-placeholder-text" style="letter-spacing: 0.05em; font-size: 0.65rem;">The Third Threat Awaits</p>
+          </div>
+          <div class="fighter-overlay"></div>
+          <div class="fighter-info">
+            <p class="fighter-jp">???</p>
+            <h3 class="fighter-name">???</h3>
+            <div class="fighter-color-bar"></div>
+            <p class="fighter-bio">Identity unknown. Threat level: immeasurable. The third fighter will be revealed before tournament day.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+  -->
+
+  <!-- BATTLES (disabled for now)
+  <section class="battles" id="battles">
+    <div class="container">
+      <div class="battles-title-row">
+        <div>
+          <p class="section-eyebrow">Battle Archive</p>
+          <h2 class="section-title">Legendary Clashes</h2>
+        </div>
+      </div>
+    </div>
+    <div class="battle-cards">
+      <div class="battle-card" onclick="this.classList.toggle('expanded')">
+        <img src="uploads/ChatGPT Image May 3, 2026, 07_13_01 PM.png" alt="Stancemancer vs Rival" />
+        <div class="battle-card-overlay"></div>
+        <div class="battle-expand-hint">Match File</div>
+        <div class="battle-info">
+          <p class="battle-tag">Beyfest 2025 · Winter League · Quarterfinal</p>
+          <h3 class="battle-headline">The Stancemancer <span class="vs">VS</span> Frostbite Kid</h3>
+        </div>
+        <div class="battle-detail">
+          <div class="battle-detail-meta">
+            <div><span class="label">Arena</span><span class="value gold">Xtreme Battle</span></div>
+            <div><span class="label">Format</span><span class="value">First to 5</span></div>
+            <div><span class="label">Final Score</span><span class="value">5 — 4</span></div>
+            <div><span class="label">Decisive Move</span><span class="value red">Knockout</span></div>
+          </div>
+          <p>Down 4–2 with one launch left in the chamber, the Stancemancer dropped into a wide stance and slow-rolled the rim for two consecutive spin finishes — then closed the door with a brutal ring-out on launch 9. The Frostbite Kid never recovered. The crowd never sat down.</p>
+        </div>
+      </div>
+      <div class="battle-card" onclick="this.classList.toggle('expanded')">
+        <img src="uploads/ChatGPT Image May 3, 2026, 07_12_52 PM.png" alt="The Clash" />
+        <div class="battle-card-overlay"></div>
+        <div class="battle-expand-hint">Match File</div>
+        <div class="battle-info">
+          <p class="battle-tag">Beyfest 2025 · Gay for Bey · Grand Final</p>
+          <h3 class="battle-headline">The Joyzerker <span class="vs">VS</span> Neon Specter</h3>
+        </div>
+        <div class="battle-detail">
+          <div class="battle-detail-meta">
+            <div><span class="label">Arena</span><span class="value red">Drop Attack</span></div>
+            <div><span class="label">Format</span><span class="value">First to 9</span></div>
+            <div><span class="label">Final Score</span><span class="value">9 — 7</span></div>
+            <div><span class="label">Decisive Move</span><span class="value green">Dominant Finish</span></div>
+          </div>
+          <p>Forty-three minutes. Sixteen launches. The Joyzerker rode the upper rail eight times in a row, raining attack hits until the Specter's stamina collapsed mid-spin. The final point was a textbook Dominant Finish from the high ramp — still the most replayed clip in the Beyfest archive.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  -->
+
+  <!-- PAST EVENTS -->
+  <section class="past" id="past">
+    <div class="container">
+      <p class="section-eyebrow">Tournament History</p>
+      <h2 class="section-title">The Beyfest Legacy</h2>
+      <div class="section-divider" style="background: var(--gold);"></div>
+      <div class="past-grid">
+        <div class="past-card">
+          <img src="uploads/ChatGPT Image May 3, 2026, 07_13_21 PM.png" alt="Beyfest 2025: The Winter League" />
+          <div class="past-overlay"></div>
+          <div class="past-info">
+            <p class="past-label">Beyfest 2025</p>
+            <h3 class="past-name">The Winter League</h3>
+            <p class="past-sub">Ice meets fire. A return for the beys with new challengers — a full bracket grudge match for the ages.</p>
+          </div>
+        </div>
+        <div class="past-card">
+          <img src="uploads/ChatGPT Image May 3, 2026, 07_14_16 PM.png" alt="Beyfest 2025: Gay for Bey" />
+          <div class="past-overlay"></div>
+          <div class="past-info">
+            <p class="past-label">Beyfest 2025</p>
+            <h3 class="past-name">Gay for Bey</h3>
+            <p class="past-sub">The tournament that started it all. Unhinged fury, spinning metal, epic clashes - no one could foresee how extreme it would get.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REGISTER CTA -->
+  <section class="register" id="register">
+    <div class="container">
+      <div class="register-content">
+        <p class="section-eyebrow" style="text-align: center;">November 7, 2026 &nbsp;·&nbsp; Innishannon</p>
+        <h2 class="register-title">LET IT RIP</h2>
+        <p class="register-sub">Think you have what it takes to survive a Triple Threat?</p>
+        <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+          <a href="#rules" class="btn btn-primary">Read the Rules</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-logo">Beyfest 2026</div>
+        <div class="footer-copy">
+          <p>Triple Threat &nbsp;·&nbsp; November 7, 2026 &nbsp;·&nbsp; Innishannon</p>
+          <p style="margin-top: 4px; font-size: 0.78rem;">Let it rip, bladers.</p>
+        </div>
+        <ul class="footer-links">
+          <li><a href="#about">About</a></li>
+          <!-- <li><a href="#fighters">Fighters</a></li> -->
+          <li><a href="#rules">Rules</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <!-- TWEAKS -->
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "accentColor": "green",
+      "heroParallax": true,
+      "showThirdFighter": true,
+      "sectionSpacing": "compact"
+    }/*EDITMODE-END*/;
+
+    function BeyfestTweaks() {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+      React.useEffect(() => {
+        const root = document.documentElement;
+        if (tweaks.accentColor === 'gold') {
+          root.style.setProperty('--accent-override', 'var(--gold)');
+        } else if (tweaks.accentColor === 'red') {
+          root.style.setProperty('--accent-override', 'var(--red)');
+        } else {
+          root.style.setProperty('--accent-override', 'var(--green)');
+        }
+
+        const spacingMap = { compact: '60px', comfortable: '100px', spacious: '140px' };
+        document.querySelectorAll('section:not(.hero)').forEach(s => {
+          s.style.paddingTop = spacingMap[tweaks.sectionSpacing];
+          s.style.paddingBottom = spacingMap[tweaks.sectionSpacing];
+        });
+
+        const thirdCard = document.querySelector('.fighters-grid .fighter-card:nth-child(3)');
+        if (thirdCard) {
+          thirdCard.style.display = tweaks.showThirdFighter ? '' : 'none';
+        }
+      }, [tweaks]);
+
+      return (
+        <TweaksPanel>
+          <TweakSection label="Color Accent">
+            <TweakRadio
+              id="accentColor"
+              value={tweaks.accentColor}
+              options={[
+                { value: 'gold', label: 'Gold' },
+                { value: 'red', label: 'Red' },
+                { value: 'green', label: 'Green' },
+              ]}
+              onChange={v => setTweak('accentColor', v)}
+            />
+          </TweakSection>
+          <TweakSection label="Section Spacing">
+            <TweakRadio
+              id="sectionSpacing"
+              value={tweaks.sectionSpacing}
+              options={[
+                { value: 'compact', label: 'Compact' },
+                { value: 'comfortable', label: 'Default' },
+                { value: 'spacious', label: 'Spacious' },
+              ]}
+              onChange={v => setTweak('sectionSpacing', v)}
+            />
+          </TweakSection>
+          <TweakSection label="Fighters">
+            <TweakToggle
+              label="Show Mystery Fighter Card"
+              value={tweaks.showThirdFighter}
+              onChange={v => setTweak('showThirdFighter', v)}
+            />
+          </TweakSection>
+        </TweaksPanel>
+      );
+    }
+
+    const tweaksRoot = document.createElement('div');
+    document.body.appendChild(tweaksRoot);
+    ReactDOM.createRoot(tweaksRoot).render(<BeyfestTweaks />);
+  </script>
+
+</body>
+</html>

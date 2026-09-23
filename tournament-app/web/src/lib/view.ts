@@ -1,0 +1,148 @@
+import { computeStandings, type Match, type Slot, type Stage, type StandingRow } from "@beyfest/engine";
+
+// Plain shapes as they arrive from PocketBase (superset of engine fields).
+export interface PBPlayer {
+  id: string;
+  name: string;
+  groupIndex: number | null;
+  drawOrder: number | null;
+  finalGroupRank: number | null;
+}
+export interface PBGroup {
+  id: string;
+  index: number;
+  name: string;
+  size: number;
+  format: "single" | "double";
+  complete: boolean;
+}
+export interface PBMatch {
+  id: string;
+  stage: Stage;
+  code: string;
+  roundLabel: string;
+  orderIndex: number;
+  groupIndex: number | null;
+  slot1: Slot | null;
+  slot2: Slot | null;
+  p1: string;
+  p2: string;
+  p1Score: number | null;
+  p2Score: number | null;
+  liveP1: number; // running score while a match is in progress (0 when not started)
+  liveP2: number;
+  winner: string;
+  loser: string;
+  matchStatus: "pending" | "ready" | "done";
+}
+
+export function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+// The tier a stage belongs to, for colour-coding.
+export function tierOf(stage: Stage): "wb" | "mb" | "lb" | "gf" | "group" {
+  if (stage === "wb_rr" || stage === "wb" || stage === "ub") return "wb";
+  if (stage === "lb_rr" || stage === "lb") return "lb";
+  if (stage === "mb") return "mb";
+  if (stage === "gf") return "gf";
+  return "group";
+}
+
+// Human label for an unresolved participant slot (shown until a real player
+// lands in it), e.g. "Group 1 winner", "Winner of MB1", "WB-2nd".
+export function slotLabel(slot: Slot | null, groupCount: number): string {
+  if (!slot) return "TBD";
+  switch (slot.k) {
+    case "groupRank": {
+      const g = `Group ${slot.group + 1}`;
+      if (slot.rank === 1) return `${g} winner`;
+      return `${g} ${ordinal(slot.rank)}`;
+    }
+    case "seed":
+      return `Seed ${slot.n}`;
+    case "winner":
+      return `Winner of ${slot.match}`;
+    case "loser":
+      return `Loser of ${slot.match}`;
+    case "rrRank": {
+      const tier = slot.stage === "wb_rr" ? "WB" : "LB";
+      return `${tier}-${ordinal(slot.rank)}`;
+    }
+    case "poolDraw":
+      return "Group middle";
+  }
+}
+
+// Where a group finisher goes in the knockout, for the colour-coded chips on
+// group cards. Mirrors the engine's routing.
+export function destinationOf(
+  rank: number,
+  groupSize: number,
+  knockoutType: string,
+): { tier: "wb" | "mb" | "lb"; label: string } {
+  if (knockoutType === "double-elim") return { tier: "wb", label: "Seeded" };
+  if (knockoutType === "three-tier-4wb") {
+    if (rank <= 2) return { tier: "wb", label: "Winners" };
+    if (rank === groupSize) return { tier: "lb", label: "Losers" };
+    return { tier: "mb", label: "Mid" };
+  }
+  if (rank === 1) return { tier: "wb", label: "Winners" };
+  if (rank === groupSize) return { tier: "lb", label: "Losers" };
+  return { tier: "mb", label: "Mid" };
+}
+
+export const STATUS_ORDER: Record<string, number> = { ready: 0, pending: 1, done: 2 };
+
+// Adapt a PocketBase match to the engine's Match shape (for computeStandings).
+function toEngineMatch(m: PBMatch): Match {
+  return {
+    code: m.code,
+    stage: m.stage,
+    roundLabel: m.roundLabel,
+    orderIndex: m.orderIndex,
+    group: m.groupIndex,
+    slot1: m.slot1,
+    slot2: m.slot2,
+    p1: m.p1 || null,
+    p2: m.p2 || null,
+    p1Score: m.p1Score,
+    p2Score: m.p2Score,
+    winner: m.winner || null,
+    loser: m.loser || null,
+    status: m.matchStatus,
+  };
+}
+
+// Live standings for a group, computed from whatever has been played so far.
+export function groupStandings(
+  players: PBPlayer[],
+  matches: PBMatch[],
+  groupIndex: number,
+): StandingRow[] {
+  const ids = players.filter((p) => p.groupIndex === groupIndex).map((p) => p.id);
+  return computeStandings(ids, matches.map(toEngineMatch));
+}
+
+export function nameMap(players: PBPlayer[]): Map<string, string> {
+  return new Map(players.map((p) => [p.id, p.name]));
+}
+
+// Live standings for a WB/LB mini round-robin, computed from its 3 matches.
+export function miniRRStandings(matches: PBMatch[], stage: "wb_rr" | "lb_rr"): StandingRow[] {
+  const stageMatches = matches.filter((m) => m.stage === stage);
+  const ids = new Set<string>();
+  for (const m of stageMatches) {
+    if (m.p1) ids.add(m.p1);
+    if (m.p2) ids.add(m.p2);
+  }
+  if (ids.size === 0) return [];
+  return computeStandings([...ids], stageMatches.map(toEngineMatch));
+}
+
+export function hasStage(matches: PBMatch[], stage: string): boolean {
+  return matches.some((m) => m.stage === stage);
+}
+

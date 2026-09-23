@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyfest 2026 — Tournament Structure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="elk.bundled.js"></script>
+<script src="d3.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --red:    oklch(0.58 0.22 28);
+  --green:  oklch(0.62 0.22 145);
+  --gold:   oklch(0.75 0.18 80);
+  --blue:   oklch(0.60 0.20 250);
+  --dark:   oklch(0.08 0.02 250);
+  --dark2:  oklch(0.11 0.025 250);
+  --dark3:  oklch(0.15 0.025 250);
+  --text:   oklch(0.92 0.01 250);
+  --muted:  oklch(0.62 0.03 250);
+
+  --wb: var(--green);
+  --wb-light: oklch(0.62 0.22 145 / 0.15);
+  --wb-border: var(--green);
+  --mb: var(--gold);
+  --mb-light: oklch(0.75 0.18 80 / 0.15);
+  --mb-border: var(--gold);
+  --lb: var(--red);
+  --lb-light: oklch(0.58 0.22 28 / 0.15);
+  --lb-border: var(--red);
+  --gf: oklch(0.65 0.20 290);
+  --gf-light: oklch(0.65 0.20 290 / 0.15);
+  --gf-border: oklch(0.65 0.20 290);
+
+  --surface: var(--dark2);
+  --border: oklch(0.92 0.01 250 / 0.08);
+  --accent: var(--gold);
+}
+
+html { scroll-behavior: auto; }
+
+body {
+  font-family: 'Barlow', sans-serif;
+  background: var(--dark);
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 16px;
+  overflow-x: hidden;
+  padding: 80px 0 40px;
+}
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(3rem, 8vw, 5rem);
+  letter-spacing: 0.04em;
+  text-align: center;
+  margin-bottom: 0.25rem;
+  color: var(--text);
+}
+.subtitle {
+  text-align: center;
+  color: var(--muted);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 2.5rem;
+}
+
+.selector {
+  display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 3rem; padding: 0 20px;
+}
+.selector button {
+  width: 56px; height: 56px; border: 2px solid oklch(0.92 0.01 250 / 0.12);
+  background: var(--dark2); color: var(--muted);
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.04em;
+  cursor: pointer; transition: all 0.2s;
+}
+.selector button:hover { border-color: var(--gold); color: var(--gold); }
+.selector button.active {
+  background: var(--gold); border-color: var(--gold); color: var(--dark);
+  box-shadow: 0 0 20px oklch(0.75 0.18 80 / 0.4);
+}
+
+section { margin-bottom: 3rem; }
+.section-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;
+  padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+}
+.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem; letter-spacing: 0.05em; color: var(--text);
+}
+.section-subtitle {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.82rem; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase;
+}
+
+.rules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2px; }
+.rule-card {
+  background: var(--dark2); padding: 32px; position: relative; overflow: hidden;
+  border-top: 2px solid var(--gold);
+}
+.rule-card h3 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.2em; color: var(--gold); margin-bottom: 0.75rem;
+}
+.rule-card p { font-size: 0.95rem; color: oklch(0.78 0.02 250); line-height: 1.7; }
+.rule-card p strong { color: var(--text); font-weight: 600; }
+
+.groups-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2px; margin-bottom: 1.5rem; }
+.group-card {
+  background: var(--dark2); padding: 28px; border-top: 2px solid oklch(0.92 0.01 250 / 0.12);
+  transition: border-color 0.2s;
+}
+.group-card:hover { border-color: var(--gold); }
+.group-card h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem; letter-spacing: 0.04em; margin-bottom: 0.5rem; color: var(--text);
+}
+.group-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.group-meta span {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+  padding: 4px 10px; border: 1px solid oklch(0.92 0.01 250 / 0.12); color: var(--muted);
+}
+.position-list { display: flex; flex-direction: column; gap: 0; }
+.position-row {
+  display: flex; align-items: center; gap: 0.75rem; font-size: 0.88rem;
+  padding: 8px 0; border-bottom: 1px solid oklch(0.92 0.01 250 / 0.05);
+}
+.position-row:last-child { border-bottom: 0; }
+.pos-num {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem;
+  width: 2rem; text-align: center; color: var(--muted);
+}
+.pos-name { flex: 1; color: oklch(0.78 0.02 250); }
+.pos-dest {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 3px 10px; border: 1px solid;
+}
+.pos-dest.wb { border-color: var(--wb); color: var(--wb); background: var(--wb-light); }
+.pos-dest.mb { border-color: var(--mb); color: var(--mb); background: var(--mb-light); }
+.pos-dest.lb { border-color: var(--lb); color: var(--lb); background: var(--lb-light); }
+
+/* Bracket SVG */
+.bracket-wrapper {
+  background: var(--dark2); border: 1px solid var(--border);
+  padding: 1.5rem; overflow-x: auto; min-height: 200px;
+}
+.bracket-wrapper svg { display: block; }
+.bracket-wrapper .elk-edge path {
+  fill: none; stroke-width: 1.5; stroke-linecap: round;
+}
+.bracket-wrapper .elk-edge.winner path { stroke: oklch(0.92 0.01 250 / 0.25); }
+.bracket-wrapper .elk-edge.loser path { stroke: var(--lb); stroke-dasharray: 4 3; opacity: 0.5; }
+.bracket-wrapper .elk-edge.drop-in path { stroke: var(--mb); stroke-dasharray: 4 3; opacity: 0.5; }
+.bracket-wrapper .elk-edge.wb-edge path { stroke: var(--wb); opacity: 0.4; }
+.bracket-wrapper .elk-edge.mb-edge path { stroke: var(--mb); opacity: 0.4; }
+.bracket-wrapper .elk-edge.lb-edge path { stroke: var(--lb); opacity: 0.4; }
+.bracket-wrapper .elk-edge.gf-edge path { stroke: var(--gf); opacity: 0.4; }
+
+.bracket-wrapper .match-node rect { rx: 0; ry: 0; }
+.bracket-wrapper .match-node .node-id {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+  fill: var(--muted);
+}
+.bracket-wrapper .match-node .node-p1,
+.bracket-wrapper .match-node .node-p2 { font-size: 10px; fill: var(--text); font-family: 'Barlow', sans-serif; }
+.bracket-wrapper .match-node .node-note { font-size: 8px; fill: var(--muted); font-style: italic; }
+.bracket-wrapper .rr-node rect { rx: 0; ry: 0; }
+.bracket-wrapper .rr-node .rr-title { font-size: 10px; font-weight: 700; font-family: 'Barlow Condensed', sans-serif; }
+.bracket-wrapper .rr-node .rr-match { font-size: 9px; fill: var(--muted); }
+
+/* Play Order */
+.play-order { background: var(--dark2); border: 1px solid var(--border); padding: 2rem; }
+.play-order-phase { margin-bottom: 1.5rem; }
+.play-order-phase:last-child { margin-bottom: 0; }
+.play-order-phase h4 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem; letter-spacing: 0.05em; margin-bottom: 0.75rem;
+  color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;
+}
+.play-order-phase h4.wb-label { color: var(--wb); }
+.play-order-phase h4.mb-label { color: var(--mb); }
+.play-order-phase h4.lb-label { color: var(--lb); }
+.play-order-phase h4.gf-label { color: var(--gf); }
+.play-order-match {
+  font-size: 0.88rem; padding: 6px 0; display: flex; gap: 0.75rem;
+  border-bottom: 1px solid oklch(0.92 0.01 250 / 0.04); color: oklch(0.78 0.02 250);
+}
+.play-order-match:last-child { border-bottom: 0; }
+.play-order-match .match-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700; color: var(--muted); min-width: 2rem; letter-spacing: 0.05em;
+}
+
+.callout {
+  background: var(--dark3); border-left: 3px solid var(--gold);
+  padding: 1.25rem 1.5rem; margin-bottom: 2rem; font-size: 0.92rem;
+  color: oklch(0.85 0.02 250); line-height: 1.7;
+}
+.callout strong { color: var(--gold); }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 2px; }
+.stat-card {
+  background: var(--dark2); padding: 24px; text-align: center;
+  border-top: 2px solid oklch(0.92 0.01 250 / 0.08);
+}
+.stat-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.5rem; line-height: 1; color: var(--gold);
+}
+.stat-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--muted); margin-top: 6px;
+}
+
+.print-btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 8px 16px; background: transparent; border: 1px solid oklch(0.92 0.01 250 / 0.15);
+  cursor: pointer; color: var(--muted); transition: all 0.2s;
+}
+.print-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+@media print {
+  .selector, .print-btn { display: none; }
+  body { padding: 0.5rem; background: white; color: black; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0 20px; }
+  h1 { font-size: 2.5rem; }
+  .selector button { width: 44px; height: 44px; font-size: 1.2rem; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Tournament Structure</h1>
+  <p class="subtitle">Adaptive Group Stage &middot; Three-Tier Knockout &middot; 8&ndash;15 Players</p>
+
+  <div class="selector" id="selector"></div>
+
+  <section>
+    <h2 class="section-title">How It Works</h2>
+    <div class="rules-grid">
+      <div class="rule-card">
+        <h3>Match Format</h3>
+        <p>All matches are 1v1. First to <strong>5 points</strong> — rising to <strong>7</strong> from the semi-finals and <strong>9</strong> in the Grand Final.</p>
+      </div>
+      <div class="rule-card">
+        <h3>Group Stage → Knockout</h3>
+        <p>Players are drawn into groups and play round-robin. Your finishing position determines which knockout bracket you enter: <strong style="color:var(--wb)">Winners</strong>, <strong style="color:var(--mb)">Mid</strong>, or <strong style="color:var(--lb)">Losers</strong>.</p>
+      </div>
+      <div class="rule-card">
+        <h3>Grand Final</h3>
+        <p>The WB Champion (undefeated) faces the MB Champion in a single match. WB's advantage is reaching the final via a shorter, undefeated path — no reset needed.</p>
+      </div>
+    </div>
+  </section>
+
+  <div id="callout-area"></div>
+
+  <section>
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Group Stage</h2>
+        <span class="section-subtitle" id="group-subtitle"></span>
+      </div>
+    </div>
+    <div class="groups-container" id="groups-container"></div>
+  </section>
+
+  <section>
+    <div class="section-header">
+      <h2 class="section-title">Bracket Flowchart</h2>
+    </div>
+    <div class="bracket-wrapper" id="bracket-wrapper"></div>
+  </section>
+
+  <section>
+    <div class="section-header">
+      <h2 class="section-title">Play Order</h2>
+      <button class="print-btn" onclick="window.print()">Print</button>
+    </div>
+    <div class="play-order" id="play-order"></div>
+  </section>
+
+  <section>
+    <h2 class="section-title">Summary</h2>
+    <div class="stats-grid" id="stats-grid"></div>
+  </section>
+</div>
+
+<script>
+// ─── CONFIGURATION DATA ─────────────────────────────────────────────
+const NODE_W = 155;
+const NODE_H = 52;
+const RR_W = 170;
+const RR_H = 90;
+
+const COLORS = {
+  wb: { fill: 'oklch(0.62 0.22 145 / 0.1)', stroke: 'oklch(0.62 0.22 145)', text: 'oklch(0.62 0.22 145)' },
+  mb: { fill: 'oklch(0.75 0.18 80 / 0.1)', stroke: 'oklch(0.75 0.18 80)', text: 'oklch(0.75 0.18 80)' },
+  lb: { fill: 'oklch(0.58 0.22 28 / 0.1)', stroke: 'oklch(0.58 0.22 28)', text: 'oklch(0.58 0.22 28)' },
+  gf: { fill: 'oklch(0.65 0.20 290 / 0.1)', stroke: 'oklch(0.65 0.20 290)', text: 'oklch(0.65 0.20 290)' },
+};
+
+const configs = {
+  8: {
+    groups: [4, 4], roundRobin: 'double', groupMatches: 24,
+    callout: 'For 8 players, the knockout uses <strong>standard double-elimination</strong> — every player has 2 lives. Group stage results seed the bracket (better finish = easier opening match). There is no separate three-tier WB/MB/LB system.',
+    knockoutMatches: 14,
+    graph: {
+      nodes: [
+        { id: 'QF1', label: 'UB-QF1', p1: 'Seed 1', p2: 'Seed 8', type: 'wb', layer: 0 },
+        { id: 'QF2', label: 'UB-QF2', p1: 'Seed 4', p2: 'Seed 5', type: 'wb', layer: 0 },
+        { id: 'QF3', label: 'UB-QF3', p1: 'Seed 3', p2: 'Seed 6', type: 'wb', layer: 0 },
+        { id: 'QF4', label: 'UB-QF4', p1: 'Seed 2', p2: 'Seed 7', type: 'wb', layer: 0 },
+        { id: 'SF1', label: 'UB-SF1', p1: 'W(QF1)', p2: 'W(QF2)', type: 'wb', layer: 1 },
+        { id: 'SF2', label: 'UB-SF2', p1: 'W(QF3)', p2: 'W(QF4)', type: 'wb', layer: 1 },
+        { id: 'UBF', label: 'UB-Final', p1: 'W(SF1)', p2: 'W(SF2)', type: 'wb', layer: 2 },
+        { id: 'LR1a', label: 'LB-R1a', p1: 'L(QF1)', p2: 'L(QF2)', type: 'lb', layer: 1 },
+        { id: 'LR1b', label: 'LB-R1b', p1: 'L(QF3)', p2: 'L(QF4)', type: 'lb', layer: 1 },
+        { id: 'LR2a', label: 'LB-R2a', p1: 'W(R1a)', p2: 'L(SF2)', type: 'lb', layer: 2 },
+        { id: 'LR2b', label: 'LB-R2b', p1: 'W(R1b)', p2: 'L(SF1)', type: 'lb', layer: 2 },
+        { id: 'LSF', label: 'LB-SF', p1: 'W(R2a)', p2: 'W(R2b)', type: 'lb', layer: 3 },
+        { id: 'LBF', label: 'LB-Final', p1: 'W(LB-SF)', p2: 'L(UB-F)', type: 'lb', layer: 3 },
+        { id: 'GF', label: 'Grand Final', p1: 'UB Champ', p2: 'LB Champ', type: 'gf', layer: 4 },
+      ],
+      edges: [
+        { from: 'QF1', to: 'SF1', type: 'winner' },
+        { from: 'QF2', to: 'SF1', type: 'winner' },
+        { from: 'QF3', to: 'SF2', type: 'winner' },
+        { from: 'QF4', to: 'SF2', type: 'winner' },
+        { from: 'SF1', to: 'UBF', type: 'winner' },
+        { from: 'SF2', to: 'UBF', type: 'winner' },
+        { from: 'QF1', to: 'LR1a', type: 'loser' },
+        { from: 'QF2', to: 'LR1a', type: 'loser' },
+        { from: 'QF3', to: 'LR1b', type: 'loser' },
+        { from: 'QF4', to: 'LR1b', type: 'loser' },
+        { from: 'SF2', to: 'LR2a', type: 'loser' },
+        { from: 'SF1', to: 'LR2b', type: 'loser' },
+        { from: 'LR1a', to: 'LR2a', type: 'winner' },
+        { from: 'LR1b', to: 'LR2b', type: 'winner' },
+        { from: 'LR2a', to: 'LSF', type: 'winner' },
+        { from: 'LR2b', to: 'LSF', type: 'winner' },
+        { from: 'UBF', to: 'LBF', type: 'loser' },
+        { from: 'LSF', to: 'LBF', type: 'winner' },
+        { from: 'UBF', to: 'GF', type: 'winner' },
+        { from: 'LBF', to: 'GF', type: 'winner' },
+      ],
+    },
+    phases: [
+      { id: 'UB-QF', name: 'Upper Bracket — Quarterfinals', type: 'wb', matches: [
+        { id: 'UB-QF1', desc: 'Seed 1 vs Seed 8' }, { id: 'UB-QF2', desc: 'Seed 4 vs Seed 5' },
+        { id: 'UB-QF3', desc: 'Seed 3 vs Seed 6' }, { id: 'UB-QF4', desc: 'Seed 2 vs Seed 7' },
+      ]},
+      { id: 'UB-SF', name: 'Upper Bracket — Semifinals', type: 'wb', matches: [
+        { id: 'UB-SF1', desc: 'W(QF1) vs W(QF2)' }, { id: 'UB-SF2', desc: 'W(QF3) vs W(QF4)' },
+      ]},
+      { id: 'LB-R1', name: 'Lower Bracket — Round 1', type: 'lb', matches: [
+        { id: 'LB-R1a', desc: 'L(QF1) vs L(QF2)' }, { id: 'LB-R1b', desc: 'L(QF3) vs L(QF4)' },
+      ]},
+      { id: 'LB-R2', name: 'Lower Bracket — Round 2', type: 'lb', matches: [
+        { id: 'LB-R2a', desc: 'W(R1a) vs L(SF2)' }, { id: 'LB-R2b', desc: 'W(R1b) vs L(SF1)' },
+      ]},
+      { id: 'UB-F', name: 'Upper Bracket — Final', type: 'wb', matches: [{ id: 'UB-F', desc: 'W(SF1) vs W(SF2)' }]},
+      { id: 'LB-SF', name: 'Lower Bracket — Semifinal', type: 'lb', matches: [{ id: 'LB-SF', desc: 'W(R2a) vs W(R2b)' }]},
+      { id: 'LB-F', name: 'Lower Bracket — Final', type: 'lb', matches: [{ id: 'LB-F', desc: 'W(LB-SF) vs L(UB-Final)' }]},
+      { id: 'GF', name: 'Grand Final', type: 'gf', matches: [
+        { id: 'GF1', desc: 'UB Champion vs LB Champion' },
+      ]},
+    ],
+  },
+  9: {
+    groups: [3, 3, 3], roundRobin: 'double', groupMatches: 18,
+    knockoutMatches: 11,
+    graph: {
+      nodes: [
+        { id: 'WBRR', label: 'WB Mini-RR', type: 'wb', layer: 0, isRR: true, matches: ['G1-1st vs G2-1st', 'G1-1st vs G3-1st', 'G2-1st vs G3-1st'], note: '→ WB-1st, 2nd, 3rd' },
+        { id: 'LBRR', label: 'LB Mini-RR', type: 'lb', layer: 0, isRR: true, matches: ['G1-3rd vs G2-3rd', 'G1-3rd vs G3-3rd', 'G2-3rd vs G3-3rd'], note: '→ LB-1st to MB' },
+        { id: 'MB1', label: 'MB R1-1', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB2', label: 'MB R1-2', p1: 'Middle', p2: 'LB-1st', type: 'mb', layer: 1 },
+        { id: 'MB3', label: 'MB Semi-1', p1: 'R1 W', p2: 'WB-3rd', type: 'mb', layer: 2 },
+        { id: 'MB4', label: 'MB Semi-2', p1: 'R1 W', p2: 'WB-2nd', type: 'mb', layer: 2 },
+        { id: 'MB5', label: 'MB Final', p1: 'Semi W', p2: 'Semi W', type: 'mb', layer: 3 },
+        { id: 'GF', label: 'Grand Final', p1: 'WB-1st', p2: 'MB Champ', type: 'gf', layer: 4},
+      ],
+      edges: [
+        { from: 'LBRR', to: 'MB2', type: 'drop-in' },
+        { from: 'MB1', to: 'MB3', type: 'winner' },
+        { from: 'MB2', to: 'MB4', type: 'winner' },
+        { from: 'WBRR', to: 'MB3', type: 'drop-in' },
+        { from: 'WBRR', to: 'MB4', type: 'drop-in' },
+        { from: 'MB3', to: 'MB5', type: 'winner' },
+        { from: 'MB4', to: 'MB5', type: 'winner' },
+        { from: 'MB5', to: 'GF', type: 'winner' },
+        { from: 'WBRR', to: 'GF', type: 'winner' },
+      ],
+    },
+    phases: [
+      { id: 'WB-RR', name: 'Phase 1A — WB Mini-RR', type: 'wb', parallel: 'A', matches: [
+        { id: 'WB1', desc: 'G1-1st vs G2-1st' }, { id: 'WB2', desc: 'G1-1st vs G3-1st' }, { id: 'WB3', desc: 'G2-1st vs G3-1st' },
+      ]},
+      { id: 'LB-RR', name: 'Phase 1B — LB Mini-RR', type: 'lb', parallel: 'A', matches: [
+        { id: 'LB1', desc: 'G1-3rd vs G2-3rd' }, { id: 'LB2', desc: 'G1-3rd vs G3-3rd' }, { id: 'LB3', desc: 'G2-3rd vs G3-3rd' },
+      ]},
+      { id: 'MB-R1', name: 'Phase 3 — MB Round 1', type: 'mb', matches: [
+        { id: 'MB1', desc: 'Middle vs Middle' }, { id: 'MB2', desc: 'Middle vs LB-1st' },
+      ]},
+      { id: 'MB-Semi', name: 'Phase 4 — MB Semi', type: 'mb', matches: [
+        { id: 'MB3', desc: 'R1 winner vs WB-3rd' }, { id: 'MB4', desc: 'R1 winner vs WB-2nd' },
+      ]},
+      { id: 'MB-F', name: 'Phase 5 — MB Final', type: 'mb', matches: [{ id: 'MB5', desc: 'Semi winner vs Semi winner' }]},
+      { id: 'GF', name: 'Phase 6 — Grand Final', type: 'gf', matches: [
+        { id: 'GF1', desc: 'WB-1st vs MB Champion' },
+      ]},
+    ],
+  },
+  10: {
+    groups: [5, 5], roundRobin: 'single', groupMatches: 20,
+    callout: 'For 10 players, the <strong>Winners Bracket takes the top 2 from each group</strong> (4 players total). A WB Semifinal + Losers Playoff produces 4 differentiated WB ranks, each entering the MB at a different stage.',
+    knockoutMatches: 12,
+    graph: {
+      nodes: [
+        { id: 'WSF1', label: 'WB SF1', p1: 'G1-1st', p2: 'G2-2nd', type: 'wb', layer: 0 },
+        { id: 'WSF2', label: 'WB SF2', p1: 'G2-1st', p2: 'G1-2nd', type: 'wb', layer: 0 },
+        { id: 'LB1', label: 'LB Match', p1: 'G1-5th', p2: 'G2-5th', type: 'lb', layer: 0 },
+        { id: 'WBF', label: 'WB Final', p1: 'W(SF1)', p2: 'W(SF2)', type: 'wb', layer: 1 },
+        { id: 'WPO', label: 'SF Losers PO', p1: 'L(SF1)', p2: 'L(SF2)', type: 'wb', layer: 1, note: 'W=3rd L=4th' },
+        { id: 'MB1', label: 'MB R1-1', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 2 },
+        { id: 'MB2', label: 'MB R1-2', p1: 'Middle', p2: 'LB W', type: 'mb', layer: 2 },
+        { id: 'MB3', label: 'MB R1-3', p1: 'Middle', p2: 'WB-4th', type: 'mb', layer: 2 },
+        { id: 'MB4', label: 'MB R2-1', p1: 'R1 W', p2: 'WB-3rd', type: 'mb', layer: 3 },
+        { id: 'MB5', label: 'MB R2-2', p1: 'R1 W', p2: 'R1 W', type: 'mb', layer: 3 },
+        { id: 'MB6', label: 'MB Semi', p1: 'R2 W', p2: 'R2 W', type: 'mb', layer: 4 },
+        { id: 'MB7', label: 'MB Final', p1: 'Semi W', p2: 'WB-2nd', type: 'mb', layer: 5 },
+        { id: 'GF', label: 'Grand Final', p1: 'WB-1st', p2: 'MB Champ', type: 'gf', layer: 6},
+      ],
+      edges: [
+        { from: 'WSF1', to: 'WBF', type: 'winner' },
+        { from: 'WSF2', to: 'WBF', type: 'winner' },
+        { from: 'WSF1', to: 'WPO', type: 'loser' },
+        { from: 'WSF2', to: 'WPO', type: 'loser' },
+        { from: 'LB1', to: 'MB2', type: 'drop-in' },
+        { from: 'WPO', to: 'MB3', type: 'drop-in' },
+        { from: 'WPO', to: 'MB4', type: 'drop-in' },
+        { from: 'MB1', to: 'MB4', type: 'winner' },
+        { from: 'MB2', to: 'MB5', type: 'winner' },
+        { from: 'MB3', to: 'MB5', type: 'winner' },
+        { from: 'MB4', to: 'MB6', type: 'winner' },
+        { from: 'MB5', to: 'MB6', type: 'winner' },
+        { from: 'MB6', to: 'MB7', type: 'winner' },
+        { from: 'WBF', to: 'MB7', type: 'drop-in' },
+        { from: 'WBF', to: 'GF', type: 'winner' },
+        { from: 'MB7', to: 'GF', type: 'winner' },
+      ],
+    },
+    phases: [
+      { id: 'WB-SF', name: 'Phase 1A — WB Semis', type: 'wb', parallel: 'A', matches: [
+        { id: 'WB-SF1', desc: 'G1-1st vs G2-2nd' }, { id: 'WB-SF2', desc: 'G2-1st vs G1-2nd' },
+      ]},
+      { id: 'LB', name: 'Phase 1B — LB Match', type: 'lb', parallel: 'A', matches: [{ id: 'LB1', desc: 'G1-5th vs G2-5th' }]},
+      { id: 'WB-F', name: 'Phase 2A — WB Final', type: 'wb', parallel: 'B', matches: [{ id: 'WB-F', desc: 'W(SF1) vs W(SF2)' }]},
+      { id: 'WB-PO', name: 'Phase 2B — SF Losers Playoff', type: 'wb', parallel: 'B', matches: [{ id: 'WB-PO', desc: 'L(SF1) vs L(SF2)' }]},
+      { id: 'MB-R1', name: 'Phase 4 — MB Round 1', type: 'mb', matches: [
+        { id: 'MB1', desc: 'Middle vs Middle' }, { id: 'MB2', desc: 'Middle vs LB winner' }, { id: 'MB3', desc: 'Middle vs WB-4th' },
+      ]},
+      { id: 'MB-R2', name: 'Phase 5 — MB Round 2', type: 'mb', matches: [
+        { id: 'MB4', desc: 'R1 winner vs WB-3rd' }, { id: 'MB5', desc: 'R1 winner vs R1 winner' },
+      ]},
+      { id: 'MB-Semi', name: 'Phase 6 — MB Semi', type: 'mb', matches: [{ id: 'MB6', desc: 'R2 winner vs R2 winner' }]},
+      { id: 'MB-F', name: 'Phase 7 — MB Final', type: 'mb', matches: [{ id: 'MB7', desc: 'Semi winner vs WB-2nd' }]},
+      { id: 'GF', name: 'Phase 8 — Grand Final', type: 'gf', matches: [
+        { id: 'GF1', desc: 'WB-1st vs MB Champion' },
+      ]},
+    ],
+  },
+  11: {
+    groups: [4, 4, 3], roundRobin: 'single', groupMatches: 15,
+    knockoutMatches: 13,
+    graph: {
+      nodes: [
+        { id: 'WBRR', label: 'WB Mini-RR', type: 'wb', layer: 0, isRR: true, matches: ['G1-1st vs G2-1st', 'G1-1st vs G3-1st', 'G2-1st vs G3-1st'], note: '→ WB-1st, 2nd, 3rd' },
+        { id: 'LBRR', label: 'LB Mini-RR', type: 'lb', layer: 0, isRR: true, matches: ['G1-4th vs G2-4th', 'G1-4th vs G3-3rd', 'G2-4th vs G3-3rd'], note: '→ LB-1st to MB' },
+        { id: 'MB1', label: 'MB R1-1', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB2', label: 'MB R1-2', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB3', label: 'MB R1-3', p1: 'Middle', p2: 'LB-1st', type: 'mb', layer: 1 },
+        { id: 'MB4', label: 'MB R2-1', p1: 'R1 W', p2: 'WB-3rd', type: 'mb', layer: 2 },
+        { id: 'MB5', label: 'MB R2-2', p1: 'R1 W', p2: 'R1 W', type: 'mb', layer: 2 },
+        { id: 'MB6', label: 'MB Semi', p1: 'R2 W', p2: 'R2 W', type: 'mb', layer: 3 },
+        { id: 'MB7', label: 'MB Final', p1: 'Semi W', p2: 'WB-2nd', type: 'mb', layer: 4 },
+        { id: 'GF', label: 'Grand Final', p1: 'WB-1st', p2: 'MB Champ', type: 'gf', layer: 5},
+      ],
+      edges: [
+        { from: 'LBRR', to: 'MB3', type: 'drop-in' },
+        { from: 'MB1', to: 'MB4', type: 'winner' },
+        { from: 'MB2', to: 'MB5', type: 'winner' },
+        { from: 'MB3', to: 'MB5', type: 'winner' },
+        { from: 'WBRR', to: 'MB4', type: 'drop-in' },
+        { from: 'MB4', to: 'MB6', type: 'winner' },
+        { from: 'MB5', to: 'MB6', type: 'winner' },
+        { from: 'MB6', to: 'MB7', type: 'winner' },
+        { from: 'WBRR', to: 'MB7', type: 'drop-in' },
+        { from: 'MB7', to: 'GF', type: 'winner' },
+        { from: 'WBRR', to: 'GF', type: 'winner' },
+      ],
+    },
+    phases: [
+      { id: 'WB-RR', name: 'Phase 1A — WB Mini-RR', type: 'wb', parallel: 'A', matches: [
+        { id: 'WB1', desc: 'G1-1st vs G2-1st' }, { id: 'WB2', desc: 'G1-1st vs G3-1st' }, { id: 'WB3', desc: 'G2-1st vs G3-1st' },
+      ]},
+      { id: 'LB-RR', name: 'Phase 1B — LB Mini-RR', type: 'lb', parallel: 'A', matches: [
+        { id: 'LB1', desc: 'G1-4th vs G2-4th' }, { id: 'LB2', desc: 'G1-4th vs G3-3rd' }, { id: 'LB3', desc: 'G2-4th vs G3-3rd' },
+      ]},
+      { id: 'MB-R1', name: 'Phase 3 — MB Round 1', type: 'mb', matches: [
+        { id: 'MB1', desc: 'Middle vs Middle' }, { id: 'MB2', desc: 'Middle vs Middle' }, { id: 'MB3', desc: 'Middle vs LB-1st' },
+      ]},
+      { id: 'MB-R2', name: 'Phase 4 — MB Round 2', type: 'mb', matches: [
+        { id: 'MB4', desc: 'R1 winner vs WB-3rd' }, { id: 'MB5', desc: 'R1 winner vs R1 winner' },
+      ]},
+      { id: 'MB-Semi', name: 'Phase 5 — MB Semi', type: 'mb', matches: [{ id: 'MB6', desc: 'R2 winner vs R2 winner' }]},
+      { id: 'MB-F', name: 'Phase 6 — MB Final', type: 'mb', matches: [{ id: 'MB7', desc: 'Semi winner vs WB-2nd' }]},
+      { id: 'GF', name: 'Phase 7 — Grand Final', type: 'gf', matches: [
+        { id: 'GF1', desc: 'WB-1st vs MB Champion' },
+      ]},
+    ],
+  },
+  12: {
+    groups: [4, 4, 4], roundRobin: 'single', groupMatches: 18,
+    knockoutMatches: 14,
+    graph: {
+      nodes: [
+        { id: 'WBRR', label: 'WB Mini-RR', type: 'wb', layer: 0, isRR: true, matches: ['G1-1st vs G2-1st', 'G1-1st vs G3-1st', 'G2-1st vs G3-1st'], note: '→ WB-1st, 2nd, 3rd' },
+        { id: 'LBRR', label: 'LB Mini-RR', type: 'lb', layer: 0, isRR: true, matches: ['G1-4th vs G2-4th', 'G1-4th vs G3-4th', 'G2-4th vs G3-4th'], note: '→ LB-1st to MB' },
+        { id: 'MB1', label: 'MB R1-1', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB2', label: 'MB R1-2', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB3', label: 'MB R1-3', p1: 'Middle', p2: 'LB-1st', type: 'mb', layer: 1 },
+        { id: 'MB4', label: 'MB R1-4', p1: 'Middle', p2: 'WB-3rd', type: 'mb', layer: 1 },
+        { id: 'MB5', label: 'MB R2-1', p1: 'R1 W', p2: 'R1 W', type: 'mb', layer: 2 },
+        { id: 'MB6', label: 'MB R2-2', p1: 'R1 W', p2: 'R1 W', type: 'mb', layer: 2 },
+        { id: 'MB7', label: 'MB Semi', p1: 'R2 W', p2: 'R2 W', type: 'mb', layer: 3 },
+        { id: 'MB8', label: 'MB Final', p1: 'Semi W', p2: 'WB-2nd', type: 'mb', layer: 4 },
+        { id: 'GF', label: 'Grand Final', p1: 'WB-1st', p2: 'MB Champ', type: 'gf', layer: 5},
+      ],
+      edges: [
+        { from: 'LBRR', to: 'MB3', type: 'drop-in' },
+        { from: 'WBRR', to: 'MB4', type: 'drop-in' },
+        { from: 'MB1', to: 'MB5', type: 'winner' },
+        { from: 'MB2', to: 'MB5', type: 'winner' },
+        { from: 'MB3', to: 'MB6', type: 'winner' },
+        { from: 'MB4', to: 'MB6', type: 'winner' },
+        { from: 'MB5', to: 'MB7', type: 'winner' },
+        { from: 'MB6', to: 'MB7', type: 'winner' },
+        { from: 'MB7', to: 'MB8', type: 'winner' },
+        { from: 'WBRR', to: 'MB8', type: 'drop-in' },
+        { from: 'MB8', to: 'GF', type: 'winner' },
+        { from: 'WBRR', to: 'GF', type: 'winner' },
+      ],
+    },
+    phases: [
+      { id: 'WB-RR', name: 'Phase 1A — WB Mini-RR', type: 'wb', parallel: 'A', matches: [
+        { id: 'WB1', desc: 'G1-1st vs G2-1st' }, { id: 'WB2', desc: 'G1-1st vs G3-1st' }, { id: 'WB3', desc: 'G2-1st vs G3-1st' },
+      ]},
+      { id: 'LB-RR', name: 'Phase 1B — LB Mini-RR', type: 'lb', parallel: 'A', matches: [
+        { id: 'LB1', desc: 'G1-4th vs G2-4th' }, { id: 'LB2', desc: 'G1-4th vs G3-4th' }, { id: 'LB3', desc: 'G2-4th vs G3-4th' },
+      ]},
+      { id: 'MB-R1', name: 'Phase 3 — MB Round 1', type: 'mb', matches: [
+        { id: 'MB1', desc: 'Middle vs Middle' }, { id: 'MB2', desc: 'Middle vs Middle' },
+        { id: 'MB3', desc: 'Middle vs LB-1st' }, { id: 'MB4', desc: 'Middle vs WB-3rd' },
+      ]},
+      { id: 'MB-R2', name: 'Phase 4 — MB Round 2', type: 'mb', matches: [
+        { id: 'MB5', desc: 'R1 winner vs R1 winner' }, { id: 'MB6', desc: 'R1 winner vs R1 winner' },
+      ]},
+      { id: 'MB-Semi', name: 'Phase 5 — MB Semi', type: 'mb', matches: [{ id: 'MB7', desc: 'R2 winner vs R2 winner' }]},
+      { id: 'MB-F', name: 'Phase 6 — MB Final', type: 'mb', matches: [{ id: 'MB8', desc: 'Semi winner vs WB-2nd' }]},
+      { id: 'GF', name: 'Phase 7 — Grand Final', type: 'gf', matches: [
+        { id: 'GF1', desc: 'WB-1st vs MB Champion' },
+      ]},
+    ],
+  },
+  13: {
+    groups: [5, 4, 4], roundRobin: 'single', groupMatches: 22,
+    callout: 'For 13 players, <strong>both WB-2nd and WB-3rd enter at the Semis</strong> (Phase 5) rather than at different stages. This avoids merit byes with 8 natural MB entrants.',
+    knockoutMatches: 15,
+    graph: {
+      nodes: [
+        { id: 'WBRR', label: 'WB Mini-RR', type: 'wb', layer: 0, isRR: true, matches: ['G1-1st vs G2-1st', 'G1-1st vs G3-1st', 'G2-1st vs G3-1st'], note: '→ WB-1st, 2nd, 3rd' },
+        { id: 'LBRR', label: 'LB Mini-RR', type: 'lb', layer: 0, isRR: true, matches: ['G1-5th vs G2-4th', 'G1-5th vs G3-4th', 'G2-4th vs G3-4th'], note: '→ LB-1st to MB' },
+        { id: 'MB1', label: 'MB R1-1', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB2', label: 'MB R1-2', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB3', label: 'MB R1-3', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB4', label: 'MB R1-4', p1: 'Middle', p2: 'LB-1st', type: 'mb', layer: 1 },
+        { id: 'MB5', label: 'Quarters-1', p1: 'R1 W', p2: 'R1 W', type: 'mb', layer: 2 },
+        { id: 'MB6', label: 'Quarters-2', p1: 'R1 W', p2: 'R1 W', type: 'mb', layer: 2 },
+        { id: 'MB7', label: 'Semi-1', p1: 'QF W', p2: 'WB-3rd', type: 'mb', layer: 3 },
+        { id: 'MB8', label: 'Semi-2', p1: 'QF W', p2: 'WB-2nd', type: 'mb', layer: 3 },
+        { id: 'MB9', label: 'MB Final', p1: 'Semi W', p2: 'Semi W', type: 'mb', layer: 4 },
+        { id: 'GF', label: 'Grand Final', p1: 'WB-1st', p2: 'MB Champ', type: 'gf', layer: 5},
+      ],
+      edges: [
+        { from: 'LBRR', to: 'MB4', type: 'drop-in' },
+        { from: 'MB1', to: 'MB5', type: 'winner' },
+        { from: 'MB2', to: 'MB5', type: 'winner' },
+        { from: 'MB3', to: 'MB6', type: 'winner' },
+        { from: 'MB4', to: 'MB6', type: 'winner' },
+        { from: 'MB5', to: 'MB7', type: 'winner' },
+        { from: 'MB6', to: 'MB8', type: 'winner' },
+        { from: 'WBRR', to: 'MB7', type: 'drop-in' },
+        { from: 'WBRR', to: 'MB8', type: 'drop-in' },
+        { from: 'MB7', to: 'MB9', type: 'winner' },
+        { from: 'MB8', to: 'MB9', type: 'winner' },
+        { from: 'MB9', to: 'GF', type: 'winner' },
+        { from: 'WBRR', to: 'GF', type: 'winner' },
+      ],
+    },
+    phases: [
+      { id: 'WB-RR', name: 'Phase 1A — WB Mini-RR', type: 'wb', parallel: 'A', matches: [
+        { id: 'WB1', desc: 'G1-1st vs G2-1st' }, { id: 'WB2', desc: 'G1-1st vs G3-1st' }, { id: 'WB3', desc: 'G2-1st vs G3-1st' },
+      ]},
+      { id: 'LB-RR', name: 'Phase 1B — LB Mini-RR', type: 'lb', parallel: 'A', matches: [
+        { id: 'LB1', desc: 'G1-5th vs G2-4th' }, { id: 'LB2', desc: 'G1-5th vs G3-4th' }, { id: 'LB3', desc: 'G2-4th vs G3-4th' },
+      ]},
+      { id: 'MB-R1', name: 'Phase 3 — MB Round 1', type: 'mb', matches: [
+        { id: 'MB1', desc: 'Middle vs Middle' }, { id: 'MB2', desc: 'Middle vs Middle' },
+        { id: 'MB3', desc: 'Middle vs Middle' }, { id: 'MB4', desc: 'Middle vs LB-1st' },
+      ]},
+      { id: 'MB-QF', name: 'Phase 4 — Quarters', type: 'mb', matches: [
+        { id: 'MB5', desc: 'R1 winner vs R1 winner' }, { id: 'MB6', desc: 'R1 winner vs R1 winner' },
+      ]},
+      { id: 'MB-Semi', name: 'Phase 5 — MB Semis', type: 'mb', matches: [
+        { id: 'MB7', desc: 'QF winner vs WB-3rd' }, { id: 'MB8', desc: 'QF winner vs WB-2nd' },
+      ]},
+      { id: 'MB-F', name: 'Phase 6 — MB Final', type: 'mb', matches: [{ id: 'MB9', desc: 'Semi winner vs Semi winner' }]},
+      { id: 'GF', name: 'Phase 7 — Grand Final', type: 'gf', matches: [
+        { id: 'GF1', desc: 'WB-1st vs MB Champion' },
+      ]},
+    ],
+  },
+  14: {
+    groups: [5, 5, 4], roundRobin: 'single', groupMatches: 26,
+    callout: 'For 14 players, the LB Mini-RR produces <strong>two advancers</strong> (LB-1st and LB-2nd) instead of just one. Only LB-3rd is eliminated outright.',
+    knockoutMatches: 17,
+    graph: {
+      nodes: [
+        { id: 'WBRR', label: 'WB Mini-RR', type: 'wb', layer: 0, isRR: true, matches: ['G1-1st vs G2-1st', 'G1-1st vs G3-1st', 'G2-1st vs G3-1st'], note: '→ WB-1st, 2nd, 3rd' },
+        { id: 'LBRR', label: 'LB Mini-RR', type: 'lb', layer: 0, isRR: true, matches: ['G1-5th vs G2-5th', 'G1-5th vs G3-4th', 'G2-5th vs G3-4th'], note: '→ LB-1st & 2nd to MB' },
+        { id: 'MB1', label: 'MB R1-1', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB2', label: 'MB R1-2', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB3', label: 'MB R1-3', p1: 'Middle', p2: 'LB-1st', type: 'mb', layer: 1 },
+        { id: 'MB4', label: 'MB R1-4', p1: 'Middle', p2: 'LB-2nd', type: 'mb', layer: 1 },
+        { id: 'MB5', label: 'MB R1-5', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB6', label: 'MB R2-1', p1: 'R1 W', p2: 'WB-3rd', type: 'mb', layer: 2 },
+        { id: 'MB7', label: 'MB R2-2', p1: 'R1 W', p2: 'R1 W', type: 'mb', layer: 2 },
+        { id: 'MB8', label: 'MB R2-3', p1: 'R1 W', p2: 'R1 W', type: 'mb', layer: 2 },
+        { id: 'MB9', label: 'Semi-1', p1: 'R2 W', p2: 'WB-2nd', type: 'mb', layer: 3 },
+        { id: 'MB10', label: 'Semi-2', p1: 'R2 W', p2: 'R2 W', type: 'mb', layer: 3 },
+        { id: 'MB11', label: 'MB Final', p1: 'Semi W', p2: 'Semi W', type: 'mb', layer: 4 },
+        { id: 'GF', label: 'Grand Final', p1: 'WB-1st', p2: 'MB Champ', type: 'gf', layer: 5},
+      ],
+      edges: [
+        { from: 'LBRR', to: 'MB3', type: 'drop-in' },
+        { from: 'LBRR', to: 'MB4', type: 'drop-in' },
+        { from: 'MB1', to: 'MB6', type: 'winner' },
+        { from: 'MB2', to: 'MB7', type: 'winner' },
+        { from: 'MB3', to: 'MB7', type: 'winner' },
+        { from: 'MB4', to: 'MB8', type: 'winner' },
+        { from: 'MB5', to: 'MB8', type: 'winner' },
+        { from: 'WBRR', to: 'MB6', type: 'drop-in' },
+        { from: 'MB6', to: 'MB9', type: 'winner' },
+        { from: 'MB7', to: 'MB10', type: 'winner' },
+        { from: 'MB8', to: 'MB10', type: 'winner' },
+        { from: 'WBRR', to: 'MB9', type: 'drop-in' },
+        { from: 'MB9', to: 'MB11', type: 'winner' },
+        { from: 'MB10', to: 'MB11', type: 'winner' },
+        { from: 'MB11', to: 'GF', type: 'winner' },
+        { from: 'WBRR', to: 'GF', type: 'winner' },
+      ],
+    },
+    phases: [
+      { id: 'WB-RR', name: 'Phase 1A — WB Mini-RR', type: 'wb', parallel: 'A', matches: [
+        { id: 'WB1', desc: 'G1-1st vs G2-1st' }, { id: 'WB2', desc: 'G1-1st vs G3-1st' }, { id: 'WB3', desc: 'G2-1st vs G3-1st' },
+      ]},
+      { id: 'LB-RR', name: 'Phase 1B — LB Mini-RR', type: 'lb', parallel: 'A', matches: [
+        { id: 'LB1', desc: 'G1-5th vs G2-5th' }, { id: 'LB2', desc: 'G1-5th vs G3-4th' }, { id: 'LB3', desc: 'G2-5th vs G3-4th' },
+      ]},
+      { id: 'MB-R1', name: 'Phase 3 — MB Round 1', type: 'mb', matches: [
+        { id: 'MB1', desc: 'Middle vs Middle' }, { id: 'MB2', desc: 'Middle vs Middle' },
+        { id: 'MB3', desc: 'Middle vs LB-1st' }, { id: 'MB4', desc: 'Middle vs LB-2nd' }, { id: 'MB5', desc: 'Middle vs Middle' },
+      ]},
+      { id: 'MB-R2', name: 'Phase 4 — MB Round 2', type: 'mb', matches: [
+        { id: 'MB6', desc: 'R1 winner vs WB-3rd' }, { id: 'MB7', desc: 'R1 winner vs R1 winner' }, { id: 'MB8', desc: 'R1 winner vs R1 winner' },
+      ]},
+      { id: 'MB-Semi', name: 'Phase 5 — MB Semi', type: 'mb', matches: [
+        { id: 'MB9', desc: 'R2 winner vs WB-2nd' }, { id: 'MB10', desc: 'R2 winner vs R2 winner' },
+      ]},
+      { id: 'MB-F', name: 'Phase 6 — MB Final', type: 'mb', matches: [{ id: 'MB11', desc: 'Semi winner vs Semi winner' }]},
+      { id: 'GF', name: 'Phase 7 — Grand Final', type: 'gf', matches: [
+        { id: 'GF1', desc: 'WB-1st vs MB Champion' },
+      ]},
+    ],
+  },
+  15: {
+    groups: [5, 5, 5], roundRobin: 'single', groupMatches: 30,
+    knockoutMatches: 17,
+    graph: {
+      nodes: [
+        { id: 'WBRR', label: 'WB Mini-RR', type: 'wb', layer: 0, isRR: true, matches: ['G1-1st vs G2-1st', 'G1-1st vs G3-1st', 'G2-1st vs G3-1st'], note: '→ WB-1st, 2nd, 3rd' },
+        { id: 'LBRR', label: 'LB Mini-RR', type: 'lb', layer: 0, isRR: true, matches: ['G1-5th vs G2-5th', 'G1-5th vs G3-5th', 'G2-5th vs G3-5th'], note: '→ LB-1st to MB' },
+        { id: 'MB1', label: 'MB R1-1', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB2', label: 'MB R1-2', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB3', label: 'MB R1-3', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB4', label: 'MB R1-4', p1: 'Middle', p2: 'Middle', type: 'mb', layer: 1 },
+        { id: 'MB5', label: 'MB R1-5', p1: 'Middle', p2: 'LB-1st', type: 'mb', layer: 1 },
+        { id: 'MB6', label: 'MB R2-1', p1: 'R1 W', p2: 'WB-3rd', type: 'mb', layer: 2 },
+        { id: 'MB7', label: 'MB R2-2', p1: 'R1 W', p2: 'R1 W', type: 'mb', layer: 2 },
+        { id: 'MB8', label: 'MB R2-3', p1: 'R1 W', p2: 'R1 W', type: 'mb', layer: 2 },
+        { id: 'MB9', label: 'Semi-1', p1: 'R2 W', p2: 'WB-2nd', type: 'mb', layer: 3 },
+        { id: 'MB10', label: 'Semi-2', p1: 'R2 W', p2: 'R2 W', type: 'mb', layer: 3 },
+        { id: 'MB11', label: 'MB Final', p1: 'Semi W', p2: 'Semi W', type: 'mb', layer: 4 },
+        { id: 'GF', label: 'Grand Final', p1: 'WB-1st', p2: 'MB Champ', type: 'gf', layer: 5},
+      ],
+      edges: [
+        { from: 'LBRR', to: 'MB5', type: 'drop-in' },
+        { from: 'MB1', to: 'MB6', type: 'winner' },
+        { from: 'MB2', to: 'MB7', type: 'winner' },
+        { from: 'MB3', to: 'MB7', type: 'winner' },
+        { from: 'MB4', to: 'MB8', type: 'winner' },
+        { from: 'MB5', to: 'MB8', type: 'winner' },
+        { from: 'WBRR', to: 'MB6', type: 'drop-in' },
+        { from: 'MB6', to: 'MB9', type: 'winner' },
+        { from: 'MB7', to: 'MB10', type: 'winner' },
+        { from: 'MB8', to: 'MB10', type: 'winner' },
+        { from: 'WBRR', to: 'MB9', type: 'drop-in' },
+        { from: 'MB9', to: 'MB11', type: 'winner' },
+        { from: 'MB10', to: 'MB11', type: 'winner' },
+        { from: 'MB11', to: 'GF', type: 'winner' },
+        { from: 'WBRR', to: 'GF', type: 'winner' },
+      ],
+    },
+    phases: [
+      { id: 'WB-RR', name: 'Phase 1A — WB Mini-RR', type: 'wb', parallel: 'A', matches: [
+        { id: 'WB1', desc: 'G1-1st vs G2-1st' }, { id: 'WB2', desc: 'G1-1st vs G3-1st' }, { id: 'WB3', desc: 'G2-1st vs G3-1st' },
+      ]},
+      { id: 'LB-RR', name: 'Phase 1B — LB Mini-RR', type: 'lb', parallel: 'A', matches: [
+        { id: 'LB1', desc: 'G1-5th vs G2-5th' }, { id: 'LB2', desc: 'G1-5th vs G3-5th' }, { id: 'LB3', desc: 'G2-5th vs G3-5th' },
+      ]},
+      { id: 'MB-R1', name: 'Phase 3 — MB Round 1', type: 'mb', matches: [
+        { id: 'MB1', desc: 'Middle vs Middle' }, { id: 'MB2', desc: 'Middle vs Middle' },
+        { id: 'MB3', desc: 'Middle vs Middle' }, { id: 'MB4', desc: 'Middle vs Middle' }, { id: 'MB5', desc: 'Middle vs LB-1st' },
+      ]},
+      { id: 'MB-R2', name: 'Phase 4 — MB Round 2', type: 'mb', matches: [
+        { id: 'MB6', desc: 'R1 winner vs WB-3rd' }, { id: 'MB7', desc: 'R1 winner vs R1 winner' }, { id: 'MB8', desc: 'R1 winner vs R1 winner' },
+      ]},
+      { id: 'MB-Semi', name: 'Phase 5 — MB Semi', type: 'mb', matches: [
+        { id: 'MB9', desc: 'R2 winner vs WB-2nd' }, { id: 'MB10', desc: 'R2 winner vs R2 winner' },
+      ]},
+      { id: 'MB-F', name: 'Phase 6 — MB Final', type: 'mb', matches: [{ id: 'MB11', desc: 'Semi winner vs Semi winner' }]},
+      { id: 'GF', name: 'Phase 7 — Grand Final', type: 'gf', matches: [
+        { id: 'GF1', desc: 'WB-1st vs MB Champion' },
+      ]},
+    ],
+  },
+};
+
+// ─── UTILITY ─────────────────────────────────────────────────────────
+function ord(n) {
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
+function getPositionDest(pos, groupSize, config) {
+  if (config.knockoutType === 'double-elim') return 'seeded';
+  if (config.knockoutType === 'three-tier-4wb') {
+    if (pos <= 2) return 'wb';
+    if (pos === groupSize) return 'lb';
+    return 'mb';
+  }
+  if (pos === 1) return 'wb';
+  if (pos === groupSize) return 'lb';
+  return 'mb';
+}
+
+function getDestLabel(dest) {
+  if (dest === 'wb') return 'Winners Bracket';
+  if (dest === 'mb') return 'Mid Bracket';
+  if (dest === 'lb') return 'Losers Bracket';
+  return 'Bracket (seeded)';
+}
+
+// ─── ELK + D3 BRACKET RENDERING ─────────────────────────────────────
+const elk = new ELK();
+
+function buildElkGraph(graphData) {
+  const tiers = {};
+  graphData.nodes.forEach(node => {
+    const tier = node.type || 'mb';
+    if (!tiers[tier]) tiers[tier] = [];
+    tiers[tier].push(node);
+  });
+
+  const tierOrder = ['wb', 'mb', 'lb', 'gf'];
+  const tierGraphs = {};
+
+  tierOrder.forEach(tier => {
+    if (!tiers[tier] || tiers[tier].length === 0) return;
+    const tierChildren = tiers[tier].map(node => ({
+      id: node.id,
+      width: node.isRR ? RR_W : NODE_W,
+      height: node.isRR ? RR_H : NODE_H,
+      labels: [{ text: node.label }],
+    }));
+
+    const tierEdges = graphData.edges
+      .filter(e => {
+        const src = graphData.nodes.find(n => n.id === e.from);
+        const tgt = graphData.nodes.find(n => n.id === e.to);
+        return src && tgt && src.type === tier && tgt.type === tier;
+      })
+      .map((edge, i) => ({
+        id: `e_${tier}_${i}`,
+        sources: [edge.from],
+        targets: [edge.to],
+      }));
+
+    tierGraphs[tier] = {
+      id: `tier_${tier}`,
+      layoutOptions: {
+        'elk.algorithm': 'layered',
+        'elk.direction': 'RIGHT',
+        'elk.layered.spacing.nodeNodeBetweenLayers': '60',
+        'elk.layered.spacing.edgeNodeBetweenLayers': '20',
+        'elk.spacing.nodeNode': '14',
+        'elk.edgeRouting': 'SPLINES',
+        'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+        'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+        'elk.padding': '[top=12,left=12,bottom=12,right=12]',
+      },
+      children: tierChildren,
+      edges: tierEdges,
+    };
+  });
+
+  return { tierGraphs, tierOrder: tierOrder.filter(t => tierGraphs[t]) };
+}
+
+async function renderBracket() {
+  const config = configs[selected];
+  const graphData = config.graph;
+  const { tierGraphs, tierOrder } = buildElkGraph(graphData);
+
+  const tierLayouts = {};
+  for (const tier of tierOrder) {
+    try {
+      tierLayouts[tier] = await elk.layout(tierGraphs[tier]);
+    } catch (e) {
+      console.error('ELK layout error for tier', tier, e);
+      return;
+    }
+  }
+
+  const container = document.getElementById('bracket-wrapper');
+  container.innerHTML = '';
+
+  const padding = 30;
+  const tierGap = 36;
+  const labelHeight = 20;
+
+  // Compute X offset for each tier based on cross-tier edge sources
+  // WB always starts at 0. Other tiers shift right to align with their earliest incoming feed.
+  const tierXOffsets = {};
+  const tierNodeLocalPositions = {};
+
+  // First pass: record local node positions within each tier layout
+  tierOrder.forEach(tier => {
+    const layout = tierLayouts[tier];
+    tierNodeLocalPositions[tier] = {};
+    if (layout.children) {
+      layout.children.forEach(n => {
+        tierNodeLocalPositions[tier][n.id] = { x: n.x, y: n.y, w: n.width, h: n.height };
+      });
+    }
+  });
+
+  // Compute stagger: for each tier (except wb), find the earliest cross-edge source's right edge
+  tierXOffsets[tierOrder[0]] = 0;
+  const crossEdges = graphData.edges.filter(e => {
+    const src = graphData.nodes.find(n => n.id === e.from);
+    const tgt = graphData.nodes.find(n => n.id === e.to);
+    return src && tgt && src.type !== tgt.type;
+  });
+
+  tierOrder.forEach((tier, ti) => {
+    if (ti === 0) return;
+    const incomingEdges = crossEdges.filter(e => {
+      const tgt = graphData.nodes.find(n => n.id === e.to);
+      return tgt && tgt.type === tier;
+    });
+
+    if (incomingEdges.length === 0) {
+      tierXOffsets[tier] = 0;
+      return;
+    }
+
+    // Find the min x of target nodes in this tier (the leftmost receiving node)
+    let minTargetX = Infinity;
+    incomingEdges.forEach(e => {
+      const pos = tierNodeLocalPositions[tier]?.[e.to];
+      if (pos) minTargetX = Math.min(minTargetX, pos.x);
+    });
+
+    // Find the max right-edge x of source nodes feeding into this tier
+    let maxSourceRight = 0;
+    incomingEdges.forEach(e => {
+      const srcNode = graphData.nodes.find(n => n.id === e.from);
+      if (!srcNode) return;
+      const srcTier = srcNode.type;
+      const srcPos = tierNodeLocalPositions[srcTier]?.[e.from];
+      if (srcPos) {
+        const srcRight = (tierXOffsets[srcTier] || 0) + srcPos.x + srcPos.w;
+        maxSourceRight = Math.max(maxSourceRight, srcRight);
+      }
+    });
+
+    // Offset this tier so its receiving node aligns with the source's output + a gap
+    const connectGap = 50;
+    tierXOffsets[tier] = Math.max(0, maxSourceRight + connectGap - minTargetX);
+  });
+
+  let maxW = 0;
+  tierOrder.forEach(tier => {
+    const w = (tierXOffsets[tier] || 0) + (tierLayouts[tier].width || 0);
+    maxW = Math.max(maxW, w);
+  });
+
+  // Compute Y offsets — stack tiers vertically, but pull a tier up
+  // to an earlier row if its x range doesn't overlap any tier already on that row.
+  let totalH = padding;
+  const tierYOffsets = {};
+  const tierRows = []; // each row: { y, height, xRanges: [{left, right}] }
+
+  tierOrder.forEach(tier => {
+    const tierW = tierLayouts[tier].width || 100;
+    const tierH = tierLayouts[tier].height || 60;
+    const tierLeft = tierXOffsets[tier] || 0;
+    const tierRight = tierLeft + tierW + 16;
+
+    // Try to fit this tier into an existing row (no horizontal overlap)
+    let placed = false;
+    for (const row of tierRows) {
+      const overlaps = row.xRanges.some(r => tierLeft < r.right + 30 && tierRight > r.left - 30);
+      if (!overlaps) {
+        tierYOffsets[tier] = row.y + labelHeight;
+        row.xRanges.push({ left: tierLeft, right: tierRight });
+        row.height = Math.max(row.height, tierH);
+        placed = true;
+        break;
+      }
+    }
+
+    if (!placed) {
+      const rowY = totalH;
+      tierYOffsets[tier] = rowY + labelHeight;
+      tierRows.push({ y: rowY, height: tierH, xRanges: [{ left: tierLeft, right: tierRight }] });
+      totalH += labelHeight + tierH + tierGap;
+    }
+  });
+  totalH += padding - tierGap;
+
+  const totalW = maxW + padding * 2;
+
+  const svg = d3.select(container)
+    .append('svg')
+    .attr('width', totalW)
+    .attr('height', totalH)
+    .attr('viewBox', `0 0 ${totalW} ${totalH}`);
+
+  const g = svg.append('g')
+    .attr('transform', `translate(${padding}, 0)`);
+
+  const tierLabels = { wb: 'Winners Bracket', mb: 'Mid Bracket', lb: 'Losers Bracket', gf: 'Grand Final' };
+  const nodePositions = {};
+
+  tierOrder.forEach(tier => {
+    const layout = tierLayouts[tier];
+    const offsetX = tierXOffsets[tier] || 0;
+    const offsetY = tierYOffsets[tier];
+    const colors = COLORS[tier] || COLORS.mb;
+
+    // Tier background
+    g.append('rect')
+      .attr('x', offsetX - 8)
+      .attr('y', offsetY - 4)
+      .attr('width', (layout.width || 100) + 16)
+      .attr('height', (layout.height || 60) + 8)
+      .attr('fill', colors.fill)
+      .attr('stroke', colors.stroke)
+      .attr('stroke-width', 1)
+      .attr('stroke-opacity', 0.25)
+      .attr('rx', 0);
+
+    // Tier label
+    g.append('text')
+      .attr('x', offsetX)
+      .attr('y', offsetY - 8)
+      .attr('font-family', "'Barlow Condensed', sans-serif")
+      .attr('font-size', '11px')
+      .attr('font-weight', '700')
+      .attr('letter-spacing', '0.15em')
+      .attr('fill', colors.stroke)
+      .attr('opacity', 0.9)
+      .text(tierLabels[tier] || tier.toUpperCase());
+
+    // Intra-tier edges
+    if (layout.edges) {
+      layout.edges.forEach(edge => {
+        const edgeData = graphData.edges.find(e => e.from === edge.sources[0] && e.to === edge.targets[0]);
+        const edgeType = edgeData ? edgeData.type : 'winner';
+        if (edge.sections) {
+          edge.sections.forEach(section => {
+            const sx = section.startPoint.x + offsetX;
+            const sy = section.startPoint.y + offsetY;
+            const ex = section.endPoint.x + offsetX;
+            const ey = section.endPoint.y + offsetY;
+            let pathD = `M ${sx} ${sy}`;
+            if (section.bendPoints && section.bendPoints.length > 0) {
+              const bps = section.bendPoints.map(bp => ({ x: bp.x + offsetX, y: bp.y + offsetY }));
+              if (bps.length === 1) {
+                pathD += ` Q ${bps[0].x} ${bps[0].y} ${ex} ${ey}`;
+              } else if (bps.length === 2) {
+                pathD += ` C ${bps[0].x} ${bps[0].y} ${bps[1].x} ${bps[1].y} ${ex} ${ey}`;
+              } else {
+                bps.forEach(bp => { pathD += ` L ${bp.x} ${bp.y}`; });
+                pathD += ` L ${ex} ${ey}`;
+              }
+            } else {
+              pathD += ` L ${ex} ${ey}`;
+            }
+            g.append('path')
+              .attr('d', pathD)
+              .style('fill', 'none')
+              .style('stroke-width', 1.5)
+              .style('stroke', colors.stroke)
+              .style('opacity', edgeType === 'winner' ? 0.5 : 0.35)
+              .style('stroke-dasharray', edgeType !== 'winner' ? '5 3' : 'none');
+          });
+        }
+      });
+    }
+
+    // Nodes
+    if (layout.children) {
+      layout.children.forEach(layoutNode => {
+        const nodeData = graphData.nodes.find(n => n.id === layoutNode.id);
+        if (!nodeData) return;
+
+        const nc = COLORS[nodeData.type] || COLORS.mb;
+        const absX = layoutNode.x + offsetX;
+        const absY = layoutNode.y + offsetY;
+
+        nodePositions[nodeData.id] = {
+          x: absX, y: absY,
+          w: layoutNode.width, h: layoutNode.height,
+        };
+
+        const ng = g.append('g')
+          .attr('transform', `translate(${absX}, ${absY})`);
+
+        ng.append('rect')
+          .attr('width', layoutNode.width)
+          .attr('height', layoutNode.height)
+          .attr('fill', nc.fill)
+          .attr('stroke', nc.stroke)
+          .attr('stroke-width', 1.5)
+          .attr('rx', 0).attr('ry', 0);
+
+        ng.append('rect')
+          .attr('width', 4)
+          .attr('height', layoutNode.height)
+          .attr('fill', nc.stroke);
+
+        if (nodeData.isRR) {
+          ng.append('text')
+            .attr('x', 12).attr('y', 15)
+            .attr('font-family', "'Barlow Condensed', sans-serif")
+            .attr('font-size', '10px').attr('font-weight', '700')
+            .attr('fill', nc.text)
+            .text(nodeData.label);
+          nodeData.matches.forEach((m, mi) => {
+            ng.append('text')
+              .attr('x', 12).attr('y', 30 + mi * 13)
+              .attr('font-size', '9px')
+              .attr('fill', 'oklch(0.72 0.02 250)')
+              .text(m);
+          });
+          if (nodeData.note) {
+            ng.append('text')
+              .attr('x', 12).attr('y', layoutNode.height - 6)
+              .attr('font-size', '8px').attr('fill', 'oklch(0.62 0.03 250)')
+              .attr('font-style', 'italic').text(nodeData.note);
+          }
+        } else {
+          ng.append('text')
+            .attr('x', 12).attr('y', 14)
+            .attr('font-family', "'Barlow Condensed', sans-serif")
+            .attr('font-size', '9px').attr('font-weight', '700')
+            .attr('letter-spacing', '0.08em')
+            .attr('fill', nc.text)
+            .text(nodeData.label);
+          ng.append('text')
+            .attr('x', 12).attr('y', 28)
+            .attr('font-family', "'Barlow', sans-serif")
+            .attr('font-size', '10px')
+            .attr('fill', 'oklch(0.92 0.01 250)')
+            .text(nodeData.p1);
+          ng.append('text')
+            .attr('x', 12).attr('y', 41)
+            .attr('font-family', "'Barlow', sans-serif")
+            .attr('font-size', '10px')
+            .attr('fill', 'oklch(0.92 0.01 250)')
+            .text(nodeData.p2);
+          if (nodeData.note) {
+            ng.append('text')
+              .attr('x', 12).attr('y', 50)
+              .attr('font-size', '8px').attr('fill', 'oklch(0.62 0.03 250)')
+              .attr('font-style', 'italic').text(nodeData.note);
+          }
+        }
+      });
+    }
+  });
+
+  // Draw cross-tier edges (connecting different bracket tiers)
+  crossEdges.forEach(edgeData => {
+    const srcPos = nodePositions[edgeData.from];
+    const tgtPos = nodePositions[edgeData.to];
+    if (!srcPos || !tgtPos) return;
+
+    const srcNode = graphData.nodes.find(n => n.id === edgeData.from);
+    const srcColor = COLORS[srcNode ? srcNode.type : 'mb'] || COLORS.mb;
+
+    const x1 = srcPos.x + srcPos.w;
+    const y1 = srcPos.y + srcPos.h / 2;
+    const x2 = tgtPos.x;
+    const y2 = tgtPos.y + tgtPos.h / 2;
+    const mx = (x1 + x2) / 2;
+
+    const pathD = `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+
+    g.append('path')
+      .attr('d', pathD)
+      .style('fill', 'none')
+      .style('stroke-width', 1.2)
+      .style('stroke', srcColor.stroke)
+      .style('opacity', 0.4)
+      .style('stroke-dasharray', edgeData.type !== 'winner' ? '5 3' : 'none');
+  });
+}
+
+// ─── OTHER RENDERERS ─────────────────────────────────────────────────
+let selected = 12;
+
+function renderGroups() {
+  const config = configs[selected];
+  const container = document.getElementById('groups-container');
+  const groupNames = config.groups.length === 2 ? ['1', '2'] : ['1', '2', '3'];
+
+  document.getElementById('group-subtitle').textContent =
+    `${selected} players · ${config.groups.length} group${config.groups.length > 1 ? 's' : ''} · ${config.roundRobin} round robin · ${config.groupMatches} matches`;
+
+  container.innerHTML = config.groups.map((size, i) => {
+    const matchCount = config.roundRobin === 'double' ? size * (size - 1) : size * (size - 1) / 2;
+    let positions = '';
+    for (let p = 1; p <= size; p++) {
+      const dest = getPositionDest(p, size, config);
+      const letter = String.fromCharCode(64 + p + (i * size));
+      positions += `<div class="position-row">
+        <span class="pos-num">${ord(p)}</span>
+        <span class="pos-name">Player ${letter}</span>
+        <span class="pos-dest ${dest}">${getDestLabel(dest)}</span>
+      </div>`;
+    }
+    return `<div class="group-card">
+      <h3>Group ${groupNames[i]}</h3>
+      <div class="group-meta"><span>${size} players</span><span>${matchCount} matches</span></div>
+      <div class="position-list">${positions}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderPlayOrder() {
+  const config = configs[selected];
+  const container = document.getElementById('play-order');
+  let html = '';
+  let matchNum = 1;
+  config.phases.forEach(phase => {
+    const labelClass = phase.type === 'wb' ? 'wb-label' : phase.type === 'mb' ? 'mb-label' : phase.type === 'lb' ? 'lb-label' : 'gf-label';
+    html += `<div class="play-order-phase"><h4 class="${labelClass}">${phase.name}</h4>`;
+    phase.matches.forEach(m => {
+      html += `<div class="play-order-match"><span class="match-num">${matchNum}.</span><strong>${m.id}:</strong>&nbsp;${m.desc}</div>`;
+      matchNum++;
+    });
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function renderStats() {
+  const config = configs[selected];
+  const ko = config.knockoutMatches;
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${config.groupMatches}</div><div class="stat-label">Group Stage Matches</div></div>
+    <div class="stat-card"><div class="stat-value">${ko}</div><div class="stat-label">Knockout Matches</div></div>
+    <div class="stat-card"><div class="stat-value">${config.groupMatches + ko}</div><div class="stat-label">Total Tournament</div></div>
+    <div class="stat-card"><div class="stat-value">0</div><div class="stat-label">Merit Byes</div></div>
+  `;
+}
+
+function renderCallout() {
+  const config = configs[selected];
+  document.getElementById('callout-area').innerHTML = config.callout ? `<div class="callout">${config.callout}</div>` : '';
+}
+
+function render() {
+  renderCallout();
+  renderGroups();
+  renderBracket();
+  renderPlayOrder();
+  renderStats();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────
+const selectorEl = document.getElementById('selector');
+for (let i = 8; i <= 15; i++) {
+  const btn = document.createElement('button');
+  btn.textContent = i;
+  btn.addEventListener('click', () => {
+    selected = i;
+    document.querySelectorAll('.selector button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  });
+  if (i === selected) btn.classList.add('active');
+  selectorEl.appendChild(btn);
+}
+
+render();
+</script>
+</body>
+</html>

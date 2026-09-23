@@ -1,0 +1,7 @@
+node_modules/
+pb/pb_data/
+pb/pocketbase.exe
+web/.svelte-kit/
+web/build/
+*.log
+.DS_Store

@@ -1,0 +1,720 @@
+================================================================
+TOURNAMENT STRUCTURE SPECIFICATION (v2)
+Adaptive Group Stage to Three-Tier Knockout (8-15 Players)
+================================================================
+
+PURPOSE OF THIS DOCUMENT
+------------------------
+This is a specification for an HTML site that serves TWO audiences:
+
+  1. EXPLAINER: For new players, organisers, or curious observers
+     who want to understand how the tournament structure works.
+     The site should walk them through the logic of why groups feed
+     into brackets the way they do, and visually demonstrate the
+     flow from group stage through to the Grand Final.
+
+  2. ADMIN GUIDE: For tournament organisers actually running the
+     event. The site should give them a clear, accurate reference
+     for every match that needs to be played, in what order, with
+     what pairings, for the selected player count.
+
+The site should be a single-page application with a player count
+selector (8-15) that dynamically shows the appropriate group stage
+composition and bracket structure.
+
+This is v2 of the spec. v1 used a more complex universal rule for
+all three-group counts. v2 locks in specific structures per count
+based on iterative refinement, with a particularly distinct rule
+set for 10 and 13 players.
+
+
+================================================================
+PART 1: CORE TOURNAMENT RULES (CONSTANT ACROSS ALL PLAYER COUNTS)
+================================================================
+
+MATCH FORMAT
+- All matches are 1 vs 1
+- Points required to win RAMP UP toward the end of the tournament:
+    * First to 5  — all group-stage matches, the WB/LB mini round-robins,
+                    and all early knockout rounds (up to but not including
+                    the semi-final stage)
+    * First to 7  — the semi-final stage onward: every match in a semi-final
+                    round AND every bracket final that precedes the Grand
+                    Final (e.g. the Mid-Bracket Final; for 8 players the
+                    Upper & Lower Bracket finals and semifinals)
+    * First to 9  — the Grand Final
+- This ramp applies to EVERY player-count configuration (8–15). Concretely,
+  a match is "first to 7" whenever its round is a semi-final or a (non-Grand)
+  final, "first to 9" for the Grand Final, and "first to 5" otherwise.
+
+GROUP STAGE
+- Players are randomly drawn into groups
+- Number of groups depends on player count (see Part 2)
+- 2-group structures: 8 and 10 players
+- 3-group structures: 9, 11, 12, 13, 14, 15 players
+- Groups can be uneven (e.g., 5/4/4 for 13 players)
+- 8–9 player tournaments: DOUBLE round robin (all groups)
+- 10–15 player tournaments: SINGLE round robin (all groups)
+- Standings determined by total match wins
+- Tiebreakers: head-to-head, point differential, total points scored,
+  then a single tiebreaker match if still tied
+
+KNOCKOUT STRUCTURE: VARIES BY PLAYER COUNT
+
+  8 PLAYERS: Standard 8-player double-elimination bracket.
+  Group stage seeds the bracket. Every player has 2 lives in
+  the knockout stage (lose twice to be eliminated). No three-tier
+  structure.
+
+  9, 11, 12, 13, 14, 15 PLAYERS: Three-tier structure.
+    TIER 1 - WINNERS BRACKET (WB): 3 group winners play a Mini
+      round-robin (3 matches), ranks finishers as WB-1st / 2nd / 3rd
+    TIER 2 - MID BRACKET (MB): Single elimination ladder receiving
+      group middles + WB seeds + LB winner. Where each WB seed
+      enters depends on player count (see Part 2).
+    TIER 3 - LOSERS BRACKET (LB): 3 group last-placers play a
+      Mini round-robin (3 matches). LB-1st advances to MB.
+      (For 14 players: top-2 from LB advance.)
+
+  10 PLAYERS: Three-tier structure with a 4-player WB.
+    TIER 1 - WINNERS BRACKET (WB): Top 2 from each group (4 total)
+      play a single-elim bracket plus an SF Losers Playoff,
+      producing differentiated ranks WB-1st / 2nd / 3rd / 4th.
+    TIER 2 - MID BRACKET (MB): Single-elim ladder receiving group
+      middles + WB seeds + LB winner.
+    TIER 3 - LOSERS BRACKET (LB): Single match between the 2 group
+      last-placers. Winner advances to MB.
+
+GRAND FINAL (SINGLE MATCH)
+  - WB Champion vs MB Champion
+  - Single match — winner is tournament champion
+  - No bracket reset; WB's advantage is reaching the final undefeated
+    (shorter path, no elimination pressure)
+
+
+================================================================
+PART 2: PER-PLAYER-COUNT CONFIGURATIONS
+================================================================
+
+----------------------------------------------------------------
+8 PLAYERS - TWO GROUP STRUCTURE [LOCKED IN]
+----------------------------------------------------------------
+  Groups: 4 / 4
+  Group format: Double round robin
+  Group stage matches: 24 (12 + 12)
+  
+  STRUCTURAL NOTE: For 8 players, the structure uses a STANDARD
+  8-PLAYER DOUBLE ELIMINATION bracket. Group stage results purely
+  seed the bracket. There is no separate WB/MB/LB three-tier
+  system — instead, every player has 2 lives in the knockout stage
+  (lose twice to be eliminated).
+  
+  Bracket seeding (after group stage):
+    Seed 1: Group 1st place finisher with the better record
+            (wins, point diff, points scored)
+    Seed 2: Other group 1st place finisher
+    Seeds 3-4: Group 2nd place finishers (better record = #3)
+    Seeds 5-6: Group 3rd place finishers (better record = #5)
+    Seeds 7-8: Group 4th place finishers (better record = #7)
+  
+  UPPER BRACKET (7 matches)
+    Quarterfinals (4 matches):
+      UB-QF1: Seed 1 vs Seed 8
+      UB-QF2: Seed 4 vs Seed 5
+      UB-QF3: Seed 3 vs Seed 6
+      UB-QF4: Seed 2 vs Seed 7
+    Semifinals (2 matches):
+      UB-SF1: W(QF1) vs W(QF2)
+      UB-SF2: W(QF3) vs W(QF4)
+    Upper Final (1 match):
+      UB-Final: W(SF1) vs W(SF2)
+      Winner -> Grand Final
+      Loser -> drops to LB Final
+  
+  LOWER BRACKET (6 matches)
+    Lower R1 (2 matches):
+      LB-R1a: L(QF1) vs L(QF2)
+      LB-R1b: L(QF3) vs L(QF4)
+    Lower R2 (2 matches) - SF losers cross-drop:
+      LB-R2a: W(R1a) vs L(SF2)
+      LB-R2b: W(R1b) vs L(SF1)
+    Lower SF (1 match):
+      LB-SF: W(R2a) vs W(R2b)
+    Lower Final (1 match):
+      LB-Final: W(LB-SF) vs L(UB-Final)
+      Winner -> Grand Final
+      Loser -> eliminated (2 losses)
+  
+  GRAND FINAL (1 match)
+    UB Final winner vs LB Final winner
+    Single match — winner is tournament champion
+
+  Total knockout matches: 14 (UB:7 + LB:6 + GF:1)
+  Total tournament: 24 + 14-15 = 38-39 matches
+  
+  Notes: Standard double-elimination format. Every player has
+  2 lives in knockout. Group stage seeds the bracket — better
+  group finish = better seed = easier opening matches.
+
+----------------------------------------------------------------
+9 PLAYERS - THREE GROUP STRUCTURE [LOCKED IN]
+----------------------------------------------------------------
+  Groups: 3 / 3 / 3
+  Group format: Double round robin
+  Group stage matches: 18 (6 per group)
+  
+  STRUCTURAL NOTE: 9 players uses a THREE-GROUP structure (despite
+  being below the 11+ threshold) because three groups of 3 with
+  double round-robin produces a clean knockout structure with zero
+  merit byes. This is a deliberate choice to maintain consistency
+  with the 11-15 player Mini-RR philosophy.
+  
+  Phase 1A — WB Mini-RR (3 matches)
+    G1-1st, G2-1st, G3-1st play full round-robin
+    Produces ranks WB-1st, WB-2nd, WB-3rd
+    Tiebreakers: H2H, point differential, points scored
+  
+  Phase 1B — LB Mini-RR (3 matches, parallel with Phase 1A)
+    G1-3rd, G2-3rd, G3-3rd play full round-robin
+    LB-1st advances to MB R1
+    LB-2nd and LB-3rd are eliminated
+  
+  Phase 2 — Bracket placement (no matches)
+    WB-1st  -> Grand Final
+    WB-2nd  -> waits for MB Semi (Phase 4)
+    WB-3rd  -> waits for MB Semi (Phase 4)
+    LB-1st  -> MB Round 1
+  
+  Phase 3 — MB Round 1 (2 matches, 4 entrants)
+    Entrants: 3 group middles (G1-2nd, G2-2nd, G3-2nd) + LB-1st
+    Pairings random, avoiding same-group rematches where possible
+    2 winners advance to Phase 4
+  
+  Phase 4 — MB Semi (2 matches, 4 entrants)
+    Entrants: 2 R1 winners + WB-2nd + WB-3rd
+    Pairings: rank R1 winners by group-stage record (wins, then
+    point diff, then total points). WB-2nd plays the LOWER-ranked
+    R1 winner. WB-3rd plays the higher-ranked one.
+    2 winners advance to MB Final
+  
+  Phase 5 — MB Final (1 match)
+    The 2 Semi winners play. Winner is MB Champion.
+  
+  Phase 6 — Grand Final (1 match)
+    WB-1st vs MB Champion
+    Single match — winner is tournament champion
+
+  Total MB matches: 5 (2 + 2 + 1)
+  Total tournament: 18 + 3 + 3 + 5 + 1 = 30 matches
+  
+  Notes: Zero merit byes anywhere. Bracket halves cleanly:
+  4 -> 4 (Semi) -> 2 -> 1. WB-2nd and WB-3rd both enter at Semi
+  (same philosophy as 13-player structure, scaled down).
+
+----------------------------------------------------------------
+10 PLAYERS - TWO GROUP STRUCTURE [LOCKED IN]
+----------------------------------------------------------------
+  Groups: 5 / 5
+  Group format: Single round robin
+  Group stage matches: 20 (10 per group)
+  
+  STRUCTURAL NOTE: For 10 players specifically, the WINNERS BRACKET
+  receives the TOP 2 from each group (4 players total) rather than
+  just the group winner. This creates a 4-player WB structure that
+  produces 4 differentiated drop-in points for MB.
+  
+  Phase 1A — WB Semis (2 matches)
+    SF1: G1-1st vs G2-2nd
+    SF2: G2-1st vs G1-2nd
+    (Cross-grouped to avoid same-group matchups)
+  
+  Phase 1B — LB Match (1 match, parallel with Phase 1A)
+    G1-5th vs G2-5th
+    Winner advances to MB R1
+    Loser is eliminated
+  
+  Phase 2A — WB Final (1 match)
+    W(SF1) vs W(SF2)
+    Winner = WB-1st -> Grand Final
+    Loser  = WB-2nd -> waits for MB Final
+  
+  Phase 2B — WB SF Losers Playoff (1 match, parallel with Phase 2A)
+    L(SF1) vs L(SF2)
+    Winner = WB-3rd -> drops to MB R2
+    Loser  = WB-4th -> drops to MB R1
+  
+  Phase 3 — Bracket placement (no matches)
+    WB-1st       -> Grand Final
+    WB-2nd       -> waits for MB Final (Phase 7)
+    WB-3rd       -> waits for MB R2 (Phase 5)
+    WB-4th       -> MB Round 1
+    LB winner    -> MB Round 1
+  
+  Phase 4 — MB Round 1 (3 matches, 6 entrants)
+    Entrants: 4 group middles (G1-3rd, G1-4th, G2-3rd, G2-4th)
+    + LB winner + WB-4th
+    Pairings random, avoiding same-group rematches where possible
+    3 winners advance to Phase 5
+  
+  Phase 5 — MB R2 (2 matches, 4 entrants)
+    Entrants: 3 R1 winners + WB-3rd
+    Pairings: random, but ensure WB-3rd plays a R1 winner
+    2 winners advance to Phase 6
+  
+  Phase 6 — MB Semi (1 match, 2 entrants)
+    The 2 R2 winners play
+    Winner advances to MB Final
+  
+  Phase 7 — MB Final (1 match)
+    SF winner vs WB-2nd
+    Winner is MB Champion
+  
+  Phase 8 — Grand Final (1 match)
+    WB-1st vs MB Champion
+    Single match — winner is tournament champion
+
+  Total MB matches: 7 (3 + 2 + 1 + 1)
+  Total tournament: 20 + 4 + 1 + 7 + 1 = 33 matches
+  
+  Notes: Zero merit byes anywhere. Bracket halves cleanly:
+  6 -> 4 -> 2 -> 2 -> 1. All 4 WB seeds get differentiated
+  rewards based on WB performance:
+    WB-1st: straight to GF (best reward)
+    WB-2nd: 1 MB match (the Final)
+    WB-3rd: enters MB R2 (skips R1)
+    WB-4th: plays MB from R1 (no MB skip)
+
+----------------------------------------------------------------
+11 PLAYERS - THREE GROUP STRUCTURE [LOCKED IN]
+----------------------------------------------------------------
+  Groups: 4 / 4 / 3
+  Group format: Single round robin
+  Group stage matches: 15 (6 + 6 + 3)
+  
+  Phase 1A — WB Mini-RR (3 matches)
+    G1-1st, G2-1st, G3-1st play full round-robin
+    Produces ranks WB-1st, WB-2nd, WB-3rd
+    Tiebreakers: H2H, point differential, points scored
+  
+  Phase 1B — LB Mini-RR (3 matches, parallel with Phase 1A)
+    G1-4th, G2-4th, G3-3rd play full round-robin
+    LB-1st advances to MB R1
+    LB-2nd and LB-3rd are eliminated
+  
+  Phase 2 — Bracket placement (no matches)
+    WB-1st  -> Grand Final
+    WB-2nd  -> waits for MB Final (Phase 6)
+    WB-3rd  -> waits for MB R2 (Phase 4)
+    LB-1st  -> MB Round 1
+  
+  Phase 3 — MB Round 1 (3 matches, 6 entrants)
+    Entrants: 5 group middles (G1-2nd, G1-3rd, G2-2nd, G2-3rd, G3-2nd)
+    + LB-1st
+    Pairings random, avoiding same-group rematches where possible
+    3 winners advance to Phase 4
+  
+  Phase 4 — MB R2 (2 matches, 4 entrants)
+    Entrants: 3 R1 winners + WB-3rd
+    Pairings: random, but ensure WB-3rd plays a R1 winner
+    2 winners advance to Phase 5
+  
+  Phase 5 — MB Semi (1 match, 2 entrants)
+    The 2 R2 winners play
+    Winner advances to MB Final
+  
+  Phase 6 — MB Final (1 match)
+    SF winner vs WB-2nd
+    Winner is MB Champion
+  
+  Phase 7 — Grand Final (1 match)
+    WB-1st vs MB Champion
+    Single match — winner is tournament champion
+
+  Total MB matches: 7 (3 + 2 + 1 + 1)
+  Total tournament: 15 + 3 + 3 + 7 + 1 = 29 matches
+  
+  Notes: Zero merit byes anywhere. Bracket halves cleanly:
+  6 -> 4 -> 2 -> 2 -> 1. WB-2nd, WB-3rd, and LB-1st all have
+  distinct, differentiated reward paths.
+
+----------------------------------------------------------------
+12 PLAYERS - THREE GROUP STRUCTURE [LOCKED IN]
+----------------------------------------------------------------
+  Groups: 4 / 4 / 4
+  Group format: Single round robin
+  Group stage matches: 18 (6 per group)
+
+  Phase 1A — WB Mini-RR (3 matches)
+    G1-1st, G2-1st, G3-1st play full round-robin
+    Produces ranks WB-1st, WB-2nd, WB-3rd
+    Tiebreakers: H2H, point differential, points scored
+
+  Phase 1B — LB Mini-RR (3 matches, parallel with Phase 1A)
+    G1-4th, G2-4th, G3-4th play full round-robin
+    LB-1st advances to MB R1
+    LB-2nd and LB-3rd are eliminated
+
+  Phase 2 — Bracket placement (no matches)
+    WB-1st  -> Grand Final
+    WB-2nd  -> waits for MB Final (Phase 6)
+    WB-3rd  -> MB Round 1
+    LB-1st  -> MB Round 1
+
+  Phase 3 — MB Round 1 (4 matches, 8 entrants)
+    Entrants: 6 group middles (G1-2nd, G1-3rd, G2-2nd, G2-3rd,
+    G3-2nd, G3-3rd) + LB-1st + WB-3rd
+    Pairings random, avoiding same-group rematches where possible
+    4 winners advance to Phase 4
+
+  Phase 4 — MB R2 (2 matches, 4 entrants)
+    The 4 R1 winners play
+    2 winners advance to Phase 5
+
+  Phase 5 — MB Semi (1 match, 2 entrants)
+    The 2 R2 winners play
+    Winner advances to MB Final
+
+  Phase 6 — MB Final (1 match)
+    SF winner vs WB-2nd
+    Winner is MB Champion
+
+  Phase 7 — Grand Final (1 match)
+    WB-1st vs MB Champion
+    Single match — winner is tournament champion
+
+  Total MB matches: 8 (4 + 2 + 1 + 1)
+  Total tournament: 18 + 3 + 3 + 8 + 1 = 33 matches
+
+  Notes: Zero merit byes anywhere. Bracket halves cleanly:
+  8 -> 4 -> 2 -> 2 -> 1. Cleanest of all three-group counts —
+  WB-3rd plays MB R1 alongside the middles and LB-1st, while
+  WB-2nd waits for the MB Final.
+
+----------------------------------------------------------------
+13 PLAYERS - THREE GROUP STRUCTURE [SPECIAL CASE]
+----------------------------------------------------------------
+  Groups: 5 / 4 / 4
+  Group format: Single round robin
+  Group stage matches: 22 (10 + 6 + 6)
+  
+  This player count uses a DIFFERENT MB structure from the other
+  three-group counts to avoid merit byes. Specifically:
+  - WB-3rd does NOT play MB R1
+  - WB-2nd does NOT wait for MB Final
+  - Both WB-2nd and WB-3rd enter together at Phase 5 (the Semis)
+  
+  Phase 1A — WB Mini-RR (3 matches)
+    G1-1st, G2-1st, G3-1st play full round-robin
+    Produces ranks WB-1st, WB-2nd, WB-3rd
+    Tiebreakers: H2H, point differential, points scored
+  
+  Phase 1B — LB Mini-RR (3 matches, parallel with Phase 1A)
+    G1-5th, G2-4th, G3-4th play full round-robin
+    LB-1st advances to MB R1
+    LB-2nd and LB-3rd are eliminated
+  
+  Phase 2 — Bracket placement (no matches)
+    WB-1st     -> Grand Final
+    WB-2nd     -> waits for Phase 5
+    WB-3rd     -> waits for Phase 5
+    LB-1st     -> MB Round 1
+  
+  Phase 3 — MB Round 1 (4 matches, 8 entrants)
+    Entrants: 7 group middles (G1-2nd, G1-3rd, G1-4th, G2-2nd,
+    G2-3rd, G3-2nd, G3-3rd) + LB-1st
+    Pairings random, avoiding same-group rematches where possible
+    4 winners advance to Phase 4
+  
+  Phase 4 — Quarters (2 matches, 4 entrants)
+    The 4 R1 winners play. 2 advance.
+  
+  Phase 5 — Semis (2 matches, 4 entrants)
+    Entrants: 2 Quarter winners + WB-2nd + WB-3rd
+    PAIRING RULE: rank the two Quarter winners by group-stage record
+    (wins, then point diff, then total points). WB-2nd plays the
+    LOWER-ranked Quarter winner. WB-3rd plays the higher-ranked one.
+    This rewards WB-2nd's higher finish in the WB Mini-RR.
+  
+  Phase 6 — MB Final (1 match)
+    The 2 Semi winners play. Winner is MB Champion.
+  
+  Phase 7 — Grand Final (1 match)
+    WB-1st vs MB Champion
+    Single match — winner is tournament champion
+
+  Total MB matches: 9 (4 + 2 + 2 + 1)
+  Total tournament: 22 + 3 + 3 + 9 + 1 = 38 matches
+  
+  Notes: Zero merit byes anywhere. Bracket halves cleanly:
+  8 -> 4 (R1) -> 4 (Quarters → Semis) -> 2 -> 1.
+  WB-2nd and WB-3rd both get the same magnitude of reward
+  (skip Phases 3 and 4, enter at Phase 5), with seeding only
+  affecting their Phase 5 matchup.
+
+----------------------------------------------------------------
+14 PLAYERS - THREE GROUP STRUCTURE [LOCKED IN]
+----------------------------------------------------------------
+  Groups: 5 / 5 / 4
+  Group format: Single round robin
+  Group stage matches: 26 (10 + 10 + 6)
+  
+  STRUCTURAL NOTE: For 14 players specifically, the LB Mini-RR
+  produces TWO advancers (LB-1st and LB-2nd) instead of just one.
+  Only LB-3rd is eliminated outright. This is necessary to keep
+  the MB bracket math clean with zero merit byes.
+  
+  Phase 1A — WB Mini-RR (3 matches)
+    G1-1st, G2-1st, G3-1st play full round-robin
+    Produces ranks WB-1st, WB-2nd, WB-3rd
+    Tiebreakers: H2H, point differential, points scored
+  
+  Phase 1B — LB Mini-RR (3 matches, parallel with Phase 1A)
+    G1-5th, G2-5th, G3-4th play full round-robin
+    LB-1st AND LB-2nd advance to MB R1
+    LB-3rd is eliminated
+  
+  Phase 2 — Bracket placement (no matches)
+    WB-1st            -> Grand Final
+    WB-2nd            -> waits for MB Semi (Phase 5)
+    WB-3rd            -> waits for MB R2 (Phase 4)
+    LB-1st, LB-2nd    -> MB Round 1
+  
+  Phase 3 — MB Round 1 (5 matches, 10 entrants)
+    Entrants: 8 group middles (G1-2nd, G1-3rd, G1-4th, G2-2nd,
+    G2-3rd, G2-4th, G3-2nd, G3-3rd) + LB-1st + LB-2nd
+    Pairings random, avoiding same-group rematches where possible
+    5 winners advance to Phase 4
+  
+  Phase 4 — MB R2 (3 matches, 6 entrants)
+    Entrants: 5 R1 winners + WB-3rd
+    Pairings: random, but ensure WB-3rd plays a R1 winner
+    3 winners advance to Phase 5
+  
+  Phase 5 — MB Semi (2 matches, 4 entrants)
+    Entrants: 3 R2 winners + WB-2nd
+    Pairings: rank R2 winners by group-stage record (wins, then
+    point diff, then total points). WB-2nd plays the LOWEST-ranked
+    R2 winner. The other two R2 winners play each other.
+    2 winners advance to MB Final
+  
+  Phase 6 — MB Final (1 match)
+    The 2 Semi winners play. Winner is MB Champion.
+  
+  Phase 7 — Grand Final (1 match)
+    WB-1st vs MB Champion
+    Single match — winner is tournament champion
+
+  Total MB matches: 11 (5 + 3 + 2 + 1)
+  Total tournament: 26 + 3 + 3 + 11 + 1 = 44 matches
+  
+  Notes: Zero merit byes anywhere. Bracket halves cleanly:
+  10 -> 6 -> 4 -> 2 -> 1.
+  WB-2nd plays Semi (similar to 13-player structure).
+  LB Mini-RR produces 2 advancers, which is unique to 14 players.
+
+----------------------------------------------------------------
+15 PLAYERS - THREE GROUP STRUCTURE [LOCKED IN]
+----------------------------------------------------------------
+  Groups: 5 / 5 / 5
+  Group format: Single round robin
+  Group stage matches: 30 (10 per group)
+  
+  Phase 1A — WB Mini-RR (3 matches)
+    G1-1st, G2-1st, G3-1st play full round-robin
+    Produces ranks WB-1st, WB-2nd, WB-3rd
+    Tiebreakers: H2H, point differential, points scored
+  
+  Phase 1B — LB Mini-RR (3 matches, parallel with Phase 1A)
+    G1-5th, G2-5th, G3-5th play full round-robin
+    LB-1st advances to MB R1
+    LB-2nd and LB-3rd are eliminated
+  
+  Phase 2 — Bracket placement (no matches)
+    WB-1st  -> Grand Final
+    WB-2nd  -> waits for MB Semi (Phase 5)
+    WB-3rd  -> waits for MB R2 (Phase 4)
+    LB-1st  -> MB Round 1
+  
+  Phase 3 — MB Round 1 (5 matches, 10 entrants)
+    Entrants: 9 group middles (G1-2nd, G1-3rd, G1-4th, G2-2nd,
+    G2-3rd, G2-4th, G3-2nd, G3-3rd, G3-4th) + LB-1st
+    Pairings random, avoiding same-group rematches where possible
+    5 winners advance to Phase 4
+  
+  Phase 4 — MB R2 (3 matches, 6 entrants)
+    Entrants: 5 R1 winners + WB-3rd
+    Pairings: random, but ensure WB-3rd plays a R1 winner
+    3 winners advance to Phase 5
+  
+  Phase 5 — MB Semi (2 matches, 4 entrants)
+    Entrants: 3 R2 winners + WB-2nd
+    Pairings: rank R2 winners by group-stage record (wins, then
+    point diff, then total points). WB-2nd plays the LOWEST-ranked
+    R2 winner. The other two R2 winners play each other.
+    2 winners advance to MB Final
+  
+  Phase 6 — MB Final (1 match)
+    The 2 Semi winners play. Winner is MB Champion.
+  
+  Phase 7 — Grand Final (1 match)
+    WB-1st vs MB Champion
+    Single match — winner is tournament champion
+
+  Total MB matches: 11 (5 + 3 + 2 + 1)
+  Total tournament: 30 + 3 + 3 + 11 + 1 = 48 matches
+  
+  Notes: Zero merit byes anywhere. Bracket halves cleanly:
+  10 -> 6 -> 4 -> 2 -> 1. Same MB structure as 14 players,
+  but LB sends only 1 advancer (one extra middle replaces
+  the extra LB player from the 14-player structure).
+
+
+================================================================
+PART 3: BUILD INSTRUCTIONS FOR CLAUDE CODE
+================================================================
+
+OVERVIEW
+
+The site has TWO purposes that should both be served well:
+
+  EXPLAINER MODE: The site teaches the viewer how the tournament
+  structure works. Someone who has never seen this format before
+  should be able to land on the page, pick a player count, and
+  understand both WHAT happens and WHY it works the way it does.
+
+  ADMIN GUIDE MODE: The site is a practical reference for an
+  organiser running the event. Every match, in every phase, with
+  exact pairings, in the order they should be played, easy to find.
+
+Both modes should be served by the same page. The viewer shouldn't
+have to switch modes — good information design should let an
+organiser quickly find the match they need while a curious viewer
+naturally absorbs the logic.
+
+DELIVERABLE
+
+A single self-contained index.html file (with embedded CSS and JS,
+no external dependencies except optionally Google Fonts) that allows
+viewing all 8 tournament configurations. Should work standalone
+when opened in any modern browser, no server required.
+
+
+REQUIRED FEATURES
+
+1. PLAYER COUNT SELECTOR
+   - A row of buttons or a slider for selecting 8 through 15 players
+   - The selected count drives all visualisations on the page
+   - When the selection changes, visualisations should animate or
+     transition smoothly to the new structure (not jarring jumps)
+
+2. RULES OVERVIEW SECTION (always visible near top)
+   - Match format (1v1, first to 5)
+   - Brief plain-English explanation of how the tournament works
+     overall: groups → knockout phases → Grand Final
+   - Mention WB advantage (direct path to final, no reset)
+   - This is the explainer's elevator pitch — keep it short
+
+3. GROUP STAGE VISUALISATION (updates per selection)
+   - Show each group as a card or panel
+   - Display: group name (Group 1, Group 2, Group 3),
+     number of players, round-robin format (single or double),
+     match count
+   - For each group, visually show the player positions (1st, 2nd,
+     3rd, 4th, 5th) and where each position will go in the knockout
+     stage (e.g., 1st → WB, 2nd → MB, 5th → LB) using colour-coding
+   - Use placeholder player names like "Player A", "Player B" etc.
+     so the structure is concrete
+
+4. ANIMATED FLOW FROM GROUPS INTO BRACKETS (key feature)
+   - When a player count is selected, animate the players visually
+     moving from their group cards into their respective brackets
+   - For example: the 1st-place finishers should be seen visually
+     "moving" from each group card into the WB area
+   - Middles move to MB, last-placers move to LB
+   - This animation should happen on selection change AND should be
+     re-triggerable via a "Replay animation" button
+   - The animation is what makes the explainer click — viewers should
+     SEE the structure form, not just read about it
+   - Keep the animation under 3 seconds total — informative, not slow
+
+5. ROUND-BY-ROUND BRACKET FLOWCHART (the main visualisation)
+   - After the groups-to-brackets animation, show the full bracket
+     as a round-by-round flowchart
+   - Each phase of the tournament is a clearly labelled stage
+     (e.g., "Phase 1A — WB Mini-RR", "Phase 3 — MB Round 1")
+   - Within each phase, show every match as a labelled box with
+     its participants (e.g., "MB1: middle vs middle", "MB7: SF
+     winner vs WB-2nd")
+   - Arrows or connectors show how match winners flow to the next
+     phase (e.g., "Winners of MB1 and MB2 → MB R2")
+   - Where players "wait" for later phases (e.g., WB-2nd waiting
+     for the MB Final), show a visual indicator of that waiting
+     state — perhaps a faded box that becomes prominent when it's
+     their turn to play
+   - For three-group counts, show WB Mini-RR and LB Mini-RR running
+     in parallel (visually side-by-side or with a "parallel" indicator)
+   - Grand Final is a single match node — no reset
+
+6. PHASE SEQUENCING / "PLAY ORDER" VIEW
+   - For the admin: a simple sequential list of every match in the
+     order it needs to be played, grouped by phase
+   - This should be the same data as the flowchart but in a
+     compact, printable format
+   - Each match labelled with its identifier (MB1, WB SF1, etc.)
+     and participants
+   - This is the practical reference an organiser would consult
+
+7. COLOUR CODING (consistent throughout)
+   - Winners Bracket: green / gold tones
+   - Mid Bracket: amber / orange tones
+   - Losers Bracket: red / crimson tones
+   - Group stage / neutral: grey
+   - Use the same colours in group cards (showing where positions
+     go), in the animation, in the bracket flowchart, and in the
+     play-order list
+
+8. SUMMARY STATISTICS (updates per selection)
+   - Total group stage matches
+   - Total knockout matches
+   - Total tournament matches (including potential GF reset)
+   - Number of merit byes (should be 0 for all locked-in counts
+     except 8, which uses standard double-elim with no byes either)
+
+9. SPECIAL-CASE CALLOUTS
+   - For 8 players: explain that this uses standard double-elim
+     and group stage seeds the bracket (no three-tier structure)
+   - For 10 players: explain why the WB has 4 players (top 2 from
+     each group) and the SF Losers Playoff
+   - For 13 players: explain the unique structure where WB-2nd and
+     WB-3rd both enter at the Semis
+   - For 14 players: explain why LB sends 2 advancers (not just 1)
+
+
+STYLING GUIDANCE
+
+   - Clean, modern, readable
+   - Mobile-responsive (the site should work on a phone screen,
+     since organisers may consult it on their phone during the event)
+   - Sans-serif typography
+   - Use SVG or styled HTML/CSS divs for bracket diagrams,
+     NOT image files
+   - Smooth transitions when switching between player counts
+   - Animations should respect prefers-reduced-motion media query
+
+
+DATA STRUCTURE SUGGESTION
+
+Encode all 8 configurations as a structured JavaScript object that
+captures, for each player count:
+  - Group composition (sizes, RR format)
+  - The phases of the tournament (in order)
+  - For each phase: matches, participants, where winners/losers go
+  - Reward differentiation for WB seeds
+
+This makes the rendering logic mostly generic and the data
+authoritative.
+
+
+================================================================
+END OF SPECIFICATION (v2)
+================================================================

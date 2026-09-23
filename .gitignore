@@ -1,0 +1,14 @@
+# Dependencies and build output
+node_modules/
+tournament-app/web/.svelte-kit/
+tournament-app/web/build/
+
+# PocketBase binary and live database (not source)
+tournament-app/pb/pb_data/
+tournament-app/pb/pocketbase.exe
+
+# Backup archives and secrets
+*.zip
+.env
+*.log
+.DS_Store

@@ -1,0 +1,17 @@
+{
+  "name": "beyfest-tournament-app",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": ["engine", "web"],
+  "scripts": {
+    "test": "bun test engine",
+    "e2e": "bun run scripts/e2e.ts",
+    "web": "bun run --cwd web dev",
+    "build": "bun run --cwd web build",
+    "pb": "pb/pocketbase.exe serve --http=0.0.0.0:8090 --dir=pb/pb_data --migrationsDir=pb/pb_migrations"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "pocketbase": "^0.26.2"
+  }
+}
