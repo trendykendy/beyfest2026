@@ -4,21 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project is
 
-A static single-page event website for "Beyfest 2026 — Triple Threat", a Beyblade tournament. No build system, no package manager, no server — open `index.html` directly in a browser.
+Two parts for "Beyfest 2026 — Triple Threat", a Beyblade tournament:
 
-## Running the site
+- **`public-site/`** — the static single-page event website. No build system, no package manager, no server. Hosted on Netlify; deploy by uploading the contents of `public-site/`.
+- **`tournament-app/`** — the tournament app (SvelteKit + PocketBase). See its own README.
 
-Just open `index.html` in a browser. For live-reload during development, any static file server works:
+`bracket-and-tourney/` is old reference material already folded into the app; ignore it.
+
+## Running the public site
+
+Just open `public-site/index.html` in a browser. For live-reload during development, any static file server works:
 
 ```bash
-npx serve .
+npx serve public-site
 # or
-python -m http.server 8080
+python -m http.server 8080 --directory public-site
 ```
 
-## Architecture
+## Public site architecture
 
-Everything lives in two files:
+Everything lives in `public-site/`, in two files:
 
 - **`index.html`** — the entire page: all CSS (in `<style>`), all markup, and all React/JSX (in `<script type="text/babel">`). React 18 and Babel standalone are loaded from CDN so JSX is transpiled in the browser at runtime.
 - **`tweaks-panel.jsx`** — a reusable floating debug panel loaded as a Babel script. Exports `useTweaks`, `TweaksPanel`, and a set of form controls (`TweakSlider`, `TweakToggle`, `TweakRadio`, `TweakSelect`, `TweakText`, `TweakNumber`, `TweakColor`, `TweakButton`) onto `window`. The panel communicates with a host via `postMessage` (`__activate_edit_mode` / `__deactivate_edit_mode` / `__edit_mode_available` / `__edit_mode_dismissed` / `__edit_mode_set_keys`).
