@@ -14,7 +14,10 @@
     tierOf,
     hasStage,
     roundName,
+    availableScenes,
+    SCENE_TITLE,
     type PBMatch,
+    type Scene,
   } from "$lib/view";
   import BroadcastBracket from "$lib/components/tv/BroadcastBracket.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
@@ -25,26 +28,14 @@
   const groupCount = $derived(data.groups.length);
   const names = $derived(nameMap(data.players));
 
-  const hasRR = $derived(hasStage(data.matches, "wb_rr") || hasStage(data.matches, "lb_rr"));
-  const hasBracket = $derived(
-    data.matches.some((m) => m.stage !== "group" && m.stage !== "wb_rr" && m.stage !== "lb_rr"),
-  );
   const champ = $derived.by(() => {
     const gf = data.matches.find((m) => m.stage === "gf");
     return gf && gf.matchStatus === "done" ? gf.winner : "";
   });
 
-  const SCENE_TITLE: Record<string, string> = {
-    standby: "Beyfest 2026",
-    groups: "Group stage",
-    rr: "Mini round-robins",
-    bracket: "Knockout bracket",
-    spotlight: "Match centre",
-    champion: "Champion",
-  };
   // Katakana shown above each scene title. Every glyph here must exist in the
-  // font subset (static/fonts/delagothic_kana.woff2) — see theme.css header.
-  const SCENE_KANA: Record<string, string> = {
+  // font subset (static/fonts/zenkaku_kana.woff2) — see theme.css header.
+  const SCENE_KANA: Record<Scene, string> = {
     standby: "スタンバイ",
     groups: "グループステージ",
     rr: "ラウンドロビン",
@@ -53,19 +44,64 @@
     champion: "チャンピオン",
   };
 
-  const scenes = $derived.by(() => {
-    if (!data.tournament) return ["standby"];
-    const s = ["groups"];
-    if (hasRR) s.push("rr");
-    if (hasBracket) s.push("bracket");
-    s.push("spotlight");
-    if (champ) s.push("champion");
-    return s;
+  const scenes = $derived(availableScenes(!!data.tournament, data.matches));
+
+  // ── Which scene is on screen ────────────────────────────────────────
+  // First match wins:
+  //   1. a key pressed at the TV itself (holds for LOCAL_SECONDS)
+  //   2. the organiser locked a scene from the admin page
+  //   3. a score just changed / a result went in → Match centre (REACT_SECONDS)
+  //   4. auto rotation, each scene for its DWELL
+  const DWELL: Record<Scene, number> = { standby: 60, groups: 25, rr: 20, bracket: 25, spotlight: 15, champion: 30 };
+  const REACT_SECONDS = 20;
+  const LOCAL_SECONDS = 60;
+
+  let now = $state(Date.now());
+  let autoScene = $state<Scene>("groups");
+  let autoUntil = Date.now() + DWELL.groups * 1000;
+  let react = $state<{ code: string; until: number } | null>(null);
+  let local = $state<{ scene: Scene; until: number } | null>(null);
+
+  const localActive = $derived(!!local && local.until > now && scenes.includes(local.scene));
+  const reacting = $derived(!!react && react.until > now && scenes.includes("spotlight"));
+  const scene = $derived.by<Scene>(() => {
+    if (localActive) return local!.scene;
+    if (!data.tournament) return "standby";
+    if (data.tv.mode === "locked" && scenes.includes(data.tv.scene)) return data.tv.scene;
+    if (reacting) return "spotlight";
+    return scenes.includes(autoScene) ? autoScene : scenes[0];
   });
 
-  let scene = $state("groups");
+  // Advance the rotation. Runs every second; cheap.
+  function tick() {
+    now = Date.now();
+    if (now >= autoUntil || !scenes.includes(autoScene)) {
+      const i = scenes.indexOf(autoScene); // -1 → starts again at scenes[0]
+      autoScene = scenes[(i + 1) % scenes.length];
+      autoUntil = now + DWELL[autoScene] * 1000;
+    }
+  }
+
+  // Watch for a running score changing or a result being recorded, and cut to
+  // that match. Knockout slots filling in (pending → ready) don't count.
+  let lastSeen = new Map<string, string>();
+  let primed = false;
   $effect(() => {
-    if (!scenes.includes(scene)) scene = scenes[0];
+    const snap = new Map(
+      data.matches.map((m) => [m.code, `${m.matchStatus}|${m.liveP1}-${m.liveP2}|${m.p1Score}-${m.p2Score}`]),
+    );
+    if (primed) {
+      let hit: PBMatch | null = null;
+      for (const m of data.matches) {
+        const before = lastSeen.get(m.code);
+        if (before === undefined || before === snap.get(m.code)) continue;
+        const justDone = m.matchStatus === "done" && !before.startsWith("done");
+        if (isLive(m) || justDone) hit = m;
+      }
+      if (hit) react = { code: hit.code, until: Date.now() + REACT_SECONDS * 1000 };
+    }
+    lastSeen = snap;
+    primed = true;
   });
 
   // Locked to the Ascent look; the bracket runs left-to-right on 16:9 screens.
@@ -84,7 +120,13 @@
     return [...live, ...ready, ...done];
   });
   let spotIndex = $state(0);
-  const spotMatch = $derived(featured[Math.min(spotIndex, Math.max(0, featured.length - 1))] ?? null);
+  // While reacting to a score, Match centre shows THAT match; otherwise the
+  // live / next / latest list, browsable with the arrow keys at the TV.
+  const spotMatch = $derived(
+    (reacting && scene === "spotlight" ? data.matches.find((m) => m.code === react!.code) : null) ??
+      featured[Math.min(spotIndex, Math.max(0, featured.length - 1))] ??
+      null,
+  );
 
   const groupMatchesOf = (gi: number) =>
     data.matches
@@ -143,7 +185,7 @@
   const rrMatchesOf = (stage: string) =>
     data.matches.filter((m) => m.stage === stage).sort((a, b) => a.orderIndex - b.orderIndex);
 
-  // ── Operator control ────────────────────────────────────────────────
+  // ── Operator control (keyboard / mouse at the TV) ───────────────────
   let barVisible = $state(true);
   let hideTimer: ReturnType<typeof setTimeout>;
   function poke() {
@@ -151,14 +193,20 @@
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => (barVisible = false), 3500);
   }
-  function setScene(s: string) {
-    scene = s;
+  // Picking a scene at the TV overrides everything for LOCAL_SECONDS.
+  function setScene(s: Scene) {
+    local = { scene: s, until: Date.now() + LOCAL_SECONDS * 1000 };
+    react = null;
     if (s === "spotlight") spotIndex = 0; // jump to the live / next match
     poke();
   }
   function cycleScene(d: number) {
     const i = scenes.indexOf(scene);
-    scene = scenes[(i + d + scenes.length) % scenes.length];
+    setScene(scenes[(i + d + scenes.length) % scenes.length]);
+  }
+  function browseSpot(d: number) {
+    spotIndex = Math.max(0, Math.min(spotIndex + d, featured.length - 1));
+    setScene("spotlight");
   }
   function toggleFull() {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
@@ -169,13 +217,11 @@
       const i = +e.key - 1;
       if (scenes[i]) setScene(scenes[i]);
     } else if (e.key === "ArrowRight") {
-      if (scene === "spotlight") spotIndex = Math.min(spotIndex + 1, featured.length - 1);
+      if (scene === "spotlight") browseSpot(1);
       else cycleScene(1);
-      poke();
     } else if (e.key === "ArrowLeft") {
-      if (scene === "spotlight") spotIndex = Math.max(spotIndex - 1, 0);
+      if (scene === "spotlight") browseSpot(-1);
       else cycleScene(-1);
-      poke();
     } else if (e.key.toLowerCase() === "f") {
       toggleFull();
     } else {
@@ -183,15 +229,26 @@
     }
   }
 
+  // Who is driving the screen, in words, for the operator bar.
+  const modeLabel = $derived.by(() => {
+    const fallback = data.tv.mode === "locked" ? "the organiser's choice" : "auto";
+    if (localActive) return `Picked here, back to ${fallback} in ${Math.ceil((local!.until - now) / 1000)}s`;
+    if (data.tv.mode === "locked") return "Locked by the organiser";
+    if (reacting) return "Auto, showing the latest score";
+    return "Auto rotation";
+  });
+
   onMount(() => {
     poke();
-    const subs = ["tournaments", "groups", "players", "matches"].map((c) =>
+    const subs = ["tournaments", "groups", "players", "matches", "tv_state"].map((c) =>
       pb().collection(c).subscribe("*", () => invalidateAll()),
     );
+    const clock = setInterval(tick, 1000);
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousemove", poke);
     return () => {
       subs.forEach((p) => p.then((u) => u()).catch(() => {}));
+      clearInterval(clock);
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mousemove", poke);
       clearTimeout(hideTimer);
@@ -447,6 +504,7 @@
   </main>
 
   <nav class="opbar" class:hidden={!barVisible}>
+    <span class="op-mode">{modeLabel}</span>
     <span class="grp">
       {#each scenes as s, i (s)}
         <button class:active={scene === s} onclick={() => setScene(s)}>{i + 1} {SCENE_TITLE[s]}</button>
@@ -454,9 +512,9 @@
     </span>
     {#if scene === "spotlight" && featured.length}
       <span class="spot-nav">
-        <button onclick={() => (spotIndex = Math.max(spotIndex - 1, 0))}>‹</button>
-        {Math.min(spotIndex, featured.length - 1) + 1}/{featured.length}
-        <button onclick={() => (spotIndex = Math.min(spotIndex + 1, featured.length - 1))}>›</button>
+        <button onclick={() => browseSpot(-1)} aria-label="Previous match">‹</button>
+        {Math.min(spotIndex, featured.length - 1) + 1} of {featured.length}
+        <button onclick={() => browseSpot(1)} aria-label="Next match">›</button>
       </span>
     {/if}
     <button class="full" onclick={toggleFull}>Full screen</button>
@@ -1121,23 +1179,30 @@
     align-items: center;
   }
   .opbar button {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-family: var(--font-text);
     font-weight: 700;
-    font-size: 0.82rem;
-    padding: 7px 12px;
-    border-radius: 7px;
-    border: 1px solid var(--tv-line);
+    font-size: 1rem;
+    padding: 7px 14px;
+    border-radius: 0;
+    border: 2px solid var(--ink);
     background: var(--dark3);
-    color: var(--text);
+    color: var(--paper);
     cursor: pointer;
   }
   .opbar button.active {
-    background: var(--accent);
+    background: var(--gold);
     color: var(--ink);
-    border-color: var(--accent);
+  }
+  .opbar button:focus-visible {
+    outline: 3px solid var(--gold);
+    outline-offset: 2px;
+  }
+  .op-mode {
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--on-field-soft);
+    margin-right: 8px;
   }
   .spot-nav {
     display: inline-flex;

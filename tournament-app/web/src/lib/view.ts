@@ -170,3 +170,35 @@ export function hasStage(matches: PBMatch[], stage: string): boolean {
   return matches.some((m) => m.stage === stage);
 }
 
+
+// ── TV scenes ─────────────────────────────────────────────────────────────
+// Shared by the TV (what it can show) and the admin page (what it can pick).
+
+export type Scene = "standby" | "groups" | "rr" | "bracket" | "spotlight" | "champion";
+
+export const SCENE_TITLE: Record<Scene, string> = {
+  standby: "Beyfest 2026",
+  groups: "Group stage",
+  rr: "Mini round-robins",
+  bracket: "Knockout bracket",
+  spotlight: "Match centre",
+  champion: "Champion",
+};
+
+// What the venue TV should be doing, as set from the admin page.
+export interface TvState {
+  id: string;
+  mode: "auto" | "locked";
+  scene: Scene;
+}
+
+// Scenes that have something to show right now, in rotation order.
+export function availableScenes(hasTournament: boolean, matches: PBMatch[]): Scene[] {
+  if (!hasTournament) return ["standby"];
+  const s: Scene[] = ["groups"];
+  if (hasStage(matches, "wb_rr") || hasStage(matches, "lb_rr")) s.push("rr");
+  if (matches.some((m) => m.stage !== "group" && m.stage !== "wb_rr" && m.stage !== "lb_rr")) s.push("bracket");
+  s.push("spotlight");
+  if (matches.some((m) => m.stage === "gf" && m.matchStatus === "done")) s.push("champion");
+  return s;
+}

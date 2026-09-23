@@ -1,6 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
-import { loadTournamentView } from "$lib/server/load";
+import { loadTournamentView, loadTvState } from "$lib/server/load";
+import { SCENE_TITLE, type Scene } from "$lib/view";
 import {
   createTournament,
   enterScore,
@@ -10,7 +11,8 @@ import {
 } from "$lib/server/tournament";
 
 export const load: PageServerLoad = async ({ locals }) => {
-  return await loadTournamentView(locals.pb);
+  const [view, tv] = await Promise.all([loadTournamentView(locals.pb), loadTvState(locals.pb)]);
+  return { ...view, tv };
 };
 
 export const actions: Actions = {
@@ -76,6 +78,21 @@ export const actions: Actions = {
       return fail(400, { error: (e as Error).message });
     }
     return { knockout: true };
+  },
+
+  // What the venue TV shows: "Auto" (rotate + cut to live scores) or lock it
+  // on one scene. The TV follows the tv_state record live.
+  tv: async ({ request, locals }) => {
+    const data = await request.formData();
+    const auto = data.get("mode") === "auto";
+    const scene = String(data.get("scene") || "") as Scene;
+    if (!auto && !(scene in SCENE_TITLE)) return fail(400, { error: "Unknown TV scene." });
+    const tv = await loadTvState(locals.pb);
+    if (!tv.id) {
+      return fail(500, { error: "TV settings are missing. Restart PocketBase so its migrations run." });
+    }
+    await locals.pb.collection("tv_state").update(tv.id, auto ? { mode: "auto" } : { mode: "locked", scene });
+    return { tv: true };
   },
 
   reset: async ({ locals }) => {

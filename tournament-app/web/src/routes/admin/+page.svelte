@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
   import { pb } from "$lib/pbBrowser";
   import { STRUCTURES, pickStructure, pointsToWin, miniRRAdvancers } from "@beyfest/engine";
-  import { nameMap, slotLabel, hasStage } from "$lib/view";
+  import { nameMap, slotLabel, hasStage, availableScenes, SCENE_TITLE } from "$lib/view";
   import type { PBMatch } from "$lib/view";
   import GroupCard from "$lib/components/GroupCard.svelte";
   import Bracket from "$lib/components/Bracket.svelte";
@@ -63,9 +63,12 @@
 
   const target = (m: PBMatch) => pointsToWin(m.stage, m.roundLabel);
 
+  // Scenes the organiser can put on the TV right now.
+  const tvScenes = $derived(availableScenes(!!data.tournament, data.matches).filter((s) => s !== "standby"));
+
   // Realtime: any change made anywhere refreshes this page.
   onMount(() => {
-    const subs = ["tournaments", "groups", "players", "matches"].map((c) =>
+    const subs = ["tournaments", "groups", "players", "matches", "tv_state"].map((c) =>
       pb().collection(c).subscribe("*", () => invalidateAll()),
     );
     return () => subs.forEach((p) => p.then((unsub) => unsub()).catch(() => {}));
@@ -97,6 +100,29 @@
 
   {#if form?.error}
     <div class="banner err">{form.error}</div>
+  {/if}
+
+  {#if data.tournament}
+    <section class="tv-panel">
+      <div class="tv-panel-head">
+        <h2>TV screen</h2>
+        <p class="tv-now">
+          {#if data.tv.mode === "auto"}
+            Rotating through the scenes, and jumping to Match centre when a score changes.
+          {:else}
+            Locked on {SCENE_TITLE[data.tv.scene]}. Choose Auto to rotate again.
+          {/if}
+        </p>
+      </div>
+      <form method="POST" action="?/tv" use:enhance class="tv-buttons">
+        <button class="btn" class:primary={data.tv.mode === "auto"} name="mode" value="auto">Auto</button>
+        {#each tvScenes as sc (sc)}
+          <button class="btn" class:primary={data.tv.mode === "locked" && data.tv.scene === sc} name="scene" value={sc}>
+            {SCENE_TITLE[sc]}
+          </button>
+        {/each}
+      </form>
+    </section>
   {/if}
 
   <!-- ─────────────── No tournament: create ─────────────── -->
@@ -273,6 +299,30 @@
   }
   .status-complete {
     color: var(--green);
+  }
+  .tv-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 24px;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 6px solid var(--gold);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+  }
+  .tv-panel h2 {
+    font-size: 1.5rem;
+  }
+  .tv-now {
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  .tv-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
   .banner.err {
     background: var(--lb-soft);

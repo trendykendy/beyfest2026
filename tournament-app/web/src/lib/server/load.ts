@@ -1,6 +1,6 @@
 import type PocketBase from "pocketbase";
 import type { RecordModel } from "pocketbase";
-import type { PBGroup, PBMatch, PBPlayer } from "$lib/view";
+import type { PBGroup, PBMatch, PBPlayer, TvState } from "$lib/view";
 
 export interface TournamentView {
   tournament: {
@@ -83,4 +83,15 @@ export async function loadTournamentView(pb: PocketBase): Promise<TournamentView
     players: players.map(toPlayer),
     matches: matches.map(toMatch),
   };
+}
+
+// The single TV-control record (see migration 1710000300_tv_state). Falls back
+// to auto rotation if it's missing, so the TV never breaks over it.
+export async function loadTvState(pb: PocketBase): Promise<TvState> {
+  try {
+    const r = await pb.collection("tv_state").getFirstListItem("");
+    return { id: r.id, mode: r.mode === "locked" ? "locked" : "auto", scene: r.scene || "groups" };
+  } catch {
+    return { id: "", mode: "auto", scene: "groups" };
+  }
 }
