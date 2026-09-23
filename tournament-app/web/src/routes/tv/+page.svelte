@@ -88,12 +88,34 @@
     data.matches
       .filter((m) => m.stage === "group" && m.groupIndex === gi)
       .sort((a, b) => a.orderIndex - b.orderIndex);
-  const groupNextCode = (gi: number) => groupMatchesOf(gi).find((m) => m.matchStatus !== "done")?.code ?? "";
+  // Tallest fixture list on screen (two groups → fixtures split into 2 columns).
+  // Short lists get the bigger "roomy" sizing so the slabs fill the screen;
+  // only 3 groups of 5 (13–15 players) needs the compact sizes.
+  const fixtureRows = $derived(
+    Math.max(0, ...data.groups.map((g) => {
+      const n = groupMatchesOf(g.index).length;
+      return groupCount === 2 ? Math.ceil(n / 2) : n;
+    })),
+  );
+  const groupPlayed = (gi: number) => groupMatchesOf(gi).filter((m) => m.matchStatus === "done").length;
+  // How a fixture row reads on the Group stage scene. Only ONE row is "next":
+  // the next match due that isn't already being played.
+  function fixtureState(m: PBMatch): "done" | "live" | "next" | "later" {
+    if (m.matchStatus === "done") return "done";
+    if (isLive(m)) return "live";
+    if (m.code === nextUp?.code) return "next";
+    return "later";
+  }
   // The next fixture to be played (not the one currently live) — for the "prep" strip.
   const nextUp = $derived(
     data.matches
       .filter((m) => m.matchStatus === "ready" && !isLive(m))
       .sort((a, b) => a.orderIndex - b.orderIndex)[0] ?? null,
+  );
+
+  // The match on the table right now (first live one), for the "On now" band.
+  const onNow = $derived(
+    data.matches.filter(isLive).sort((a, b) => a.orderIndex - b.orderIndex)[0] ?? null,
   );
 
   // What the Match Centre's top strip shows, following the featured match's phase.
@@ -213,45 +235,67 @@
       </div>
 
     {:else if scene === "groups"}
-      <div class="grid groups-{groupCount}">
-        {#each data.groups as g (g.id)}
-          <section class="board">
-            <div class="board-head">
-              <h2>{g.name}</h2>
-              <span class="sub">{g.size} bladers · {g.format} RR{g.complete ? " · final" : ""}</span>
-            </div>
-            <div class="thead">
-              <span></span><span></span>
-              <span class="c-n">P</span><span class="c-n w">W</span><span class="c-n">L</span>
-              <span class="c-n">PF</span><span class="c-n">+/−</span><span></span>
-            </div>
-            {#each groupStandings(data.players, data.matches, g.index) as row, i (row.playerId)}
-              {@const dest = destinationOf(i + 1, g.size, structure?.knockoutType ?? "")}
-              <div class="trow tier-{dest.tier}">
-                <span class="rank"><i>{i + 1}</i></span>
-                <span class="name">{names.get(row.playerId)}</span>
-                <span class="c-n">{row.wins + row.losses}</span>
-                <span class="c-n w">{row.wins}</span>
-                <span class="c-n">{row.losses}</span>
-                <span class="c-n">{row.pointsFor}</span>
-                <span class="c-n">{row.pointDiff > 0 ? "+" : ""}{row.pointDiff}</span>
-                <span class="dest" class:dim={!g.complete}>{dest.label}</span>
+      <div class="gs" class:roomy={fixtureRows <= 6}>
+        <div class="gs-grid gs-{groupCount}">
+          {#each data.groups as g (g.id)}
+            {@const total = groupMatchesOf(g.index).length}
+            <section class="gs-slab">
+              <header class="gs-head">
+                <h2>{g.name}</h2>
+                <span class="gs-progress">
+                  {#if g.complete}Final standings{:else}{groupPlayed(g.index)} of {total} played{/if}
+                </span>
+              </header>
+
+              <div class="gs-cols" aria-hidden="true">
+                <span></span><span></span><span>W–L</span><span>+/−</span><span>Goes to</span>
               </div>
-            {/each}
-            <div class="gfix">
-              {#each groupMatchesOf(g.index) as m (m.code)}
-                {@const gdone = m.matchStatus === "done"}
-                <div class="gfix-row" class:done={gdone} class:next={m.code === groupNextCode(g.index)}>
-                  <span class="gfix-p" class:win={gdone && (m.p1Score ?? 0) > (m.p2Score ?? 0)}>{names.get(m.p1)}</span>
-                  <span class="gfix-s">
-                    {#if gdone}{m.p1Score}–{m.p2Score}{:else if m.code === groupNextCode(g.index)}next{:else}v{/if}
-                  </span>
-                  <span class="gfix-p right" class:win={gdone && (m.p2Score ?? 0) > (m.p1Score ?? 0)}>{names.get(m.p2)}</span>
+              {#each groupStandings(data.players, data.matches, g.index) as row, i (row.playerId)}
+                {@const dest = destinationOf(i + 1, g.size, structure?.knockoutType ?? "")}
+                <div class="gs-row tier-{dest.tier}">
+                  <span class="gs-rank">{i + 1}</span>
+                  <span class="gs-name">{names.get(row.playerId)}</span>
+                  <span class="gs-wl">{row.wins}–{row.losses}</span>
+                  <span class="gs-diff">{row.pointDiff > 0 ? "+" : ""}{row.pointDiff}</span>
+                  <span class="gs-dest" class:projected={!g.complete}>{dest.label}</span>
                 </div>
               {/each}
-            </div>
-          </section>
-        {/each}
+
+              <ol class="gs-fixtures" class:wide={groupCount === 2}>
+                {#each groupMatchesOf(g.index) as m (m.code)}
+                  {@const st = fixtureState(m)}
+                  {@const w1 = st === "done" && (m.p1Score ?? 0) > (m.p2Score ?? 0)}
+                  {@const w2 = st === "done" && (m.p2Score ?? 0) > (m.p1Score ?? 0)}
+                  <li class="gs-fx {st}">
+                    <span class="gs-fx-p" class:win={w1} class:lose={w2}>{names.get(m.p1)}</span>
+                    <span class="gs-fx-mid">
+                      {#if st === "done"}{m.p1Score}–{m.p2Score}
+                      {:else if st === "live"}{m.liveP1}–{m.liveP2}
+                      {:else if st === "next"}Next
+                      {:else}v{/if}
+                    </span>
+                    <span class="gs-fx-p right" class:win={w2} class:lose={w1}>{names.get(m.p2)}</span>
+                  </li>
+                {/each}
+              </ol>
+            </section>
+          {/each}
+        </div>
+
+        {#if onNow || nextUp}
+          <div class="onnow">
+            {#if onNow}
+              <span class="onnow-tag live">On now</span>
+              <span class="onnow-match">
+                {sideName(onNow, 1)} <b>{onNow.liveP1}–{onNow.liveP2}</b> {sideName(onNow, 2)}
+              </span>
+            {/if}
+            {#if nextUp}
+              <span class="onnow-tag">Next up</span>
+              <span class="onnow-match soft">{sideName(nextUp, 1)} <em>v</em> {sideName(nextUp, 2)}</span>
+            {/if}
+          </div>
+        {/if}
       </div>
 
     {:else if scene === "rr"}
@@ -522,12 +566,10 @@
     color: var(--paper);
   }
   .meta {
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    color: var(--tv-dim);
-    font-size: 0.95rem;
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 1.3rem;
+    color: var(--on-field-soft);
     text-align: right;
   }
 
@@ -546,19 +588,6 @@
     padding-bottom: 96px;
   }
 
-  /* Groups — Burst-style speed-cut plates */
-  .grid {
-    display: grid;
-    gap: 26px;
-    width: 100%;
-    max-width: 1640px;
-  }
-  .groups-2 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .groups-3 {
-    grid-template-columns: repeat(3, 1fr);
-  }
   .board {
     background: linear-gradient(180deg, var(--tv-plate2), var(--tv-plate));
     border: var(--outline) solid var(--ink);
@@ -589,59 +618,6 @@
     color: var(--tv-dim);
     font-size: 0.76rem;
   }
-  .thead,
-  .trow {
-    display: grid;
-    grid-template-columns: 42px 1fr 34px 40px 34px 42px 50px 92px;
-    align-items: center;
-    gap: 6px;
-  }
-  .thead {
-    color: var(--tv-dim);
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-size: 0.66rem;
-    padding: 0 8px 6px;
-  }
-  .trow {
-    --row-tier: transparent;
-    background: linear-gradient(90deg, oklch(1 0 0 / 0.07), oklch(1 0 0 / 0.02));
-    border-left: 5px solid var(--row-tier);
-    border-radius: var(--plate-radius);
-    clip-path: polygon(0 0, 100% 0, calc(100% - var(--plate-cut)) 100%, 0 100%);
-    padding: 8px;
-    margin-bottom: 6px;
-    font-size: 1.15rem;
-  }
-  .trow.tier-wb {
-    --row-tier: var(--wb);
-  }
-  .trow.tier-mb {
-    --row-tier: var(--mb);
-  }
-  .trow.tier-lb {
-    --row-tier: var(--lb);
-  }
-  .rank {
-    text-transform: uppercase;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    background: var(--accent);
-    color: var(--ink);
-    font-family: var(--disp);
-    font-size: 1.25rem;
-    border-radius: 4px;
-    transform: skewX(var(--rank-skew));
-  }
-  .rank i {
-    font-style: normal;
-    transform: skewX(calc(-1 * var(--rank-skew)));
-  }
   .name {
     font-family: var(--name-family);
     font-stretch: 62%;
@@ -666,20 +642,263 @@
     color: var(--accent);
     font-size: 1.4rem;
   }
-  .dest {
-    text-align: right;
-    font-family: var(--lbl);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--row-tier);
-    padding-right: 4px;
+
+  /* ── Group stage ─────────────────────────────────────────────────
+     White telop slabs on the field. Sized for reading across a hall at
+     1920×1080: names ~40px, fixtures ~22px, nothing under 18px. */
+  .gs {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
   }
-  .dest.dim {
-    opacity: 0.4;
-    color: var(--tv-dim);
+  .gs-grid {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    gap: 30px;
+    align-items: center;
+  }
+  .gs-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .gs-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .gs-slab {
+    background: var(--paper);
+    color: var(--ink);
+    border: var(--outline) solid var(--ink);
+    box-shadow: 8px 8px 0 var(--ink);
+  }
+  .gs-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 20px 12px;
+  }
+  .gs-head h2 {
+    font-size: 2.6rem;
+    line-height: 1;
+  }
+  .gs-progress {
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--on-field-soft);
+  }
+  .gs-cols,
+  .gs-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 88px 64px 108px;
+    align-items: center;
+    column-gap: 10px;
+    padding: 0 16px 0 10px;
+  }
+  .gs-cols {
+    padding-top: 8px;
+    padding-bottom: 2px;
+    border-left: 10px solid transparent;
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+  }
+  .gs-cols span:nth-child(n + 3) {
+    text-align: center;
+  }
+  .gs-cols span:last-child {
+    text-align: right;
+  }
+  .gs-row {
+    --tier: var(--neutral);
+    height: 60px;
+    border-left: 10px solid var(--tier);
+    border-top: 2px solid #e3e6f3;
+  }
+  .gs-row.tier-wb {
+    --tier: var(--wb);
+  }
+  .gs-row.tier-mb {
+    --tier: var(--mb);
+  }
+  .gs-row.tier-lb {
+    --tier: var(--lb);
+  }
+  .gs-rank {
+    font-family: var(--font-display);
+    font-size: 1.9rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .gs-name {
+    font-family: var(--font-display);
+    font-stretch: 62%;
+    font-size: 2.5rem;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 4px; /* italic overhang */
+  }
+  .gs-wl {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .gs-diff {
+    font-family: var(--font-text);
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--ink-soft);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Destination chip: solid arena colour once the group is decided,
+     dashed outline while it's only a projection. */
+  .gs-dest {
+    justify-self: end;
+    font-family: var(--font-text);
+    font-weight: 800;
+    font-size: 1.15rem;
+    padding: 3px 12px 4px;
+    background: var(--tier);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+  }
+  .tier-lb .gs-dest {
+    color: var(--paper);
+  }
+  .gs-dest.projected {
+    background: transparent;
+    color: var(--ink-soft);
+    border: 2px dashed var(--ink-soft);
+  }
+  .gs-fixtures {
+    list-style: none;
+    margin: 0;
+    padding: 10px 12px 12px;
+    background: #eef0f8;
+    border-top: var(--outline) solid var(--ink);
+  }
+  /* Two groups → wide slabs: fixtures flow down one column, then the next. */
+  .gs-fixtures.wide {
+    columns: 2;
+    column-gap: 16px;
+  }
+  .gs-fx {
+    break-inside: avoid;
+    display: grid;
+    grid-template-columns: 1fr 76px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 10px;
+    font-family: var(--font-text);
+    font-weight: 500;
+    font-size: 1.4rem;
+    line-height: 1.3;
+    color: var(--ink-soft);
+  }
+  .gs-fx-p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .gs-fx-p.right {
+    text-align: right;
+  }
+  .gs-fx-mid {
+    text-align: center;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .gs-fx.done {
+    color: var(--ink);
+  }
+  .gs-fx .win {
+    font-weight: 800;
+  }
+  .gs-fx .lose {
+    color: var(--ink-soft);
+  }
+  .gs-fx.live {
+    background: var(--red);
+    color: var(--paper);
+    font-weight: 700;
+  }
+  .gs-fx.next {
+    background: var(--gold);
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  /* Roomy: bigger rows and type when the fixture lists are short. */
+  .gs.roomy .gs-row {
+    height: 74px;
+  }
+  .gs.roomy .gs-head h2 {
+    font-size: 3rem;
+  }
+  .gs.roomy .gs-name {
+    font-size: 3rem;
+  }
+  .gs.roomy .gs-wl {
+    font-size: 2.6rem;
+  }
+  .gs.roomy .gs-rank {
+    font-size: 2.2rem;
+  }
+  .gs.roomy .gs-fx {
+    font-size: 1.65rem;
+    padding: 4px 10px;
+  }
+
+  /* ── On now / Next up band (bottom of the non-match scenes) ─────── */
+  .onnow {
+    align-self: center;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 34px 10px 0;
+    clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
+    font-family: var(--font-display);
+    font-size: 1.9rem;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  .onnow-tag {
+    font-family: var(--font-text);
+    font-weight: 800;
+    font-size: 1.2rem;
+    text-transform: none;
+    background: var(--gold);
+    color: var(--ink);
+    padding: 12px 18px;
+    margin: -10px 0;
+  }
+  .onnow-tag.live {
+    background: var(--red);
+    color: var(--paper);
+  }
+  .onnow-match b {
+    color: var(--gold);
+    margin: 0 6px;
+  }
+  .onnow-match em {
+    font-style: normal;
+    color: var(--on-field-soft);
+    margin: 0 6px;
+  }
+  .onnow-match.soft {
+    color: var(--on-field-soft);
   }
 
   /* Mini-RR */
@@ -1116,57 +1335,6 @@
     font-size: 0.76rem;
   }
 
-  /* Per-group fixtures + results, shown under each group's table */
-  .gfix {
-    margin-top: 10px;
-    border-top: 1px solid var(--tv-line);
-    padding-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-  .gfix-row {
-    display: grid;
-    grid-template-columns: 1fr 62px 1fr;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.82rem;
-    padding: 3px 6px;
-    border-radius: 4px;
-  }
-  .gfix-row.next {
-    background: color-mix(in oklch, var(--accent) 16%, transparent);
-  }
-  .gfix-p {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--tv-dim);
-  }
-  .gfix-row.done .gfix-p {
-    color: var(--text);
-  }
-  .gfix-p.right {
-    text-align: right;
-  }
-  .gfix-p.win {
-    color: var(--accent);
-    font-weight: 700;
-  }
-  .gfix-s {
-    text-align: center;
-    font-family: var(--font-text);
-    font-stretch: 75%;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: var(--tv-dim);
-    font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .gfix-row.done .gfix-s {
-    color: var(--text);
-  }
 
   /* Champion + standby */
   .champ-scene,

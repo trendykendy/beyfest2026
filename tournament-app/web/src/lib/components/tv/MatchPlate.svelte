@@ -38,8 +38,6 @@
     <span class="nm">{b.name}</span>
     {#if done}<span class="sc">{match.p2Score}</span>{/if}
   </div>
-  <span class="tick tl"></span>
-  <span class="tick br"></span>
 </div>
 
 <style>
@@ -143,24 +141,4 @@
     color: var(--accent);
   }
 
-  .tick {
-    position: absolute;
-    width: 9px;
-    height: 9px;
-    border: 2px solid var(--accent);
-    opacity: 0.7;
-    pointer-events: none;
-  }
-  .tick.tl {
-    top: -1px;
-    left: -1px;
-    border-right: none;
-    border-bottom: none;
-  }
-  .tick.br {
-    bottom: -1px;
-    right: -1px;
-    border-left: none;
-    border-top: none;
-  }
 </style>
