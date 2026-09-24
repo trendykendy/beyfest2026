@@ -18,7 +18,7 @@ for every count from 8 to 15 players.
 
 ## Running it at the event
 
-1. On Windows, double-click **`start.ps1`** (or `pwsh -File .\start.ps1`). On a Mac, see below.
+1. On Windows, double-click **`start.ps1`** (or `pwsh -File .\start.ps1`). For the Raspberry Pi and the Mac, see below.
    - It builds the web app on first run, starts PocketBase + the web server bound
      to `0.0.0.0`, detects the laptop's LAN IP, and prints the URLs.
 2. On the laptop, open the **Organiser admin** URL and log in:
@@ -28,7 +28,51 @@ for every count from 8 to 15 players.
 4. **Windows Firewall** may prompt the first time — allow access on private networks
    so other devices can reach the laptop.
 
-### On a Mac
+### On a Raspberry Pi (the main setup)
+
+The Pi runs everything: the app, the database and the TV screen on its HDMI output.
+The organiser uses the admin page from the Mac, a phone or any other device, at
+**`http://beyfest.local/admin`**. Nothing needs the internet on the day.
+
+You need a Raspberry Pi 3 or newer with **64-bit Raspberry Pi OS (with desktop)**,
+connected to the TV and, for the install, to the internet. In a terminal on the Pi
+(or over SSH), run:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/trendykendy/beyfest2026/redesign/tournament-app/tournament-app/install-pi.sh | bash
+```
+
+- It asks you to choose the **organiser** and **PocketBase admin** passwords. Write
+  them down.
+- It installs Node and Chromium, and downloads the ready-built app from GitHub, so
+  the Pi never builds anything.
+- It sets the app to start at boot and restart itself if it ever crashes.
+- It names the Pi `beyfest`, logs in to the desktop automatically, turns off screen
+  blanking, and opens the TV screen full-screen.
+- It offers to restart the Pi at the end. After the restart the TV comes up by itself.
+
+**To update**, run the same command again. It replaces only the app. The tournament
+data and backups (in `/opt/beyfest/data`) are kept, and the previous app is kept in
+`/opt/beyfest/app.previous`. Options go after `bash -s --`, e.g. `… | bash -s -- --passwords`:
+
+- `--passwords` sets new passwords.
+- `--no-kiosk` runs the Pi as a server only, without the TV screen.
+
+GitHub builds the package the installer downloads on every push (see
+`.github/workflows/pi-package.yml` and `scripts/pi-package.sh`).
+
+If `beyfest.local` doesn't open (some networks and older Android phones don't
+support `.local` names), use the Pi's IP address, which the installer prints.
+
+Useful on the Pi:
+
+```sh
+systemctl status beyfest-web beyfest-pb       # are they running?
+journalctl -u beyfest-web -u beyfest-pb -n 50 # recent messages
+sudo systemctl restart beyfest-web beyfest-pb
+```
+
+### On a Mac (backup setup)
 
 `start.sh` is the Mac/Linux twin of `start.ps1`. **Do the first run at home, with
 internet**: it installs packages, builds the web app, downloads the right PocketBase
@@ -49,15 +93,14 @@ with the default logins. After that it runs offline.
 If it prints the wrong address (e.g. the Mac is on both wifi and a cable), force it:
 `BEYFEST_IP=192.168.1.20 ./start.sh`.
 
-### The TV on a Raspberry Pi
+### The TV on a Raspberry Pi, with the app on the Mac
 
-There are two ways to use the Pi. Either way, run `sudo raspi-config nonint do_blanking 1`
-once and reboot, so the screen never goes blank.
-
-**A. The Pi is only the TV browser (the app runs on the Mac)**, the simplest setup:
+If the Mac runs the app (above), the Pi can be just the TV's browser. Run
+`sudo raspi-config nonint do_blanking 1` once and reboot so the screen never goes blank,
+then:
 
 ```sh
-scripts/pi-kiosk.sh --install <mac>.local   # or the IP start.sh printed
+./pi-kiosk.sh --install <mac>.local   # or the IP start.sh printed
 ```
 
 - It opens `/tv` full-screen in Chromium, and `--install` makes it do that at every
@@ -67,11 +110,7 @@ scripts/pi-kiosk.sh --install <mac>.local   # or the IP start.sh printed
   works too, if `.local` names don't resolve on the venue network.
 - It waits until the Mac's app answers, so the order you switch things on doesn't matter.
 - Alt+F4 leaves the kiosk. To stop it starting at login: `rm ~/.config/autostart/beyfest-tv.desktop`.
-
-**B. The Pi runs the whole app.** Use 64-bit Raspberry Pi OS and follow the Mac steps
-in a terminal on the Pi (install Bun, `./start.sh`, first run at home). Then run
-`scripts/pi-kiosk.sh` with no address to show this Pi's own TV screen. The organiser
-uses the admin page from another device, at the address `start.sh` printed.
+- `pi-kiosk.sh` is in `scripts/` in this repo; copy it to the Pi.
 
 ### Organiser workflow
 
@@ -98,7 +137,7 @@ uses the admin page from another device, at the address `start.sh` printed.
   1. Log in to the PocketBase console (`http://<laptop>:8090/_/`) with the superuser.
   2. Go to *Settings → Backups*.
   3. Pick a backup and choose *Restore*. PocketBase restarts with that data.
-- **Admin says it can't reach the database.** PocketBase has stopped. Run `start.ps1` (or `start.sh` on a Mac) again; your data is safe in `pb/pb_data`. On a Mac, PocketBase's own messages are in `pb/pocketbase.log`.
+- **Admin says it can't reach the database.** PocketBase has stopped. On the Pi it restarts by itself within seconds; if not, `sudo systemctl restart beyfest-pb`. On Windows or a Mac, run `start.ps1` (or `start.sh`) again. Your data is safe either way. On a Mac, PocketBase's own messages are in `pb/pocketbase.log`.
 
 ## Development
 
@@ -141,7 +180,9 @@ tournament-app/
   start.ps1              one-command launcher for the event laptop (Windows)
   start.sh               the same for macOS / Linux / Raspberry Pi
   start.command          double-click wrapper for start.sh on a Mac
+  install-pi.sh          Raspberry Pi: install or update everything (see above)
   scripts/pi-kiosk.sh    Raspberry Pi: TV screen full-screen in Chromium
+  scripts/pi-package.sh  builds the ready-to-run Pi package (GitHub runs it)
   engine/                pure-TS tournament logic + tests
   pb/                    PocketBase binary + migrations (pb_data is runtime)
   web/                   SvelteKit app (public display + admin)

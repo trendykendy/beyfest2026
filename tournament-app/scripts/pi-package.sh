@@ -10,7 +10,7 @@
 # publishes the result as a release that install-pi.sh downloads.
 #
 # The package unpacks to beyfest/ with the same layout as this folder:
-#   start.sh, pb/pocketbase, pb/pb_migrations, web/build, web/node_modules,
+#   start.sh, pi-kiosk.sh, pb/pocketbase, pb/pb_migrations, web/build, web/node_modules,
 #   VERSION
 # ─────────────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -33,7 +33,7 @@ bun run build
 
 # ── Assemble ────────────────────────────────────────────────────────
 mkdir -p "$stage/pb" "$stage/web/node_modules" "$out"
-cp start.sh "$stage/"
+cp start.sh scripts/pi-kiosk.sh "$stage/"
 cp -r pb/pb_migrations "$stage/pb/"
 cp -r web/build web/package.json "$stage/web/"
 
@@ -46,7 +46,7 @@ cp -rL "$sdk" "$stage/web/node_modules/pocketbase"
 curl -fsSL -o "$work/pb.zip" \
   "https://github.com/pocketbase/pocketbase/releases/download/v${pb_version}/pocketbase_${pb_version}_linux_${arch}.zip"
 unzip -q "$work/pb.zip" pocketbase -d "$stage/pb"
-chmod +x "$stage/pb/pocketbase" "$stage/start.sh"
+chmod +x "$stage/pb/pocketbase" "$stage/start.sh" "$stage/pi-kiosk.sh"
 
 # What's in this package, for install-pi.sh and for "which version is this?".
 {

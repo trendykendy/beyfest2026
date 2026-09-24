@@ -101,7 +101,7 @@ Nothing is half-done. Ask the user what's next. Candidates, most useful first:
 1. **A dress rehearsal on the real hardware**, whenever the Mac and the TV (and Pi) are available.
    - Run `scripts/rehearsal.ts` against a **test** data folder; it resets the database it talks to.
    - Watch the TV through a whole event, and pull the network cable once to see it recover.
-2. **Step 6: try the launchers on the real Mac and Pi.** Follow the README's "On a Mac" and "The TV on a Raspberry Pi"; see known issue 3.
+2. **Try the Pi installer on the real Pi** (README "On a Raspberry Pi"). Next planned: **wifi setup + hotspot fallback** (add networks at install and with a `beyfest-wifi` command; venue wifi first, the Pi's own hotspot if none connects; the TV standby shows which network to join). Then also try the Mac launcher (README "On a Mac (backup setup)"). See known issue 3.
 3. **Before the event:** change the default logins (known issue 7). Then merge the branch into `main` and tag it.
 4. **Smaller polish:**
    - the 8-player bracket headings and lines (known issue 4)
@@ -122,6 +122,14 @@ Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point 
    - Tested in WSL Ubuntu (x86_64): first-run download/install/build, both logins, LAN address, Ctrl+C and SIGTERM stopping both servers, kiosk wait and launch (with a stub Chromium).
    - **Not tested:** the macOS IP detection (`route`/`ipconfig getifaddr`), Gatekeeper and firewall prompts, the arm64 builds, real Chromium on the Pi, and whether labwc on the Pi honours the XDG autostart entry.
    - `.gitattributes` forces LF on `*.sh`/`*.command`, and git stores them as executable.
+   - **Pi installer (day 3):** `tournament-app/install-pi.sh`, run as `curl … | bash` (the URL is in the README). The Pi is now the **main setup**: it runs everything, and the Mac is only an admin browser; the Mac launcher is the backup.
+     - It puts the app in `/opt/beyfest/app` and the data in `/opt/beyfest/data`, and keeps the last app as `app.previous`.
+     - Services `beyfest-pb` and `beyfest-web` (port 80, via `CAP_NET_BIND_SERVICE`), with `Restart=always`, run as the installing user.
+     - Passwords are asked on the first install or with `--passwords`. The organiser password is set through the PocketBase API as the superuser. There's also `--no-kiosk`.
+     - It uses raspi-config for the hostname `beyfest`, desktop auto-login (B4) and blanking off, plus a kiosk XDG autostart entry. It installs `nodejs`, `avahi-daemon` and `chromium` or `chromium-browser`, whichever has an installable version.
+     - `BEYFEST_CHANNEL` picks the release (default `redesign-tournament-app`; switch the default to `main` after merging). `BEYFEST_PKG_URL` overrides it, for testing.
+     - Tested in a throwaway Debian 13 WSL distro with systemd, using an amd64 package: first install (password checks: short and mismatch), pages on port 80, new passwords work and old ones are refused, an update keeps the data, no prompts on update, kill -9 recovery, `--passwords`, `--no-kiosk`, starting at boot, and the kiosk on :80.
+     - **Not tested:** real Raspberry Pi OS (raspi-config steps), a Pi 3's speed and memory with Chromium, whether the labwc/wayfire session runs the XDG autostart entry, and `beyfest.local` from the Mac.
    - **Pi package (day 3):** `.github/workflows/pi-package.yml` runs `tournament-app/scripts/pi-package.sh` on every push to `main` or `redesign/tournament-app`. That runs the tests, builds, and bundles `beyfest-pi-arm64.tar.gz` (built app + the `pocketbase` SDK, the only runtime package, + PocketBase linux-arm64 + migrations + start.sh + VERSION). It's published as a rolling prerelease tagged `pi-<branch>`, e.g. `pi-redesign-tournament-app`. Tested in WSL: it runs from the package with Node 18 alone (the Raspberry Pi OS version, no Bun). `start.sh` now needs Bun only to install or build.
 4. **The 8-player (double-elimination) bracket:**
    - Its round headings aren't covered by `roundName()` yet ("UPPER BRACKET — QUARTERFINALS").

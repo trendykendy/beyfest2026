@@ -5,6 +5,8 @@
 #   scripts/pi-kiosk.sh 192.168.1.20    TV for the app running on the Mac
 #                                       (use the IP that start.sh prints)
 #   scripts/pi-kiosk.sh                 TV for the app running on this Pi
+#   scripts/pi-kiosk.sh localhost:80    host:port when it isn't port 3000
+#                                       (install-pi.sh serves on port 80)
 #   scripts/pi-kiosk.sh --install 192.168.1.20
 #                                       also open it automatically at login
 #
@@ -21,7 +23,8 @@ if [[ "${1:-}" == "--install" ]]; then
   shift
 fi
 host="${1:-127.0.0.1}"
-url="http://${host}:3000/tv"
+[[ "$host" == *:* ]] || host="${host}:3000" # the Mac/start.sh port unless given
+url="http://${host}/tv"
 
 # ── --install: run this script at every login (XDG autostart) ────────
 if $install; then
@@ -53,7 +56,7 @@ fi
 
 # ── Wait for the app (/ping answers 204 once the web server and PocketBase are up) ─
 echo "  Waiting for $url …"
-until curl -fs -o /dev/null --max-time 3 "http://${host}:3000/ping"; do
+until curl -fs -o /dev/null --max-time 3 "http://${host}/ping"; do
   sleep 3
 done
 
