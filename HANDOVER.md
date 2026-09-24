@@ -1,10 +1,10 @@
 # Handover: tournament app redesign
 
-Written 24 September 2026, end of day 1. Read this first, then `CLAUDE.md`.
+Written 24 September 2026 (day 1), updated at the end of day 2. Read this first, then `CLAUDE.md`.
 
 ## Where things stand
 
-The tournament app (`tournament-app/`) is being redesigned because the old look read as AI-generated. The **TV screens are finished**. The admin and public pages have the new fonts and colours but their old layouts.
+The tournament app (`tournament-app/`) is being redesigned because the old look read as AI-generated. The **TV and admin are finished**. The public page is parked (see Phone view). On day 2 the user also picked four event-day improvements, all built (see "Day 2 improvements").
 
 All work is on branch **`redesign/tournament-app`**. `main` is still the untouched baseline and **nothing has been merged yet**. The working tree is clean.
 
@@ -17,7 +17,8 @@ All work is on branch **`redesign/tournament-app`**. `main` is still the untouch
 | – | Bracket lines no longer hidden behind cards | Done |
 | 4 | Admin redesign | **Redesign done** (day 2, tested in Edge on Windows). Mac-specific checks wait until there's a Mac |
 | 5 | Public display (`/`) for phones | **Parked (low priority):** nobody is expected to watch on phones. Audit and plan below under "Phone view" |
-| 6 | Mac + Pi launchers | Not started |
+| 6 | Mac + Pi launchers | Not started (user parked it on day 2) |
+| – | Day 2 improvements: fix a result, resilience, finish stats and awards, Let it rip | Done |
 
 ### Commits on `redesign/tournament-app` (oldest first)
 
@@ -81,13 +82,55 @@ Test helper worth recreating: a small script that PATCHes a live match's `liveP1
 1. ~~The scorer resets on reload~~: fixed in `8549e91`. `RoundScorer` starts from the match's saved `liveLog`.
 2. When the organiser picks a different match with "Score this", the TV's "Up next" still shows the default next match until the first point is scored. After that the TV cuts to the live match as normal. Minor; worth knowing.
 3. Step 5 public display: parked. See "Phone view" below.
-4. Step 6: `start.ps1` and `pb/pocketbase.exe` are **Windows-only**. The Mac needs the macOS PocketBase build plus a `start.sh`. The Pi needs the arm64 build, or just Chromium in kiosk mode pointing at the Mac. Document both in the README.
+4. Step 6: `start.ps1` and `pb/pocketbase.exe` are **Windows-only**.
+   - The Mac needs the macOS PocketBase build plus a `start.sh`.
+   - The Pi needs the arm64 build, or just Chromium in kiosk mode pointing at the Mac. Document both in the README.
+   - **Also:** the browser connects to PocketBase at `PUBLIC_PB_URL`, which defaults to `127.0.0.1:8090`. A TV on a Pi (or any other device) viewing the Mac's app must have that set to the Mac's LAN address, or its live updates never arrive.
 5. 8-player (double-elimination) bracket:
    - Its round headings aren't covered by `roundName()` yet ("UPPER BRACKET — QUARTERFINALS").
    - Its first two column gaps have a dense bundle of lines.
 6. For the first ~250ms, the round-win slab overlaps the LIVE status line on Match centre.
-7. Before the event, change the default logins: organiser `organiser@beyfest.local` / `beyfest2026`, and PocketBase superuser `admin@beyfest.local` / `beyfestadmin2026`. They're in the seed migration and README.
-8. `svelte.config.js` shows a deprecation warning for `csrf.checkOrigin`; it predates the redesign and is harmless for now.
+7. The sample scripts (`midgroup.ts`) set a live score **without** a round log. Admin's scorer then shows 0–0 for that match while the TV shows 3–2. This only happens with sample data; the real scorer always writes both.
+8. Before the event, change the default logins: organiser `organiser@beyfest.local` / `beyfest2026`, and PocketBase superuser `admin@beyfest.local` / `beyfestadmin2026`. They're in the seed migration and README.
+9. `svelte.config.js` shows a deprecation warning for `csrf.checkOrigin`; it predates the redesign and is harmless for now.
+
+## Day 2 improvements (the user picked four of five suggestions)
+
+The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resilience, 5 walkovers and name fixes. **5 was not built.** The picker only held four options, so ask the user if they want it.
+
+1. **Fix a recorded result** (`e845177`).
+   - Admin shows the **Last result** under Now playing, with **Fix**: pick any finished match and enter the corrected score.
+   - The rules live in `engine/src/correct.ts` (`planCorrection` / `applyCorrection`), with tests in `engine/test/correct.test.ts`:
+     - A score-only fix always passes.
+     - A flipped winner is swapped into the next matches, unless one of them has been played. Then it's refused with a plain-words reason, e.g. "MB5 has already been played with Zeutron in it".
+     - A group or round-robin fix is refused once the knockout was drawn from a table it would reorder.
+     - The server also refuses if a next-round match it would change is live.
+   - Why it's needed: resolved players get pinned into their next match (the slot is cleared), so re-applying a result alone would leave the old winner there.
+   - New `matches.resultAt` field (migration 500).
+   - Reset also puts the TV back to Auto, since an old lock could point at a scene that doesn't exist.
+2. **Event-day resilience** (`a5c4409`, `00f45e6`).
+   - **Found and fixed a real bug:** if a refresh ran while the network was down, SvelteKit fell back to a full page load, stranding the TV on the browser's "not connected" page for good.
+   - Now every refresh asks `/ping` (app server + PocketBase) first. Shared helper `liveUpdates()` in `lib/pbBrowser.ts`, used by the TV, admin and public pages.
+   - The pages also refresh on realtime reconnect, on a heartbeat (TV 30s), and every 5s while down.
+   - The TV shows a small "Reconnecting" mark bottom-left.
+   - Tested: a browser dropout recovers about 4s after reconnecting; a PocketBase stop and restart recovers in under a second.
+   - **Backups:** migration 600 turns on PocketBase backups every 10 minutes, keeps 20, and names the app "Beyfest". Confirmed: a zip appeared in `pb_data/backups`.
+   - Admin's Danger zone has **Download results**, a JSON export via `/admin/export`, organiser only.
+   - `scripts/rehearsal.ts [players] [secondsPerRound]` plays a whole tournament round by round through the real server. **It resets the database it talks to.**
+   - README: new organiser workflow, plus "If something goes wrong" (restoring from a backup).
+3. **Keep every round's finish** (`200598e`).
+   - The round log (`liveLog`) is no longer wiped when a result is recorded.
+   - A correction that changes the score clears it, since it would no longer add up.
+   - Match centre keeps the finish pills on the Result screen.
+   - New **Awards** TV scene: Knockout king, Dominator, Iron wall, Comeback.
+     - It appears once 6 finished matches have a log (`computeAwards` / `loggedResults` in `view.ts`).
+     - Ties of more than two are left out.
+     - It's "so far" until the grand final.
+4. **Let it rip** (`d9e4b4f`).
+   - Admin's scorer has **Start match** before the first round, with Cancel start to undo a wrong tap. It stamps `matches.startedAt` (migration 700) via `/admin/start`.
+   - `isLive()` counts started matches, so On now and Up next are right straight away. This also fixes known issue 2 whenever Start is used.
+   - The TV cuts to the match and plays **3 · 2 · 1 · LET IT RIP!** with ゴーシュート: a black band plus keyed CSS animations, transform/opacity only, skipped for reduced motion.
+   - The katakana subset was re-downloaded; its character list in `theme.css` now includes アワード and ゴーシュート.
 
 ## Points to win (changed day 2, `aa2d2a3`)
 
