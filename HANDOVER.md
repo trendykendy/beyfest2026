@@ -96,7 +96,7 @@ Test helper worth recreating: a small script that PATCHes a live match's `liveP1
 
 ## Day 2 improvements (the user picked four of five suggestions)
 
-The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resilience, 5 walkovers and name fixes. **5 was not built.** The picker only held four options, so ask the user if they want it.
+The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resilience, 5 walkovers and name fixes. All five are built; 5 came last, including a one-click withdraw (see 5 below).
 
 1. **Fix a recorded result** (`e845177`).
    - Admin shows the **Last result** under Now playing, with **Fix**: pick any finished match and enter the corrected score.
@@ -131,6 +131,18 @@ The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resil
    - `isLive()` counts started matches, so On now and Up next are right straight away. This also fixes known issue 2 whenever Start is used.
    - The TV cuts to the match and plays **3 · 2 · 1 · LET IT RIP!** with ゴーシュート: a black band plus keyed CSS animations, transform/opacity only, skipped for reduced motion.
    - The katakana subset was re-downloaded; its character list in `theme.css` now includes アワード and ゴーシュート.
+
+5. **Walkovers, withdrawals and name fixes** (the latest commit).
+   - **Walkover…** in the scorer asks who didn't show. The result is recorded as target–0 with `matches.walkover = true`. `recordWalkover` in `tournament.ts`.
+   - A **Bladers** panel in admin (`BladersPanel.svelte`), shown at every stage:
+     - **Rename** (names must stay unique).
+     - **Withdraw** / **Bring back**, which sets `players.withdrawn`.
+   - `autoWalkovers()` runs after every result, knockout generation and correction. It walks over any ready match with a withdrawn blader and repeats until none are left.
+     - Tested: a withdrawn blader's remaining group matches, and later their Losers round-robin matches, all became walkovers by themselves.
+   - "W/O" shows in the TV fixtures and bracket plates ("Walkover" in the header), on Match centre (a "Walkover" tag, no scores), on the Champion line, and in the admin fixtures and Last result bar.
+   - Awards skip walkovers.
+   - A walkover still counts as target–0 in the tables (points and point diff.).
+   - Migration 800.
 
 ## Points to win (changed day 2, `aa2d2a3`)
 
