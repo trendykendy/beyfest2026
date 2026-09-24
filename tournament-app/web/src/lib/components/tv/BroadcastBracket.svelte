@@ -26,6 +26,12 @@
     matches.filter((m) => m.stage !== "group" && m.stage !== "wb_rr" && m.stage !== "lb_rr"),
   );
 
+  // 8 players play double elimination. Its upper and lower brackets get a row
+  // each (the usual way to draw one), and only winner lines are drawn: the
+  // lower bracket's plates already say "Loser of QF1", and drop lines from the
+  // upper row would cross everything.
+  const doubleElim = $derived(structure.knockoutType === "double-elim" && orientation === "horizontal");
+
   // Columns by graph depth. Edges come from the STRUCTURE (live slots get
   // nulled once resolved, so the spec is the durable source of the flow).
   const layout = $derived.by(() => {
@@ -36,6 +42,7 @@
       if (!codes.has(def.code)) continue;
       for (const slot of [def.slot1, def.slot2]) {
         if ((slot.k === "winner" || slot.k === "loser") && codes.has(slot.match)) {
+          if (doubleElim && slot.k === "loser") continue;
           edges.push({ from: slot.match, to: def.code, type: slot.k });
           if (!incoming.has(def.code)) incoming.set(def.code, []);
           incoming.get(def.code)!.push(slot.match);
@@ -57,7 +64,15 @@
       .slice()
       .sort((a, b) => a.orderIndex - b.orderIndex)
       .forEach((n) => cols[depth.get(n.code)!].push(n));
-    return { cols, edges };
+    // Double elimination: the same columns, split into the two rows.
+    const rows = doubleElim
+      ? {
+          upper: cols.map((col) => col.filter((m) => m.stage === "ub")),
+          lower: cols.map((col) => col.filter((m) => m.stage === "lb")),
+          gf: cols.flat().filter((m) => m.stage === "gf"),
+        }
+      : null;
+    return { cols, edges, rows };
   });
 
 
@@ -257,6 +272,38 @@
           <path class="link tier-{c.tier} {c.type}" d={c.d} />
         {/each}
       </svg>
+      {#if layout.rows}
+        {@const rows = layout.rows}
+        <div class="bb-de" style="--de-cols: {layout.cols.length}">
+          {#each [rows.upper, rows.lower] as row, ri (ri)}
+            {#each row as col, ci (ci)}
+              {#if col.length}
+                <div class="bb-col-head" style="grid-row: {ri * 2 + 1}; grid-column: {ci + 1}">
+                  {roundName(col[0].roundLabel)}
+                </div>
+                <div class="bb-col-body" class:de-upper={ri === 0} style="grid-row: {ri * 2 + 2}; grid-column: {ci + 1}">
+                  {#each col as m (m.code)}
+                    <div class="bb-node" bind:this={nodeEls[m.code]}>
+                      <MatchPlate match={m} {names} {groupCount} />
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            {/each}
+          {/each}
+          {#if rows.gf.length}
+            <div class="de-gf" style="grid-column: {layout.cols.length}">
+              <div class="bb-col-head">{roundName(rows.gf[0].roundLabel)}</div>
+              {#each rows.gf as m (m.code)}
+                <div class="bb-node is-gf" bind:this={nodeEls[m.code]}>
+                  <div class="gf-crown"><Trophy /></div>
+                  <MatchPlate match={m} {names} {groupCount} />
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {:else}
       <div class="bb-cols">
         {#each layout.cols as col, ci (ci)}
           <div class="bb-col">
@@ -274,6 +321,7 @@
           </div>
         {/each}
       </div>
+      {/if}
     </div>
   </div>
 </div>
@@ -373,6 +421,39 @@
   }
   .bb-node {
     position: relative;
+  }
+
+  /* Double elimination: upper row on top, lower row underneath, Grand Final
+     at the end between them. Same coordinate origin as .bb-cols, so the
+     connector maths is unchanged. */
+  .bb-de {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(var(--de-cols), minmax(230px, auto));
+    grid-template-rows: auto auto auto auto;
+    column-gap: var(--bb-gap, 60px);
+    row-gap: 12px;
+    width: max-content;
+    padding: 8px 4px;
+  }
+  .bb-de > .bb-col-head {
+    align-self: end;
+  }
+  .bb-de .bb-col-body {
+    gap: 28px;
+  }
+  /* Room between the upper row's plates and the lower row's headings. */
+  .bb-de .de-upper {
+    margin-bottom: 44px;
+  }
+  .de-gf {
+    grid-row: 1 / 5;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 36px;
   }
   .bb-node.is-gf {
     transform: scale(1.06); /* GF_SCALE in the script */

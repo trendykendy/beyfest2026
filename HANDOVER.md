@@ -104,7 +104,6 @@ Nothing is half-done. Ask the user what's next. Candidates, most useful first:
 2. **Try the Pi installer on the real Pi** (README "On a Raspberry Pi"). Include the wifi: add the home network during install, then switch the router off (or take the Pi out of range) and check that the "Beyfest" hotspot appears after about a minute, the Mac can join it, `http://beyfest.local/admin` opens, and the TV standby shows the hint. `beyfest-wifi auto` then goes back. Then also try the Mac launcher (README "On a Mac (backup setup)"). See known issue 3.
 3. **Before the event:** change the default logins (known issue 7). Then merge the branch into `main` and tag it.
 4. **Smaller polish:**
-   - the 8-player bracket headings and lines (known issue 4)
    - the call-out overlapping LIVE for its first moments (known issue 5)
 5. **Step 5, the phone view:** only if the user asks.
 
@@ -138,9 +137,7 @@ Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point 
      - Tested in a throwaway Debian 13 + NetworkManager WSL distro, with no wifi chip (`BEYFEST_WIFI_DEVICE=wlan0` override): the installer's wifi prompts, profile settings, open vs WPA networks, list/remove/status and the error paths, the watcher's fallback attempt after ~60s, ethernet mode on the TV, an update keeping the profiles, and all 3 services after a restart. The TV hint was screenshotted in headless Edge at 1920×1080.
      - **Not tested:** the hotspot actually broadcasting on a Pi 3 and a Mac/phone joining it and resolving beyfest.local; joining real venue wifi.
    - **Pi package (day 3):** `.github/workflows/pi-package.yml` runs `tournament-app/scripts/pi-package.sh` on every push to `main` or `redesign/tournament-app`. That runs the tests, builds, and bundles `beyfest-pi-arm64.tar.gz` (built app + the `pocketbase` SDK, the only runtime package, + PocketBase linux-arm64 + migrations + start.sh + VERSION). It's published as a rolling prerelease tagged `pi-<branch>`, e.g. `pi-redesign-tournament-app`. Tested in WSL: it runs from the package with Node 18 alone (the Raspberry Pi OS version, no Bun). `start.sh` now needs Bun only to install or build.
-4. **The 8-player (double-elimination) bracket:**
-   - Its round headings aren't covered by `roundName()` yet ("UPPER BRACKET — QUARTERFINALS").
-   - Its first two column gaps have a dense bundle of lines.
+4. ~~**The 8-player (double-elimination) bracket**~~ fixed day 3: `roundName()` now names its rounds ("Upper bracket quarter-finals"…), and the TV draws it as two rows (upper on top, lower underneath, Grand Final at the end between them) with winner lines only. The plates already say "Loser of QF1". Other sizes are unchanged (checked 12).
 5. For the first ~250ms, the round-win slab overlaps the LIVE status line on Match centre.
 6. **Sample data mismatch.** `midgroup.ts` sets a live score **without** a round log, so admin's scorer shows 0–0 for that match while the TV shows 3–2. This only happens with sample data; the real scorer always writes both.
 7. **Before the event, change the default logins:**

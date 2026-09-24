@@ -68,6 +68,11 @@ export function roundName(roundLabel: string): string {
   let s = roundLabel.replace(/^Phase \w+ — /, "");
   if (s === "WB SF Losers Playoff") return "Winners 3rd-place play-off";
   s = s
+    // 8 players (double elimination): "Upper Bracket — Quarterfinals" → "Upper bracket quarter-finals"
+    .replace(/^(Upper|Lower) Bracket — /, "$1 bracket ")
+    .replace(/\bQuarterfinals\b/, "quarter-finals")
+    .replace(/\bSemifinals\b/, "semi-finals")
+    .replace(/\bSemifinal\b/, "semi-final")
     .replace(/\bWB\b/, "Winners")
     .replace(/\bMB\b/, "Mid bracket")
     .replace(/\bLB\b/, "Losers")
