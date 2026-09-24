@@ -70,6 +70,11 @@
   let scale = $state(1);
 
   const MAX_SCALE = 2; // allow small brackets to grow into the space
+  const CARD_CLEARANCE = 14; // min space between a routed line and any card edge
+  const LANE_SPACING = 12; // keeps parallel routed lines visibly apart
+  const GAP_STUB = 10; // flat run into / out of a column gap before slanting
+  const GF_SCALE = 1.06; // must match .bb-node.is-gf below
+  type Lane = { y: number; x1: number; x2: number };
 
   function recompute() {
     const content = contentEl;
@@ -85,8 +90,70 @@
     const rect = (code: string) => {
       const n = nodeEls[code];
       if (!n) return null;
-      return { left: n.offsetLeft, right: n.offsetLeft + n.offsetWidth, top: n.offsetTop, bottom: n.offsetTop + n.offsetHeight, w: n.offsetWidth, h: n.offsetHeight };
+      // The Grand Final card is drawn at GF_SCALE around its centre (see .is-gf);
+      // offset* is unscaled, so grow the box to match what's on screen.
+      const k = n.classList.contains("is-gf") ? GF_SCALE : 1;
+      const w = n.offsetWidth * k;
+      const h = n.offsetHeight * k;
+      const left = n.offsetLeft - (w - n.offsetWidth) / 2;
+      const top = n.offsetTop - (h - n.offsetHeight) / 2;
+      return { left, right: left + w, top, bottom: top + h, w, h };
     };
+
+    // Column geometry for routing lines that skip columns (see corridorY).
+    const colOf = new Map<string, number>();
+    layout.cols.forEach((col, ci) => col.forEach((m) => colOf.set(m.code, ci)));
+    const colRects = layout.cols.map((col) =>
+      col.map((m) => rect(m.code)).filter((r): r is NonNullable<ReturnType<typeof rect>> => r != null),
+    );
+    const colLeft = colRects.map((rs) => Math.min(...rs.map((r) => r.left)));
+    const colRight = colRects.map((rs) => Math.max(...rs.map((r) => r.right)));
+    const head = box.querySelector<HTMLElement>(".bb-col-head");
+    const topBound = head ? head.offsetTop + head.offsetHeight + CARD_CLEARANCE : 0;
+    const lanes: Lane[] = [];
+
+    // The height at which a column-skipping line runs flat. It must clear every
+    // card in the columns it passes (free = the gaps between/around cards), and
+    // prefers heights between its two ends so it travels as little as possible.
+    // Lines sharing a stretch are nudged apart so they don't draw on top of each other.
+    function corridorY(fromCol: number, toCol: number, sy: number, cy: number, used: Lane[]): number {
+      let free: [number, number][] = [[topBound, natH - CARD_CLEARANCE]];
+      for (let c = fromCol + 1; c < toCol; c++) {
+        for (const r of colRects[c]) {
+          const lo = r.top - CARD_CLEARANCE;
+          const hi = r.bottom + CARD_CLEARANCE;
+          free = free.flatMap(([a, b]): [number, number][] =>
+            hi <= a || lo >= b ? [[a, b]] : [[a, Math.min(b, lo)], [Math.max(a, hi), b]].filter(([x, y]) => y - x > 0) as [number, number][],
+          );
+        }
+      }
+      if (!free.length) return (sy + cy) / 2; // nowhere clear (shouldn't happen): fall back to straight-ish
+      const x1 = colLeft[fromCol + 1];
+      const x2 = colRight[toCol - 1];
+      const clashes = (y: number) => used.some((l) => Math.abs(l.y - y) < LANE_SPACING && l.x1 < x2 && x1 < l.x2);
+      const lo = Math.min(sy, cy);
+      const hi = Math.max(sy, cy);
+      let best = (sy + cy) / 2;
+      let bestCost = Infinity;
+      for (const [a, b] of free) {
+        // Candidates: the point nearest the ideal band, then small nudges for lane spacing.
+        const base = Math.max(a, Math.min(b, Math.max(lo, Math.min(hi, (sy + cy) / 2))));
+        for (let k = 0; k <= 6; k++) {
+          for (const sign of k === 0 ? [0] : [1, -1]) {
+            const y = base + sign * k * LANE_SPACING;
+            if (y < a || y > b || clashes(y)) continue;
+            // Vertical travel outside [lo, hi] is the real cost; distance from
+            // the midpoint only breaks ties.
+            const cost = Math.max(0, lo - y) + Math.max(0, y - hi) + Math.abs(y - (sy + cy) / 2) * 0.01;
+            if (cost < bestCost) {
+              bestCost = cost;
+              best = y;
+            }
+          }
+        }
+      }
+      return best;
+    }
 
     const byTarget = new Map<string, { from: string; type: string }[]>();
     for (const e of layout.edges) {
@@ -114,12 +181,28 @@
           const sy = s.r.top + s.r.h / 2;
           const sx = s.r.right;
           const cy = tr.top + tr.h * frac(i);
-          const stub = Math.max(6, Math.min(18, (tx - sx) / 3));
-          out.push({
-            d: `M${sx},${sy} H${sx + stub} L${tx - stub},${cy} H${tx}`,
-            tier: tierOf(byCode.get(s.from)!.stage),
-            type: s.type,
-          });
+          const fromCol = colOf.get(s.from)!;
+          const toCol = colOf.get(to)!;
+          let d: string;
+          if (toCol - fromCol <= 1) {
+            // Neighbouring columns: the slanted stub–diagonal–stub lives entirely
+            // in the gap between them, so it can't pass behind a card.
+            const stub = Math.max(6, Math.min(18, (tx - sx) / 3));
+            d = `M${sx},${sy} H${sx + stub} L${tx - stub},${cy} H${tx}`;
+          } else {
+            // Skips one or more columns (e.g. Winners final → Grand final): a
+            // straight diagonal would run behind the cards in between. Instead,
+            // slant into a free horizontal corridor inside the first gap, run
+            // flat past the in-between columns, and slant out in the last gap.
+            const y = corridorY(fromCol, toCol, sy, cy, lanes);
+            const g1a = colRight[fromCol] + GAP_STUB; // first gap: after the source column…
+            const g1b = colLeft[fromCol + 1] - GAP_STUB; // …before the next one
+            const g2a = colRight[toCol - 1] + GAP_STUB; // last gap, before the target
+            const g2b = Math.min(tx, colLeft[toCol]) - GAP_STUB;
+            lanes.push({ y, x1: g1b, x2: g2a });
+            d = `M${sx},${sy} H${g1a} L${g1b},${y} H${g2a} L${g2b},${cy} H${tx}`;
+          }
+          out.push({ d, tier: tierOf(byCode.get(s.from)!.stage), type: s.type });
         });
       } else {
         srcs.sort((a, b) => a.r.left - b.r.left);
@@ -292,7 +375,7 @@
     position: relative;
   }
   .bb-node.is-gf {
-    transform: scale(1.06);
+    transform: scale(1.06); /* GF_SCALE in the script */
   }
   .gf-crown {
     position: absolute;
