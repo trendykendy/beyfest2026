@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
   import { pb } from "$lib/pbBrowser";
   import { STRUCTURES, pickStructure, pointsToWin, miniRRAdvancers } from "@beyfest/engine";
-  import { nameMap, slotLabel, hasStage, availableScenes, SCENE_TITLE, isLive, matchContext, tierOf } from "$lib/view";
+  import { nameMap, slotLabel, hasStage, availableScenes, SCENE_TITLE, isLive, matchContext, tierOf, groupsInWords } from "$lib/view";
   import type { PBMatch } from "$lib/view";
   import GroupCard from "$lib/components/GroupCard.svelte";
   import BroadcastBracket from "$lib/components/tv/BroadcastBracket.svelte";
@@ -100,39 +100,41 @@
 
   <!-- ─────────────── No tournament: create ─────────────── -->
   {#if !data.tournament}
-    <section class="panel">
-      <h2>New tournament</h2>
-      <p class="hint">
-        Enter the players who showed up — one per line (or comma-separated). Between 8 and 15.
-        The groups are drawn randomly and the correct bracket is generated automatically.
-      </p>
-      <form method="POST" action="?/create" use:enhance class="create-form">
-        <label>
-          <span class="label">Tournament name</span>
-          <input type="text" name="name" value={form?.name ?? "Beyfest 2026 — Triple Threat"} />
-        </label>
-        <label>
-          <span class="label">Players ({enteredCount})</span>
-          <textarea name="players" rows="10" bind:value={playersText} placeholder={"Blader One\nBlader Two\nBlader Three\n…"}></textarea>
-        </label>
+    <section class="create">
+      <header class="create-head"><h2>New tournament</h2></header>
+      <div class="create-body">
+        <p class="hint">
+          Type in the bladers who turned up, one per line (commas work too). You need between 8 and 15.
+          The groups are drawn at random and the right bracket is built for that number.
+        </p>
+        <form method="POST" action="?/create" use:enhance class="create-form">
+          <label>
+            <span class="field">Tournament name</span>
+            <input type="text" name="name" value={form?.name ?? "Beyfest 2026 — Triple Threat"} />
+          </label>
+          <label>
+            <span class="field">Bladers <b>{enteredCount}</b></span>
+            <textarea name="players" rows="12" bind:value={playersText} placeholder={"Blader One\nBlader Two\nBlader Three\n…"}></textarea>
+          </label>
 
-        <div class="preview">
-          {#if enteredCount < 8}
-            <span class="muted">Need at least 8 players ({8 - enteredCount} more).</span>
-          {:else if enteredCount > 15}
-            <span class="warn">Too many — max 15 ({enteredCount - 15} over).</span>
-          {:else if previewStructure}
-            <span class="ok">
-              {enteredCount} players → {previewStructure.groups.join(" / ")} groups,
-              {previewStructure.roundRobin} round robin.
-            </span>
-          {/if}
-        </div>
+          <p class="preview">
+            {#if enteredCount < 8}
+              <span class="muted">{8 - enteredCount} more needed (at least 8).</span>
+            {:else if enteredCount > 15}
+              <span class="warn">{enteredCount - 15} too many (15 at most).</span>
+            {:else if previewStructure}
+              <span class="ok">
+                {enteredCount} bladers: {groupsInWords(previewStructure.groups)}, and everyone plays the others in their group
+                {previewStructure.roundRobin === "double" ? "twice" : "once"}.
+              </span>
+            {/if}
+          </p>
 
-        <button class="btn primary" type="submit" disabled={enteredCount < 8 || enteredCount > 15}>
-          Draw groups &amp; build bracket
-        </button>
-      </form>
+          <button class="big-action" type="submit" disabled={enteredCount < 8 || enteredCount > 15}>
+            Draw groups and build bracket
+          </button>
+        </form>
+      </div>
     </section>
   {:else}
     <!-- ─────────────── Now playing + Up next ─────────────── -->
@@ -366,16 +368,24 @@
     border-radius: 8px;
     margin-bottom: 16px;
   }
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    max-width: 620px;
+  .create {
+    max-width: 640px;
+    background: var(--paper);
+    color: var(--ink);
+    border: var(--outline) solid var(--ink);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
+  }
+  .create-head {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 20px 12px;
+  }
+  .create-body {
+    padding: 18px 20px 24px;
   }
   .hint {
-    color: var(--muted);
-    margin: 6px 0 16px;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
   }
   .create-form {
     display: flex;
@@ -387,27 +397,53 @@
     flex-direction: column;
     gap: 6px;
   }
-  .label {
-    font-size: 0.72rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+  .field {
+    font-weight: 700;
+  }
+  .field b {
+    display: inline-block;
+    min-width: 2em;
+    margin-left: 6px;
+    padding: 0 6px;
+    text-align: center;
+    background: var(--gold);
+    border: 2px solid var(--ink);
+  }
+  /* Paper-on-paper inputs: white with a heavy ink outline. */
+  .create input,
+  .create textarea {
+    background: var(--paper);
+    color: var(--ink);
+    border: var(--outline) solid var(--ink);
+    border-radius: 0;
+    font-size: 1.05rem;
+  }
+  .create input:focus,
+  .create textarea:focus {
+    border-color: var(--field);
+    outline: 3px solid var(--gold);
   }
   textarea {
     resize: vertical;
     font-family: var(--font-text);
   }
   .preview {
-    font-size: 0.9rem;
+    font-weight: 600;
+    min-height: 1.5em;
   }
   .preview .ok {
-    color: var(--green);
+    color: #0d7a3c;
   }
   .preview .warn {
     color: var(--red);
   }
   .preview .muted {
-    color: var(--muted);
+    color: var(--ink-soft);
+  }
+  .big-action:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
   }
   .groups-grid {
     display: grid;
@@ -606,7 +642,7 @@
     box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
     cursor: pointer;
   }
-  .big-action:active {
+  .big-action:active:not(:disabled) {
     transform: translate(3px, 3px);
     box-shadow: 2px 2px 0 var(--ink);
   }

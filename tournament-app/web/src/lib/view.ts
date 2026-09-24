@@ -91,6 +91,16 @@ export function matchContext(m: PBMatch, matches: PBMatch[]): string {
   return `${m.roundLabel}, match ${n} of ${list.length}`;
 }
 
+// Group sizes in words: [4, 4, 4] → "3 groups of 4", [5, 4, 4] → "1 group of 5 and 2 of 4".
+export function groupsInWords(sizes: number[]): string {
+  const counts = new Map<number, number>();
+  for (const n of sizes) counts.set(n, (counts.get(n) ?? 0) + 1);
+  const parts = [...counts].sort((a, b) => b[0] - a[0]);
+  return parts
+    .map(([size, count], i) => (i === 0 ? `${count} group${count === 1 ? "" : "s"} of ${size}` : `${count} of ${size}`))
+    .join(" and ");
+}
+
 // Human label for an unresolved participant slot (shown until a real player
 // lands in it), e.g. "Group 1 winner", "Winner of MB1", "WB-2nd".
 export function slotLabel(slot: Slot | null, groupCount: number): string {
