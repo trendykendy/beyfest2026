@@ -188,9 +188,10 @@
 
   // ── Finish call-out ─────────────────────────────────────────────────
   // When a round is logged, Match centre calls the finish out big across the
-  // top ("KNOCKOUT +2"), then flies it down into a pill under the scorer's
-  // card, where it stays until the next round. Undo (the log shrinks) just
-  // updates the pill — no animation. Only transform/opacity animate (Pi).
+  // top ("KNOCKOUT +2"), then flies it down into a new pill under the scorer's
+  // card. Every round won stays as a pill for the rest of the match. Undo (the
+  // log shrinks) just drops the last pill — no animation. Only
+  // transform/opacity animate (Pi).
   const FINISH_BY_KEY = new Map(FINISHES.map((f) => [f.key, f]));
   const CALLOUT_FRESH_MS = 6000; // don't replay a call-out the rotation lands on later
 
@@ -207,17 +208,22 @@
     logPrimed = true;
   });
 
-  // The round shown in the pill: the latest one of the match on screen.
-  const lastRound = $derived.by(() => {
-    const log = spotMatch?.liveLog ?? [];
-    const r = log[log.length - 1];
-    const f = r ? FINISH_BY_KEY.get(r.finish) : undefined;
-    return r && f ? { who: r.who, label: f.label, pts: f.pts } : null;
+  // Every round of the match on screen, in order. `i` is the round's place in
+  // the whole log, so each side's pills can still find the newest one.
+  type Round = { i: number; who: number; label: string; pts: number };
+  const rounds = $derived.by(() => {
+    const out: Round[] = [];
+    (spotMatch?.liveLog ?? []).forEach((r, i) => {
+      const f = FINISH_BY_KEY.get(r.finish);
+      if (f) out.push({ i, who: r.who, label: f.label, pts: f.pts });
+    });
+    return out;
   });
+  const lastRound = $derived(rounds[rounds.length - 1] ?? null);
 
   let fx = $state<{ label: string; pts: number } | null>(null);
   let fxEl = $state<HTMLElement>();
-  let pillEl = $state<HTMLElement>();
+  let pillEls = $state<HTMLElement[]>([]); // by round index
   let fxAnim: Animation | null = null;
   let played = "";
 
@@ -238,7 +244,7 @@
     fx = { label, pts };
     await svelteTick();
     const big = fxEl;
-    const pill = pillEl;
+    const pill = lastRound ? pillEls[lastRound.i] : undefined;
     if (!big || !pill) {
       fx = null;
       return;
@@ -519,6 +525,21 @@
       {/if}
 
     {:else if scene === "spotlight"}
+      <!-- Under each card: the Winner chip at the outer end, then one pill per
+           round this side has won, oldest first (only while the match is on). -->
+      {#snippet sideFoot(who: number, won: boolean, showPills: boolean)}
+        {@const mine = showPills ? rounds.filter((r) => r.who === who) : []}
+        {#if won || mine.length}
+          <div class="mc-finishes" class:compact={mine.length > 4} class:tiny={mine.length > 7}>
+            {#if won}<span class="mc-winner">Winner</span>{/if}
+            {#each mine as r (r.i)}
+              <span class="mc-finish" class:waiting={fx && r.i === lastRound?.i} bind:this={pillEls[r.i]}>
+                <span class="fx-card"><span class="fx-label"><b>{r.label}</b></span><span class="fx-pts"><b>+{r.pts}</b></span></span>
+              </span>
+            {/each}
+          </div>
+        {/if}
+      {/snippet}
       <div class="mc">
         {#if spotMatch}
           {@const t = pointsToWin(spotMatch.stage, spotMatch.roundLabel)}
@@ -553,12 +574,7 @@
                 <div class="mc-name">{sideName(spotMatch, 1)}</div>
                 <div class="mc-score">{showScore ? av : "–"}</div>
               </div>
-              {#if wonA}<span class="mc-winner">Winner</span>{/if}
-              {#if lastRound?.who === 1 && !done}
-                <span class="mc-finish" class:waiting={fx} bind:this={pillEl}>
-                  <span class="fx-card"><span class="fx-label"><b>{lastRound.label}</b></span><span class="fx-pts"><b>+{lastRound.pts}</b></span></span>
-                </span>
-              {/if}
+              {@render sideFoot(1, wonA, !done)}
             </div>
             <div class="mc-vs" aria-label="versus">VS</div>
             <div class="mc-side right" class:won={wonB} class:lost={wonA}>
@@ -566,12 +582,7 @@
                 <div class="mc-score">{showScore ? bv : "–"}</div>
                 <div class="mc-name">{sideName(spotMatch, 2)}</div>
               </div>
-              {#if wonB}<span class="mc-winner">Winner</span>{/if}
-              {#if lastRound?.who === 2 && !done}
-                <span class="mc-finish" class:waiting={fx} bind:this={pillEl}>
-                  <span class="fx-card"><span class="fx-label"><b>{lastRound.label}</b></span><span class="fx-pts"><b>+{lastRound.pts}</b></span></span>
-                </span>
-              {/if}
+              {@render sideFoot(2, wonB, !done)}
             </div>
           </div>
 
@@ -1115,6 +1126,9 @@
     display: grid;
     grid-template-columns: 1fr 200px 1fr;
     align-items: center;
+    /* Room below the cards for two rows of finish pills, always reserved so
+       the band underneath doesn't jump when a second row appears. */
+    padding-bottom: 72px;
   }
   .mc-duel.tier-wb {
     --tier: var(--wb);
@@ -1175,8 +1189,6 @@
     color: var(--ink-soft);
   }
   .mc-winner {
-    position: absolute;
-    bottom: -28px;
     font-family: var(--font-display);
     text-transform: uppercase;
     font-size: 1.9rem;
@@ -1186,11 +1198,15 @@
     border: 3px solid var(--ink);
     padding: 8px 22px 10px;
   }
+  /* First in the row and pushed to the card's outer end; the pills take the
+     rest of the row. */
   .left .mc-winner {
-    left: 40px;
+    order: -1;
+    margin-right: auto;
   }
   .right .mc-winner {
-    right: 40px;
+    order: 1;
+    margin-left: auto;
   }
   /* Finish call-out: one gold telop slab. The big one (.fx) slams in across
      the top, then flies down and shrinks onto the pill (.mc-finish) — same
@@ -1261,22 +1277,39 @@
   .fx .fx-pts {
     border-left-width: 6px;
   }
-  .mc-finish {
+  /* The row straddles the card's bottom edge: pills gather at the VS end,
+     under the score, and wrap downward as rounds pile up. It's absolutely
+     placed (in room .mc-duel reserves) so a new row never nudges anything. */
+  .mc-finishes {
     position: absolute;
-    bottom: -30px;
+    top: calc(100% - 26px);
+    left: 40px;
+    right: 80px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    justify-content: flex-end;
     font-size: 1.9rem;
     z-index: 2;
   }
+  .right .mc-finishes {
+    left: 80px;
+    right: 40px;
+    justify-content: flex-start;
+  }
+  /* A long match (up to 9 rounds a side in the grand final) steps down in
+     size so it stays within two rows. */
+  .mc-finishes.compact {
+    font-size: 1.45rem;
+    gap: 10px;
+  }
+  .mc-finishes.tiny {
+    font-size: 1.2rem;
+    gap: 8px;
+  }
   .mc-finish .fx-card {
     box-shadow: 5px 5px 0 var(--ink);
-  }
-  /* Sits at the VS end of the card, under the score; the Winner chip keeps
-     the outer end. */
-  .left .mc-finish {
-    right: 80px;
-  }
-  .right .mc-finish {
-    left: 80px;
   }
   /* In place (for measuring) but hidden while the big call-out flies to it. */
   .mc-finish.waiting {
