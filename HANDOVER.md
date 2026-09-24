@@ -67,10 +67,8 @@ A. **The champion name's last letter is cut off** on the TV Champion scene.
    - `.gs-name` fixed the same problem with `padding-right` for the italic overhang; try that, and check that long names still fit.
    - Check the standby "BEYFEST 2026" slab and the Match centre names (`.mc-name`) too.
 
-B. **After the first game was scored, the group table seemed to show only 3 points.** That shouldn't be possible: a finished group match has a winner on at least 5 (finishes add 1/2/3, so it can overshoot to 6 or 7). Investigate before assuming a bug:
-   - Is it the **+/−** column? A 5–2 win shows **+3**. If people read it as points, the column may need a clearer label or treatment.
-   - Is it a **live** score? `scripts/midgroup.ts` fakes the next match at 3–2, and live rows show the running score.
-   - Otherwise it's a real bug. Reproduce through the admin UI with a fresh tournament: score the first group match to completion, press Record, and check what `enterScore` stores (`p1Score`/`p2Score`) and what the TV group table, fixtures list and admin table each show.
+B. ~~Group table showed 3 after the first game~~: **resolved, not a bug.** It was a 5–2 result, and the **+/−** (point difference) column correctly showed +3.
+   - Optional follow-up: the user misread +/− as points, so spectators probably will too. Consider a clearer header ("Point diff." or "Margin") or de-emphasising the column. Ask the user before changing it.
 
 C. **Persistent score pills on Match centre.** Today only the latest finish pill shows under the scoring side's card. The user wants pills to persist.
    - **Confirm with the user first:** the likely meaning is one pill per round won, stacking up under each player's card for the whole match (e.g. Spin +1, Knockout +2, …). The alternative is simply keeping each side's latest pill visible instead of only the most recent overall.
