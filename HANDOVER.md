@@ -9,9 +9,8 @@ The tournament app (`tournament-app/`) is being redesigned because the old look 
 - **The TV and admin are finished** and tested in Edge on Windows. Admin hasn't been tried on a real Mac yet.
 - **All five event-day improvements the user picked are built:** fix a result, resilience, finish stats and awards, Let it rip, and walkovers/withdraw/rename. See "Day 2 improvements".
 - The **points-to-win rule** was corrected; see "Points to win".
-- **Parked by the user:**
-  - step 5, the public page for phones (plan ready below)
-  - step 6, the Mac and Pi launchers
+- **Parked by the user:** step 5, the public page for phones (plan ready below).
+- **Step 6, the Mac and Pi launchers, is written** (day 3) but **untested on real hardware**. See known issue 3.
 
 All work is on branch **`redesign/tournament-app`**. `main` is still the untouched baseline and **nothing has been merged yet**. At the end of day 2 the working tree was clean.
 
@@ -23,7 +22,7 @@ All work is on branch **`redesign/tournament-app`**. `main` is still the untouch
 | – | Match centre round-win animation, bracket line routing | Done |
 | 4 | Admin redesign | Done (day 2). Still to check on a real Mac |
 | 5 | Public display (`/`) for phones | **Parked (low priority).** Audit and plan under "Phone view" |
-| 6 | Mac + Pi launchers | **Parked** by the user on day 2 |
+| 6 | Mac + Pi launchers | Written day 3: `start.sh`, `start.command`, `scripts/pi-kiosk.sh`. Tested in WSL Ubuntu only |
 | – | Day 2 improvements 1–5 | Done |
 | – | Points to win: first to 7 only on the main path | Done |
 
@@ -103,7 +102,7 @@ Nothing is half-done. Ask the user what's next. Candidates, most useful first:
 1. **A dress rehearsal on the real hardware**, whenever the Mac and the TV (and Pi) are available.
    - Run `scripts/rehearsal.ts` against a **test** data folder; it resets the database it talks to.
    - Watch the TV through a whole event, and pull the network cable once to see it recover.
-2. **Step 6: Mac + Pi launchers** (parked by the user). See known issue 3, including `PUBLIC_PB_URL`.
+2. **Step 6: try the launchers on the real Mac and Pi.** Follow the README's "On a Mac" and "The TV on a Raspberry Pi"; see known issue 3.
 3. **Before the event:** change the default logins (known issue 7). Then merge the branch into `main` and tag it.
 4. **Smaller polish:**
    - the 8-player bracket headings and lines (known issue 4)
@@ -117,10 +116,12 @@ Day 1's end-of-day items are all done: champion name clipping `24e78ff`, "Point 
 
 1. **"Score this" and the TV.** If the organiser picks a match with "Score this" but doesn't press **Start match**, the TV's "Up next" shows the default next match until the first point. Using Start avoids it.
 2. **Step 5,** the public display: parked. See "Phone view" below.
-3. **Step 6:** `start.ps1` and `pb/pocketbase.exe` are **Windows-only**.
-   - The Mac needs the macOS PocketBase build plus a `start.sh`.
-   - The Pi needs the arm64 build, or just Chromium in kiosk mode pointing at the Mac. Document both in the README.
-   - **Important:** the browser connects to PocketBase at `PUBLIC_PB_URL`, which defaults to `127.0.0.1:8090`. A TV on a Pi (or any other device) viewing the Mac's app needs it set to the Mac's LAN address, or no live updates arrive.
+3. **Step 6, launchers (written day 3, not yet run on a Mac or Pi).**
+   - `start.sh` (+ `start.command` for double-click) is the macOS/Linux twin of `start.ps1`. On first run it downloads PocketBase 0.40.4 for the OS/CPU into `pb/pocketbase` (gitignored), runs `bun install` and the build, and on a fresh `pb_data` creates the default superuser. It sets `PUBLIC_PB_URL` to the LAN IP (override with `BEYFEST_IP`).
+   - `scripts/pi-kiosk.sh [--install] [host]` waits for `/ping`, then opens `/tv` in Chromium kiosk mode; `--install` adds an XDG autostart entry.
+   - Tested in WSL Ubuntu (x86_64): first-run download/install/build, both logins, LAN address, Ctrl+C and SIGTERM stopping both servers, kiosk wait and launch (with a stub Chromium).
+   - **Not tested:** the macOS IP detection (`route`/`ipconfig getifaddr`), Gatekeeper and firewall prompts, the arm64 builds, real Chromium on the Pi, and whether labwc on the Pi honours the XDG autostart entry.
+   - `.gitattributes` forces LF on `*.sh`/`*.command`, and git stores them as executable.
 4. **The 8-player (double-elimination) bracket:**
    - Its round headings aren't covered by `roundName()` yet ("UPPER BRACKET — QUARTERFINALS").
    - Its first two column gaps have a dense bundle of lines.
