@@ -29,42 +29,41 @@ All work is on branch **`redesign/tournament-app`**. `main` is still the untouch
 ### Commits on `redesign/tournament-app` (oldest first)
 
 ```
-9637457 move public website into public-site folder
-eca4957 remove unused images from public site
-f170504 tournament app: new design foundation (fonts, colours, no photo/glow/emoji)
-fa33fb8 tournament app: swap display font to Saira Black Italic
-fdd7488 tv: rebuild group stage scene, add on-now band, remove bracket corner ticks
-26aeb36 tv: rebuild match centre as a face-off, plain-words round names
-c258168 tv: bracket match plates as white slabs, plain-words round and slot names
-7f2cac0 tv: rebuild mini round-robins scene on the group slabs
-41abc27 tv: champion and standby scenes with the big gold slab, event date in config
-c3760e4 fix group standings counting knockout rematches between group-mates
-6d7e2e1 tv: auto rotation, cut to match centre on score changes, admin can lock the TV scene
-03b549f tv bracket: route column-skipping lines through clear corridors so they never pass behind cards
-a876ea8 tv match centre: animated round-win call-out that settles as a finish pill; store round log
+0a13191 move public website into public-site folder
+9b51f35 tournament app: new design foundation (fonts, colours, no photo/glow/emoji)
+127e7a9 tournament app: swap display font to Saira Black Italic
+b6bf906 tv: rebuild group stage scene, add on-now band, remove bracket corner ticks
+2393636 tv: rebuild match centre as a face-off, plain-words round names
+3f68828 tv: bracket match plates as white slabs, plain-words round and slot names
+c732edd tv: rebuild mini round-robins scene on the group slabs
+56f76ae tv: champion and standby scenes with the big gold slab, event date in config
+f823336 fix group standings counting knockout rematches between group-mates
+8cb8366 tv: auto rotation, cut to match centre on score changes, admin can lock the TV scene
+1a8200d tv bracket: route column-skipping lines through clear corridors so they never pass behind cards
+ffa0186 tv match centre: animated round-win call-out that settles as a finish pill; store round log
 ── day 2 ──
-24e78ff tv champion: pad the name slab so the italic last letter isn't clipped
-204d36d group tables: label the +/- column "Point diff."
-27ab2f1 tv match centre: keep a finish pill for every round won, winner chip in the pill row
-8549e91 admin scorer: start from the saved live score so a reload doesn't reset to 0-0
-51fef3c admin: one Now playing scorer in the TV slab style, with an Up next queue
-473a080 admin: slim status header, TV control in the sidebar, champion slab, reset moved to a danger zone
-ae989c9 admin: group tables as white slabs, two-column fixtures marking Now playing, generate-knockout button in Now playing
-7259bd5 admin knockout: round-robin tables as slabs in plain words, the TV bracket scaled into a box
-245baa7 admin: new-tournament form and login as slabs, group sizes in plain words
-aa2d2a3 first to 7 only on the main path: Mid bracket semis and final, or the 8-player bracket finals
-e845177 admin: fix a recorded result, re-routing the next round when the winner changes
-a5c4409 tv/admin/public: heal after a dropout instead of stranding on the browser's offline page
-00f45e6 event-day safety: backups every 10 minutes, results download, rehearsal script
-200598e keep every round's finish: Result recap pills and a TV Awards scene
-d9e4b4f Start match: the TV cuts in with a 3·2·1 LET IT RIP countdown
-db2a816 walkovers, withdrawals and name fixes
+165bc0a tv champion: pad the name slab so the italic last letter isn't clipped
+8aad910 group tables: label the +/- column "Point diff."
+17ec9be tv match centre: keep a finish pill for every round won, winner chip in the pill row
+138b417 admin scorer: start from the saved live score so a reload doesn't reset to 0-0
+93e737f admin: one Now playing scorer in the TV slab style, with an Up next queue
+77f927e admin: slim status header, TV control in the sidebar, champion slab, reset moved to a danger zone
+7d64f9c admin: group tables as white slabs, two-column fixtures marking Now playing, generate-knockout button in Now playing
+a980ba4 admin knockout: round-robin tables as slabs in plain words, the TV bracket scaled into a box
+36c083b admin: new-tournament form and login as slabs, group sizes in plain words
+a87bc38 first to 7 only on the main path: Mid bracket semis and final, or the 8-player bracket finals
+0d8087c admin: fix a recorded result, re-routing the next round when the winner changes
+43788eb tv/admin/public: heal after a dropout instead of stranding on the browser's offline page
+ba1b705 event-day safety: backups every 10 minutes, results download, rehearsal script
+e6ec3eb keep every round's finish: Result recap pills and a TV Awards scene
+ddb7a70 Start match: the TV cuts in with a 3·2·1 LET IT RIP countdown
+3c05dbf walkovers, withdrawals and name fixes
 ```
 (handover-only commits left out)
 
 Two commits could go onto `main` by themselves before the redesign merges, if wanted:
-- `c3760e4`: a real bug fix. Group tables counted knockout rematches between group-mates.
-- `aa2d2a3`: the points-to-win rule fix.
+- `f823336`: a real bug fix. Group tables counted knockout rematches between group-mates.
+- `a87bc38`: the points-to-win rule fix.
 
 ## Design decisions (agreed with the user)
 
@@ -110,7 +109,7 @@ Nothing is half-done. Ask the user what's next. Candidates, most useful first:
    - walkovers currently count as target–0 in the tables; the user may prefer a win without the points
 5. **Step 5, the phone view:** only if the user asks.
 
-Day 1's end-of-day items are all done: champion name clipping `24e78ff`, "Point diff." header `204d36d`, and one finish pill per round `27ab2f1`.
+Day 1's end-of-day items are all done: champion name clipping `165bc0a`, "Point diff." header `8aad910`, and one finish pill per round `17ec9be`.
 
 ## Known issues / to do
 
@@ -139,7 +138,7 @@ Day 1's end-of-day items are all done: champion name clipping `24e78ff`, "Point 
 
 The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resilience, 5 walkovers and name fixes. All five are built; 5 came last, including a one-click withdraw (see 5 below).
 
-1. **Fix a recorded result** (`e845177`).
+1. **Fix a recorded result** (`0d8087c`).
    - Admin shows the **Last result** under Now playing, with **Fix**: pick any finished match and enter the corrected score.
    - The rules live in `engine/src/correct.ts` (`planCorrection` / `applyCorrection`), with tests in `engine/test/correct.test.ts`:
      - A score-only fix always passes.
@@ -149,7 +148,7 @@ The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resil
    - Why it's needed: resolved players get pinned into their next match (the slot is cleared), so re-applying a result alone would leave the old winner there.
    - New `matches.resultAt` field (migration 500).
    - Reset also puts the TV back to Auto, since an old lock could point at a scene that doesn't exist.
-2. **Event-day resilience** (`a5c4409`, `00f45e6`).
+2. **Event-day resilience** (`43788eb`, `ba1b705`).
    - **Found and fixed a real bug:** if a refresh ran while the network was down, SvelteKit fell back to a full page load, stranding the TV on the browser's "not connected" page for good.
    - Now every refresh asks `/ping` (app server + PocketBase) first. Shared helper `liveUpdates()` in `lib/pbBrowser.ts`, used by the TV, admin and public pages.
    - The pages also refresh on realtime reconnect, on a heartbeat (TV 30s), and every 5s while down.
@@ -159,7 +158,7 @@ The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resil
    - Admin's Danger zone has **Download results**, a JSON export via `/admin/export`, organiser only.
    - `scripts/rehearsal.ts [players] [secondsPerRound]` plays a whole tournament round by round through the real server. **It resets the database it talks to.**
    - README: new organiser workflow, plus "If something goes wrong" (restoring from a backup).
-3. **Keep every round's finish** (`200598e`).
+3. **Keep every round's finish** (`e6ec3eb`).
    - The round log (`liveLog`) is no longer wiped when a result is recorded.
    - A correction that changes the score clears it, since it would no longer add up.
    - Match centre keeps the finish pills on the Result screen.
@@ -167,13 +166,13 @@ The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resil
      - It appears once 6 finished matches have a log (`computeAwards` / `loggedResults` in `view.ts`).
      - Ties of more than two are left out.
      - It's "so far" until the grand final.
-4. **Let it rip** (`d9e4b4f`).
+4. **Let it rip** (`ddb7a70`).
    - Admin's scorer has **Start match** before the first round, with Cancel start to undo a wrong tap. It stamps `matches.startedAt` (migration 700) via `/admin/start`.
    - `isLive()` counts started matches, so On now and Up next are right straight away. This also fixes known issue 1 whenever Start is used.
    - The TV cuts to the match and plays **3 · 2 · 1 · LET IT RIP!** with ゴーシュート: a black band plus keyed CSS animations, transform/opacity only, skipped for reduced motion.
    - The katakana subset was re-downloaded; its character list in `theme.css` now includes アワード and ゴーシュート.
 
-5. **Walkovers, withdrawals and name fixes** (`db2a816`).
+5. **Walkovers, withdrawals and name fixes** (`3c05dbf`).
    - **Walkover…** in the scorer asks who didn't show. The result is recorded as target–0 with `matches.walkover = true`. `recordWalkover` in `tournament.ts`.
    - A **Bladers** panel in admin (`BladersPanel.svelte`), shown at every stage:
      - **Rename** (names must stay unique).
@@ -185,7 +184,7 @@ The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resil
    - A walkover still counts as target–0 in the tables (points and point diff.).
    - Migration 800.
 
-## Points to win (changed day 2, `aa2d2a3`)
+## Points to win (changed day 2, `a87bc38`)
 
 The first-to-7 rule is decided in `pointsToWin()` in `engine/src/rules.ts`. It now looks at the **stage** first, not just the round's name. The user's reasoning: the 10-player Winners semi-finals and final are a bracket within the bracket, not real semi-finals.
 
