@@ -391,7 +391,7 @@
               </header>
 
               <div class="gs-cols" aria-hidden="true">
-                <span></span><span></span><span>W–L</span><span>+/−</span><span>Goes to</span>
+                <span></span><span></span><span>W–L</span><span>Point diff.</span><span>Goes to</span>
               </div>
               {#each groupStandings(data.players, data.matches, g.index) as row, i (row.playerId)}
                 {@const dest = destinationOf(i + 1, g.size, structure?.knockoutType ?? "")}
@@ -457,7 +457,7 @@
                 </header>
                 <p class="rr-note">{def.note}</p>
                 <div class="gs-cols" aria-hidden="true">
-                  <span></span><span></span><span>W–L</span><span>+/−</span><span>Goes to</span>
+                  <span></span><span></span><span>W–L</span><span>Point diff.</span><span>Goes to</span>
                 </div>
                 {#each miniRRStandings(data.matches, stage) as row, i (row.playerId)}
                   {@const f = rrFate(stage, i + 1, adv)}
@@ -805,6 +805,10 @@
     padding: 0 16px 0 10px;
   }
   .gs-cols {
+    /* "Point diff." wraps to two lines in its narrow column; keep every
+       header sitting on the same bottom line. */
+    align-items: end;
+    line-height: 1.05;
     padding-top: 8px;
     padding-bottom: 2px;
     border-left: 10px solid transparent;

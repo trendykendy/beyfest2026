@@ -40,7 +40,7 @@
         <th class="n">W</th>
         <th class="n">L</th>
         <th class="n" title="Points scored">PF</th>
-        <th class="n" title="Point difference">+/−</th>
+        <th class="n" title="Points scored minus points conceded">Point diff.</th>
         {#if showDestinations}<th class="d">Goes to</th>{/if}
       </tr>
     </thead>
