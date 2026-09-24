@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
   import { pb } from "$lib/pbBrowser";
   import { STRUCTURES, pickStructure, pointsToWin, miniRRAdvancers } from "@beyfest/engine";
-  import { nameMap, slotLabel, hasStage, availableScenes, SCENE_TITLE } from "$lib/view";
+  import { nameMap, slotLabel, hasStage, availableScenes, SCENE_TITLE, isLive, matchContext, tierOf } from "$lib/view";
   import type { PBMatch } from "$lib/view";
   import GroupCard from "$lib/components/GroupCard.svelte";
   import Bracket from "$lib/components/Bracket.svelte";
@@ -27,17 +27,18 @@
     return gf && gf.matchStatus === "done" ? names.get(gf.winner) : null;
   });
 
-  // Ready matches (playable now), split into group vs knockout, in play order.
-  const readyGroup = $derived(
-    data.matches
-      .filter((m) => m.stage === "group" && m.matchStatus === "ready")
-      .sort((a, b) => a.orderIndex - b.orderIndex),
+  // One match is played at a time. Now playing is the one the organiser picked,
+  // else the one already under way, else the next playable one in play order;
+  // recording a result moves it on by itself.
+  const playable = $derived(
+    data.matches.filter((m) => m.matchStatus === "ready").sort((a, b) => a.orderIndex - b.orderIndex),
   );
-  const readyKnockout = $derived(
-    data.matches
-      .filter((m) => m.stage !== "group" && m.matchStatus === "ready")
-      .sort((a, b) => a.orderIndex - b.orderIndex),
+  let chosenCode = $state<string | null>(null);
+  const current = $derived(
+    playable.find((m) => m.code === chosenCode) ?? playable.find(isLive) ?? playable[0] ?? null,
   );
+  const upNext = $derived(playable.filter((m) => m.code !== current?.code));
+  const waiting = $derived(data.matches.filter((m) => m.matchStatus === "pending").length);
 
   // Full group-stage schedule in play order, for the read-only Fixtures panel.
   const fixtures = $derived(
@@ -170,6 +171,56 @@
       </div>
     {/if}
 
+    <!-- ─────────────── Now playing + Up next ─────────────── -->
+    {#if !champion}
+      <div class="play">
+        <section class="now">
+          <h2 class="kicker">Now playing</h2>
+          {#if current}
+            <!-- Keyed so switching matches starts that match's own scorer. -->
+            {#key current.code}
+              <RoundScorer
+                match={current}
+                p1Name={label(current, 1)}
+                p2Name={label(current, 2)}
+                target={target(current)}
+                context={matchContext(current, data.matches)}
+                tier={tierOf(current.stage)}
+              />
+            {/key}
+          {:else if !hasKnockout && allGroupsComplete}
+            <p class="all-done">All group matches are in. Generate the knockout bracket to carry on.</p>
+          {:else}
+            <p class="all-done">Waiting on earlier results.</p>
+          {/if}
+        </section>
+
+        <aside class="queue">
+          <h2 class="kicker">Up next</h2>
+          {#if upNext.length}
+            <ol class="queue-list">
+              {#each upNext as m (m.code)}
+                <li class="q-row tier-{tierOf(m.stage)}">
+                  <div class="q-info">
+                    <span class="q-context">{matchContext(m, data.matches)}</span>
+                    <span class="q-names">{label(m, 1)} <i>v</i> {label(m, 2)}</span>
+                  </div>
+                  <button type="button" class="q-pick" onclick={() => (chosenCode = m.code)}>
+                    {isLive(m) ? "Resume" : "Score this"}
+                  </button>
+                </li>
+              {/each}
+            </ol>
+          {:else}
+            <p class="q-empty">Nothing else is ready to play.</p>
+          {/if}
+          {#if waiting}
+            <p class="q-empty">{waiting} more {waiting === 1 ? "match is" : "matches are"} waiting on earlier results.</p>
+          {/if}
+        </aside>
+      </div>
+    {/if}
+
     <!-- ─────────────── Group stage ─────────────── -->
     {#if !hasKnockout}
       <section>
@@ -187,17 +238,6 @@
             <GroupCard {group} players={data.players} matches={data.matches} knockoutType={structure?.knockoutType ?? ""} />
           {/each}
         </div>
-
-        {#if readyGroup.length}
-          <h3 class="play-title">Matches to play ({readyGroup.length} left)</h3>
-          <div class="score-list">
-            {#each readyGroup as m (m.code)}
-              <RoundScorer match={m} p1Name={label(m, 1)} p2Name={label(m, 2)} target={target(m)} />
-            {/each}
-          </div>
-        {:else}
-          <p class="all-done">All group matches recorded. Generate the knockout bracket above.</p>
-        {/if}
 
         {#if fixtures.length}
           <h3 class="play-title">Fixtures</h3>
@@ -230,17 +270,6 @@
       <!-- ─────────────── Knockout stage ─────────────── -->
       <section>
         <h2>Knockout</h2>
-        {#if readyKnockout.length}
-          <h3 class="play-title">Matches to play</h3>
-          <div class="score-list">
-            {#each readyKnockout as m (m.code)}
-              <RoundScorer match={m} p1Name={label(m, 1)} p2Name={label(m, 2)} target={target(m)} />
-            {/each}
-          </div>
-        {:else if !champion}
-          <p class="all-done">Waiting on earlier results…</p>
-        {/if}
-
         {#if structure && (hasStage(data.matches, "wb_rr") || hasStage(data.matches, "lb_rr"))}
           <h3 class="play-title">Mini Round-Robins</h3>
           <div class="rr-row">
@@ -393,10 +422,95 @@
     font-size: 1.4rem;
     margin: 18px 0 10px;
   }
-  .score-list {
+  /* Now playing (wide) beside Up next (narrow). */
+  .play {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 28px;
+    align-items: start;
+    margin-bottom: 36px;
+  }
+  .kicker {
+    font-size: 1.5rem;
+    margin-bottom: 14px;
+  }
+  .queue-list {
+    list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+    max-height: 560px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .q-row {
+    --tier: var(--on-field-soft);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    border-left: 8px solid var(--tier);
+    padding: 8px 10px;
+  }
+  .q-row.tier-wb {
+    --tier: var(--wb);
+  }
+  .q-row.tier-mb {
+    --tier: var(--mb);
+  }
+  .q-row.tier-lb {
+    --tier: var(--lb);
+  }
+  .q-row.tier-gf {
+    --tier: var(--ink);
+  }
+  .q-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .q-context {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .q-names {
+    font-family: var(--font-display);
+    font-stretch: 62%;
+    text-transform: uppercase;
+    font-size: 1.35rem;
+    line-height: 1.05;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 0.1em;
+  }
+  .q-names i {
+    font-style: normal;
+    color: var(--ink-soft);
+    font-size: 0.8em;
+  }
+  .q-pick {
+    flex: none;
+    font-family: var(--font-text);
+    font-weight: 700;
+    font-size: 0.85rem;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .q-pick:hover {
+    background: var(--gold);
+    color: var(--ink);
+  }
+  .q-empty {
+    color: var(--on-field-soft);
+    margin-top: 10px;
   }
   .mcode {
     font-family: var(--font-text);

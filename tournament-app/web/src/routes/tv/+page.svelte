@@ -16,6 +16,8 @@
     hasStage,
     roundName,
     availableScenes,
+    isLive,
+    matchContext,
     SCENE_TITLE,
     type PBMatch,
     type Scene,
@@ -109,7 +111,6 @@
   const bracketOrientation = "horizontal";
 
   // ── Spotlight ───────────────────────────────────────────────────────
-  const isLive = (m: PBMatch) => m.matchStatus === "ready" && (m.liveP1 > 0 || m.liveP2 > 0);
   const featured = $derived.by(() => {
     const live = data.matches.filter(isLive).sort((a, b) => a.orderIndex - b.orderIndex);
     const ready = data.matches
@@ -165,13 +166,6 @@
 
   // Where the featured match sits, in plain words: "Group 2, match 4 of 6"
   // for group games, "Mid bracket semi-final" for knockout ones.
-  function matchContext(m: PBMatch): string {
-    if (m.stage !== "group") return roundName(m.roundLabel);
-    const list = groupMatchesOf(m.groupIndex ?? 0);
-    const n = list.findIndex((x) => x.code === m.code) + 1;
-    return `${m.roundLabel}, match ${n} of ${list.length}`;
-  }
-
   // ── Helpers ─────────────────────────────────────────────────────────
   function sideName(m: PBMatch, which: 1 | 2): string {
     const pid = which === 1 ? m.p1 : m.p2;
@@ -556,7 +550,7 @@
             {:else if decided}<span class="mc-tag won"><Trophy /> Match won</span>
             {:else if live}<span class="mc-tag live">Live</span>
             {:else}<span class="mc-tag next">Up next</span>{/if}
-            <span class="mc-context">{matchContext(spotMatch)}</span>
+            <span class="mc-context">{matchContext(spotMatch, data.matches)}</span>
             <span class="mc-ft">First to {t}</span>
           </div>
 

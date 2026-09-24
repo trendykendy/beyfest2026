@@ -78,6 +78,19 @@ export function roundName(roundLabel: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// A match is live once it's playable and someone has scored.
+export const isLive = (m: PBMatch) => m.matchStatus === "ready" && (m.liveP1 > 0 || m.liveP2 > 0);
+
+// Where a match sits, in words: "Group 3, match 2 of 6" or "Mid bracket round 2".
+export function matchContext(m: PBMatch, matches: PBMatch[]): string {
+  if (m.stage !== "group") return roundName(m.roundLabel);
+  const list = matches
+    .filter((x) => x.stage === "group" && x.groupIndex === m.groupIndex)
+    .sort((a, b) => a.orderIndex - b.orderIndex);
+  const n = list.findIndex((x) => x.code === m.code) + 1;
+  return `${m.roundLabel}, match ${n} of ${list.length}`;
+}
+
 // Human label for an unresolved participant slot (shown until a real player
 // lands in it), e.g. "Group 1 winner", "Winner of MB1", "WB-2nd".
 export function slotLabel(slot: Slot | null, groupCount: number): string {
