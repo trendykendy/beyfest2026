@@ -46,7 +46,6 @@
       .filter((m) => m.stage === "group")
       .sort((a, b) => a.orderIndex - b.orderIndex),
   );
-  const nextUpCode = $derived(fixtures.find((m) => m.matchStatus !== "done")?.code ?? null);
   const groupNameByIndex = $derived(new Map(data.groups.map((g) => [g.index, g.name])));
 
   // Live create-form preview.
@@ -157,7 +156,10 @@
               />
             {/key}
           {:else if !hasKnockout && allGroupsComplete}
-            <p class="all-done">All group matches are in. Generate the knockout bracket to carry on.</p>
+            <p class="all-done">Every group match is in. Build the knockout bracket from the final group tables to carry on.</p>
+            <form method="POST" action="?/generateKnockout" use:enhance>
+              <button class="big-action" type="submit">Generate knockout bracket</button>
+            </form>
           {:else}
             <p class="all-done">Waiting on earlier results.</p>
           {/if}
@@ -214,15 +216,7 @@
     <!-- ─────────────── Group stage ─────────────── -->
     {#if !hasKnockout}
       <section>
-        <div class="section-head">
-          <h2>Group Stage</h2>
-          <form method="POST" action="?/generateKnockout" use:enhance>
-            <button class="btn primary" type="submit" disabled={!allGroupsComplete}>
-              {allGroupsComplete ? "Generate knockout bracket" : "Finish all groups first"}
-            </button>
-          </form>
-        </div>
-
+        <h2 class="kicker">Groups</h2>
         <div class="groups-grid">
           {#each data.groups as group (group.id)}
             <GroupCard {group} players={data.players} matches={data.matches} knockoutType={structure?.knockoutType ?? ""} />
@@ -230,30 +224,27 @@
         </div>
 
         {#if fixtures.length}
-          <h3 class="play-title">Fixtures</h3>
-          <p class="fixtures-hint">Full group-stage schedule in play order.</p>
-          <div class="fixtures">
+          <h2 class="kicker">Fixtures <span class="kicker-note">in play order</span></h2>
+          <ol class="fixtures">
             {#each fixtures as m (m.code)}
               {@const done = m.matchStatus === "done"}
-              <div class="fixture-row" class:done class:next={m.code === nextUpCode}>
-                <span class="mcode">{m.code}</span>
+              {@const now = m.code === current?.code}
+              <li class="fixture-row" class:done class:now>
                 <span class="fgroup">{groupNameByIndex.get(m.groupIndex ?? -1) ?? `Group ${(m.groupIndex ?? 0) + 1}`}</span>
-                <span class="pn">{names.get(m.p1) ?? "—"}</span>
+                <span class="pn" class:won={done && m.winner === m.p1}>{names.get(m.p1) ?? "—"}</span>
                 <span class="fresult">
                   {#if done}
-                    <span class="fscore" class:win1={(m.p1Score ?? 0) > (m.p2Score ?? 0)}>{m.p1Score}</span>
-                    <span class="vs">–</span>
-                    <span class="fscore" class:win2={(m.p2Score ?? 0) > (m.p1Score ?? 0)}>{m.p2Score}</span>
-                  {:else if m.code === nextUpCode}
-                    <span class="next-chip">Next up</span>
+                    {m.p1Score}–{m.p2Score}
+                  {:else if now}
+                    <span class="now-chip">{isLive(m) ? `Live ${m.liveP1}–${m.liveP2}` : "Now"}</span>
                   {:else}
-                    <span class="vs">vs</span>
+                    <span class="vs">v</span>
                   {/if}
                 </span>
-                <span class="pn right">{names.get(m.p2) ?? "—"}</span>
-              </div>
+                <span class="pn right" class:won={done && m.winner === m.p2}>{names.get(m.p2) ?? "—"}</span>
+              </li>
             {/each}
-          </div>
+          </ol>
         {/if}
       </section>
     {:else}
@@ -414,14 +405,6 @@
   .preview .muted {
     color: var(--muted);
   }
-  .section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-  }
   .groups-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -522,18 +505,6 @@
     color: var(--on-field-soft);
     margin-top: 10px;
   }
-  .mcode {
-    font-family: var(--font-text);
-    font-stretch: 75%;
-    font-size: 0.66rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 700;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
   .rr-row {
     display: flex;
     flex-wrap: wrap;
@@ -557,74 +528,80 @@
     color: var(--muted);
     padding: 10px 0;
   }
-  .fixtures-hint {
-    color: var(--muted);
-    font-size: 0.85rem;
-    margin: -4px 0 10px;
+  .kicker-note {
+    font-family: var(--font-text);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: none;
+    color: var(--on-field-soft);
+    margin-left: 8px;
   }
+  /* Play order runs down the first column, then the second. */
   .fixtures {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    list-style: none;
+    columns: 2;
+    column-gap: 20px;
   }
   .fixture-row {
+    break-inside: avoid;
     display: grid;
-    grid-template-columns: 54px 84px 1fr 92px 1fr;
+    grid-template-columns: 70px 1fr 74px 1fr;
     align-items: center;
     gap: 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px 10px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    padding: 4px 10px;
+    margin-bottom: 6px;
   }
   .fixture-row.done {
-    opacity: 0.72;
+    background: #dfe3f2;
+    color: var(--ink-soft);
   }
-  .fixture-row.next {
-    border-color: var(--gold);
-    background: var(--mb-soft);
-    opacity: 1;
+  .fixture-row.now {
+    background: var(--gold);
+    box-shadow: 4px 4px 0 var(--ink);
   }
   .fgroup {
-    font-family: var(--font-text);
-    font-stretch: 75%;
-    font-size: 0.66rem;
-    letter-spacing: 0.08em;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .fixture-row .pn {
+    font-family: var(--font-display);
+    font-stretch: 62%;
     text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 1.15rem;
+    padding-right: 0.2em;
+  }
+  .fixture-row .pn.won {
+    color: var(--ink);
   }
   .fresult {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+    text-align: center;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
-  .fscore {
-    font-weight: 700;
-    color: var(--muted);
-  }
-  .fscore.win1,
-  .fscore.win2 {
-    color: var(--text);
-  }
-  .next-chip {
-    font-family: var(--font-text);
-    font-stretch: 75%;
-    font-size: 0.62rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 20px;
-    color: var(--gold);
-    border: 1px solid color-mix(in oklch, var(--gold) 50%, transparent);
-    background: color-mix(in oklch, var(--gold) 14%, transparent);
+  .now-chip {
+    font-size: 0.8rem;
     white-space: nowrap;
+  }
+  .big-action {
+    margin-top: 16px;
+    width: 100%;
+    min-height: 72px;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: 2rem;
+    background: var(--gold);
+    color: var(--ink);
+    border: var(--outline) solid var(--ink);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
+    cursor: pointer;
+  }
+  .big-action:active {
+    transform: translate(3px, 3px);
+    box-shadow: 2px 2px 0 var(--ink);
   }
   /* The champion, as the TV shows it: the big gold slab. */
   .champ {
@@ -657,14 +634,5 @@
   }
   .danger-zone p {
     color: var(--on-field-soft);
-  }
-  @media (max-width: 640px) {
-    .fixture-row {
-      grid-template-columns: 44px 1fr 70px 1fr;
-      row-gap: 2px;
-    }
-    .fgroup {
-      grid-column: 1 / -1;
-    }
   }
 </style>
