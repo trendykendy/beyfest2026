@@ -60,6 +60,24 @@ a876ea8 tv match centre: animated round-win call-out that settles as a finish pi
 - The admin's "TV screen" panel writes the `tv_state` PocketBase record (migration `1710000300_tv_state.js`). The TV follows it live.
 - The round-win animation reads `matches.liveLog`, a list of `{who, finish}` (migration `1710000400_live_log.js`). The admin scorer posts it via `/admin/live`.
 
+## Start here next session (raised by the user at end of day 1)
+
+A. **The champion name's last letter is cut off** on the TV Champion scene.
+   - Likely cause: `.big-slab > span` in `routes/tv/+page.svelte` has `overflow: hidden` + `text-overflow: ellipsis`, and the italic display face's last letter overhangs its box.
+   - `.gs-name` fixed the same problem with `padding-right` for the italic overhang; try that, and check that long names still fit.
+   - Check the standby "BEYFEST 2026" slab and the Match centre names (`.mc-name`) too.
+
+B. **After the first game was scored, the group table seemed to show only 3 points.** That shouldn't be possible: a finished group match has a winner on at least 5 (finishes add 1/2/3, so it can overshoot to 6 or 7). Investigate before assuming a bug:
+   - Is it the **+/−** column? A 5–2 win shows **+3**. If people read it as points, the column may need a clearer label or treatment.
+   - Is it a **live** score? `scripts/midgroup.ts` fakes the next match at 3–2, and live rows show the running score.
+   - Otherwise it's a real bug. Reproduce through the admin UI with a fresh tournament: score the first group match to completion, press Record, and check what `enterScore` stores (`p1Score`/`p2Score`) and what the TV group table, fixtures list and admin table each show.
+
+C. **Persistent score pills on Match centre.** Today only the latest finish pill shows under the scoring side's card. The user wants pills to persist.
+   - **Confirm with the user first:** the likely meaning is one pill per round won, stacking up under each player's card for the whole match (e.g. Spin +1, Knockout +2, …). The alternative is simply keeping each side's latest pill visible instead of only the most recent overall.
+   - Data is already there: `matches.liveLog` holds every round as `{who, finish}`. The animation logic is in `routes/tv/+page.svelte`, from Agent A's commit `a876ea8`.
+   - The call-out should still fly into the newest pill's slot.
+   - Mind the space: a first-to-9 Grand Final can mean many pills, so plan wrapping or compaction.
+
 ## Known issues / to do
 
 1. **The scorer resets on reload (fix in step 4).** `RoundScorer.svelte` keeps the round log only in browser state. Reloading the admin page mid-match shows 0–0, and the next tap overwrites the live score **and** `liveLog`. Fix: start it from `match.liveP1`/`liveP2`/`liveLog`.
