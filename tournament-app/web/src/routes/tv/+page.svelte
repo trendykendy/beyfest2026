@@ -1328,6 +1328,9 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    /* The italic last letter leans past its box; pad both sides so it isn't
+       clipped and the name stays centred. */
+    padding-inline: 0.1em;
   }
   .champ-row {
     display: flex;
