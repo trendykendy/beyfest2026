@@ -10,8 +10,8 @@ const config = {
     // localhost, the laptop's (changing) LAN IP, and phones at once — so a
     // single fixed origin can't be known, and SvelteKit's cross-origin form
     // check would 403 every login/score POST. It's a trusted, offline, local
-    // tool with no cross-site attacker surface, so we disable that check.
-    csrf: { checkOrigin: false },
+    // tool with no cross-site attacker surface, so every origin is trusted.
+    csrf: { trustedOrigins: ["*"] },
   },
 };
 

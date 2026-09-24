@@ -148,7 +148,7 @@ Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point 
    - PocketBase superuser `admin@beyfest.local` / `beyfestadmin2026`
 
    They're in the seed migration and the README.
-8. `svelte.config.js` shows a deprecation warning for `csrf.checkOrigin`. It predates the redesign and is harmless for now.
+8. ~~`csrf.checkOrigin` deprecation~~ fixed day 3: now `csrf.trustedOrigins: ["*"]` (same behaviour; checked that a login POST with a foreign Origin still works).
 
 ## Day 2 improvements (five suggestions, all built at the user's request)
 
