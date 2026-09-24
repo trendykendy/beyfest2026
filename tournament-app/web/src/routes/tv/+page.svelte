@@ -458,7 +458,7 @@
                   <li class="gs-fx {st}">
                     <span class="gs-fx-p" class:win={w1} class:lose={w2}>{names.get(m.p1)}</span>
                     <span class="gs-fx-mid">
-                      {#if st === "done"}{m.p1Score}–{m.p2Score}
+                      {#if st === "done"}{m.walkover ? "W/O" : `${m.p1Score}–${m.p2Score}`}
                       {:else if st === "live"}{m.liveP1}–{m.liveP2}
                       {:else if st === "next"}Next
                       {:else}v{/if}
@@ -523,7 +523,7 @@
                     <li class="gs-fx {st}">
                       <span class="gs-fx-p" class:win={w1} class:lose={w2}>{sideName(m, 1)}</span>
                       <span class="gs-fx-mid">
-                        {#if st === "done"}{m.p1Score}–{m.p2Score}
+                        {#if st === "done"}{m.walkover ? "W/O" : `${m.p1Score}–${m.p2Score}`}
                         {:else if st === "live"}{m.liveP1}–{m.liveP2}
                         {:else if st === "next"}Next
                         {:else}v{/if}
@@ -590,9 +590,11 @@
           {@const decided = done || (live && (av >= t || bv >= t))}
           {@const wonA = decided && av > bv}
           {@const wonB = decided && bv > av}
-          {@const showScore = done || live}
+          {@const walkover = done && spotMatch.walkover}
+          {@const showScore = (done && !walkover) || live}
           <div class="mc-status">
-            {#if done}<span class="mc-tag result">Result</span>
+            {#if walkover}<span class="mc-tag result">Walkover</span>
+            {:else if done}<span class="mc-tag result">Result</span>
             {:else if decided}<span class="mc-tag won"><Trophy /> Match won</span>
             {:else if live}<span class="mc-tag live">Live</span>
             {:else}<span class="mc-tag next">Up next</span>{/if}
@@ -688,9 +690,13 @@
         <div class="finale-title">Beyfest 2026 champion</div>
         {#if gf}
           <div class="finale-sub">
-            Beat {names.get(gf.winner === gf.p1 ? gf.p2 : gf.p1)}
-            {Math.max(gf.p1Score ?? 0, gf.p2Score ?? 0)}–{Math.min(gf.p1Score ?? 0, gf.p2Score ?? 0)}
-            in the grand final
+            {#if gf.walkover}
+              Won the grand final by walkover
+            {:else}
+              Beat {names.get(gf.winner === gf.p1 ? gf.p2 : gf.p1)}
+              {Math.max(gf.p1Score ?? 0, gf.p2Score ?? 0)}–{Math.min(gf.p1Score ?? 0, gf.p2Score ?? 0)}
+              in the grand final
+            {/if}
           </div>
         {/if}
       </div>

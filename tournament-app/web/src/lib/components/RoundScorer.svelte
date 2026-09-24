@@ -72,6 +72,7 @@
 
   // "Start match": the launch. Makes the match live on the TV straight away and
   // cues its 3·2·1 countdown. Only offered before the first round.
+  let askingWalkover = $state(false); // "who didn't show?" is open
   const wasStarted = () => !!match.startedAt; // read once, like the saved rounds
   let started = $state(wasStarted());
   async function setStarted(start: boolean) {
@@ -150,6 +151,20 @@
     {/if}
     {#if started && rounds.length === 0}
       <button type="button" class="undo" onclick={() => setStarted(false)}>Cancel start</button>
+    {/if}
+    {#if !over}
+      {#if askingWalkover}
+        <!-- Who didn't show? The other blader wins at the target, 0 against. -->
+        <form method="POST" action="?/walkover" use:enhance class="wo">
+          <input type="hidden" name="code" value={match.code} />
+          <span class="wo-q">Walkover: who didn't show?</span>
+          <button class="wo-pick" name="noShow" value="1">{p1Name}</button>
+          <button class="wo-pick" name="noShow" value="2">{p2Name}</button>
+          <button type="button" class="undo" onclick={() => (askingWalkover = false)}>Cancel</button>
+        </form>
+      {:else}
+        <button type="button" class="undo" onclick={() => (askingWalkover = true)}>Walkover…</button>
+      {/if}
     {/if}
     {#if last}
       <button type="button" class="undo" onclick={undo}>
@@ -416,5 +431,33 @@
   .start:active {
     transform: translate(3px, 3px);
     box-shadow: 2px 2px 0 var(--ink);
+  }
+  .wo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border: 2px dashed var(--red);
+  }
+  .wo-q {
+    font-weight: 700;
+    margin-right: 6px;
+  }
+  .wo-pick {
+    font-family: var(--font-display);
+    font-stretch: 62%;
+    text-transform: uppercase;
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 8px 16px 10px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    cursor: pointer;
+  }
+  .wo-pick:hover {
+    background: var(--red);
+    color: var(--paper);
   }
 </style>

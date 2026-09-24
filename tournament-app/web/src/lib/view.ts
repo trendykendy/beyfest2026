@@ -7,6 +7,7 @@ export interface PBPlayer {
   groupIndex: number | null;
   drawOrder: number | null;
   finalGroupRank: number | null;
+  withdrawn: boolean; // left the tournament; their playable matches are walked over
 }
 export interface PBGroup {
   id: string;
@@ -34,6 +35,7 @@ export interface PBMatch {
   liveLog: LiveRound[]; // how each round was won, oldest first; kept once done (may be empty for old or corrected results)
   resultAt: string; // when the result was recorded/corrected (ISO), "" if not played
   startedAt: string; // when the organiser pressed Start match (ISO), "" if not
+  walkover: boolean; // a no-show, recorded as target–0; shown as "W/O"
   winner: string;
   loser: string;
   matchStatus: "pending" | "ready" | "done";
@@ -256,7 +258,7 @@ export interface Award {
 // Finished matches whose round log adds up to the result.
 export function loggedResults(matches: PBMatch[]): PBMatch[] {
   return matches.filter((m) => {
-    if (m.matchStatus !== "done" || m.liveLog.length === 0) return false;
+    if (m.matchStatus !== "done" || m.walkover || m.liveLog.length === 0) return false;
     const pts = (who: 1 | 2) => m.liveLog.filter((r) => r.who === who).reduce((a, r) => a + (FINISH_POINTS[r.finish] ?? 0), 0);
     return pts(1) === m.p1Score && pts(2) === m.p2Score;
   });
@@ -295,7 +297,7 @@ export function computeAwards(matches: PBMatch[]): Award[] {
 
   // Iron wall: fewest points let in per match (every result counts; 3+ played).
   const against = new Map<string, { pts: number; n: number }>();
-  for (const m of matches.filter((x) => x.matchStatus === "done")) {
+  for (const m of matches.filter((x) => x.matchStatus === "done" && !x.walkover)) {
     for (const [id, conceded] of [[m.p1, m.p2Score ?? 0], [m.p2, m.p1Score ?? 0]] as const) {
       const a = against.get(id) ?? { pts: 0, n: 0 };
       against.set(id, { pts: a.pts + conceded, n: a.n + 1 });

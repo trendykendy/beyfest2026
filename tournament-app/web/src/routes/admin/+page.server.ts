@@ -6,6 +6,9 @@ import {
   createTournament,
   correctScore,
   enterScore,
+  recordWalkover,
+  renamePlayer,
+  setWithdrawn,
   generateKnockoutStage,
   getActiveTournament,
   resetTournament,
@@ -89,6 +92,49 @@ export const actions: Actions = {
       return fail(400, { error: (e as Error).message, fixing: code });
     }
     return { corrected: code };
+  },
+
+  // A no-show on a playable match: the other blader wins at the target, 0 against.
+  walkover: async ({ request, locals }) => {
+    const data = await request.formData();
+    const code = String(data.get("code") || "");
+    const noShow = Number(data.get("noShow"));
+    const t = await getActiveTournament(locals.pb);
+    if (!t) return fail(400, { error: "No active tournament." });
+    if (noShow !== 1 && noShow !== 2) return fail(400, { error: "Pick who didn't show." });
+    try {
+      await recordWalkover(locals.pb, t.id, code, noShow);
+    } catch (e) {
+      return fail(400, { error: (e as Error).message });
+    }
+    return { walkover: code };
+  },
+
+  // A blader leaves (withdrawn=true) or comes back (false).
+  withdraw: async ({ request, locals }) => {
+    const data = await request.formData();
+    const player = String(data.get("player") || "");
+    const t = await getActiveTournament(locals.pb);
+    if (!t) return fail(400, { error: "No active tournament." });
+    try {
+      await setWithdrawn(locals.pb, t.id, player, data.get("withdrawn") === "true");
+    } catch (e) {
+      return fail(400, { error: (e as Error).message });
+    }
+    return { withdrawn: player };
+  },
+
+  rename: async ({ request, locals }) => {
+    const data = await request.formData();
+    const player = String(data.get("player") || "");
+    const t = await getActiveTournament(locals.pb);
+    if (!t) return fail(400, { error: "No active tournament." });
+    try {
+      await renamePlayer(locals.pb, t.id, player, String(data.get("name") || ""));
+    } catch (e) {
+      return fail(400, { error: (e as Error).message, renaming: player });
+    }
+    return { renamed: player };
   },
 
   generateKnockout: async ({ locals }) => {

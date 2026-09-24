@@ -55,7 +55,12 @@
       <span class="tag">Last result</span>
       <span class="res">
         <span class="ctx">{context(last)}</span>
-        <b>{label(last, 1)}</b> {last.p1Score}–{last.p2Score} <b>{label(last, 2)}</b>
+        {#if last.walkover}
+          {@const w = last.winner === last.p1 ? 1 : 2}
+          <b>{label(last, w)}</b> won by walkover v {label(last, w === 1 ? 2 : 1)}
+        {:else}
+          <b>{label(last, 1)}</b> {last.p1Score}–{last.p2Score} <b>{label(last, 2)}</b>
+        {/if}
       </span>
       <button type="button" class="toggle" onclick={() => ((open = !open), (code = last.code))}>
         {open ? "Close" : "Fix"}
@@ -71,7 +76,7 @@
           <span>Match</span>
           <select name="code" bind:value={code}>
             {#each done as m (m.code)}
-              <option value={m.code}>{m.code}: {label(m, 1)} {m.p1Score}–{m.p2Score} {label(m, 2)}</option>
+              <option value={m.code}>{m.code}: {label(m, 1)} {m.p1Score}–{m.p2Score} {label(m, 2)}{m.walkover ? " (walkover)" : ""}</option>
             {/each}
           </select>
         </label>

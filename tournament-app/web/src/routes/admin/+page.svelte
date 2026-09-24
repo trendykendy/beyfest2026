@@ -11,12 +11,15 @@
   import MiniRRTable from "$lib/components/MiniRRTable.svelte";
   import RoundScorer from "$lib/components/RoundScorer.svelte";
   import FixResult from "$lib/components/FixResult.svelte";
+  import BladersPanel from "$lib/components/BladersPanel.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
 
   let { data, form } = $props();
 
   // Which match a refused "Fix result" was about (its error shows in that panel).
   const fixing = $derived(form && "fixing" in form && form.fixing ? String(form.fixing) : "");
+  // …and which blader a refused rename was about (shown in the Bladers panel).
+  const renaming = $derived(form && "renaming" in form && form.renaming ? String(form.renaming) : "");
 
   const structure = $derived(data.tournament ? pickStructure(data.tournament.structureKey) : null);
   const groupCount = $derived(data.groups.length);
@@ -94,7 +97,7 @@
   </div>
 
   <!-- Errors from fixing a result show inside the Fix panel instead. -->
-  {#if form?.error && !fixing}
+  {#if form?.error && !fixing && !renaming}
     <div class="banner err">{form.error}</div>
   {/if}
 
@@ -243,7 +246,9 @@
                 <span class="fgroup">{groupNameByIndex.get(m.groupIndex ?? -1) ?? `Group ${(m.groupIndex ?? 0) + 1}`}</span>
                 <span class="pn" class:won={done && m.winner === m.p1}>{names.get(m.p1) ?? "—"}</span>
                 <span class="fresult">
-                  {#if done}
+                  {#if done && m.walkover}
+                    W/O
+                  {:else if done}
                     {m.p1Score}–{m.p2Score}
                   {:else if now}
                     <span class="now-chip">{isLive(m) ? `Live ${m.liveP1}–${m.liveP2}` : "Now"}</span>
@@ -281,6 +286,8 @@
         {/if}
       </section>
     {/if}
+
+    <BladersPanel players={data.players} error={renaming ? (form?.error ?? "") : ""} errorFor={renaming} />
 
     <!-- Kept well away from everything else: it wipes the whole tournament. -->
     <section class="danger-zone">

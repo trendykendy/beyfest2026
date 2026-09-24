@@ -3,7 +3,7 @@
   // band carries the tier colour (green Winners, gold Mid, red Losers, black
   // Grand Final) and turns red while the match is being played.
   import type { PBMatch } from "$lib/view";
-  import { slotLabel, tierOf } from "$lib/view";
+  import { slotLabel, tierOf, isLive } from "$lib/view";
   import { pointsToWin } from "@beyfest/engine";
 
   let {
@@ -19,7 +19,8 @@
   const tier = $derived(tierOf(match.stage));
   const target = $derived(pointsToWin(match.stage, match.roundLabel));
   const done = $derived(match.matchStatus === "done");
-  const live = $derived(match.matchStatus === "ready" && (match.liveP1 > 0 || match.liveP2 > 0));
+  const live = $derived(isLive(match));
+  const walkover = $derived(done && match.walkover);
 
   function side(pid: string, slot: PBMatch["slot1"]) {
     if (pid) return { name: names.get(pid) ?? "—", tbd: false };
@@ -27,8 +28,9 @@
   }
   const a = $derived(side(match.p1, match.slot1));
   const b = $derived(side(match.p2, match.slot2));
-  const s1 = $derived(done ? match.p1Score : live ? match.liveP1 : null);
-  const s2 = $derived(done ? match.p2Score : live ? match.liveP2 : null);
+  // A walkover shows no score, just "Walkover" in the header.
+  const s1 = $derived(walkover ? null : done ? match.p1Score : live ? match.liveP1 : null);
+  const s2 = $derived(walkover ? null : done ? match.p2Score : live ? match.liveP2 : null);
   const won1 = $derived(done && match.winner === match.p1);
   const won2 = $derived(done && match.winner === match.p2);
 </script>
@@ -36,7 +38,7 @@
 <div class="plate tier-{tier}" class:pending={match.matchStatus === "pending"} class:live>
   <div class="phead">
     <span class="pcode">{match.code}</span>
-    <span class="pft">{live ? "Live" : `First to ${target}`}</span>
+    <span class="pft">{walkover ? "Walkover" : live ? "Live" : `First to ${target}`}</span>
   </div>
   <div class="side" class:won={won1} class:lost={won2} class:tbd={a.tbd}>
     <span class="nm">{a.name}</span>

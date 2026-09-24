@@ -279,6 +279,37 @@ export async function enterScore(
   p1Score: number,
   p2Score: number,
 ): Promise<void> {
+  await recordResult(pb, tournamentId, code, p1Score, p2Score, false);
+  await autoWalkovers(pb, tournamentId);
+}
+
+// A no-show: the other blader wins at the match's target, 0 against. Recorded
+// like any result so tables and the bracket carry on, but flagged, so screens
+// say "W/O" and the awards leave it out.
+export async function recordWalkover(
+  pb: PocketBase,
+  tournamentId: string,
+  code: string,
+  noShow: 1 | 2,
+): Promise<void> {
+  const loaded = await loadTournament(pb, tournamentId);
+  const match = loaded.state.matches.find((mt) => mt.code === code);
+  if (!match) throw new Error(`There's no match ${code}.`);
+  if (match.status !== "ready") throw new Error(`${code} isn't ready to play.`);
+  const target = pointsToWin(match.stage, match.roundLabel);
+  const [s1, s2] = noShow === 1 ? [0, target] : [target, 0];
+  await recordResult(pb, tournamentId, code, s1, s2, true);
+  await autoWalkovers(pb, tournamentId);
+}
+
+async function recordResult(
+  pb: PocketBase,
+  tournamentId: string,
+  code: string,
+  p1Score: number,
+  p2Score: number,
+  walkover: boolean,
+): Promise<void> {
   const loaded = await loadTournament(pb, tournamentId);
   const match = loaded.state.matches.find((mt) => mt.code === code);
   if (match) checkScore(match, p1Score, p2Score);
@@ -287,7 +318,60 @@ export async function enterScore(
   applyResult(loaded.state, code, p1Score, p2Score);
   await markGroupsComplete(pb, loaded);
   await persistDelta(pb, loaded, before, beforeRanks);
-  await stampResult(pb, loaded, code);
+  await stampResult(pb, loaded, code, walkover);
+}
+
+// Walk over every playable match that involves a withdrawn blader. Repeats,
+// because a walkover can drop a withdrawn blader straight into another ready
+// match (or send their opponent on to meet one).
+async function autoWalkovers(pb: PocketBase, tournamentId: string): Promise<void> {
+  for (let guard = 0; guard < 100; guard++) {
+    const gone = await pb.collection("players").getFullList({
+      filter: pb.filter("tournament = {:id} && withdrawn = true", { id: tournamentId }),
+    });
+    if (gone.length === 0) return;
+    const out = new Set(gone.map((p) => p.id));
+    const { state } = await loadTournament(pb, tournamentId);
+    const next = state.matches
+      .filter((m) => m.status === "ready" && ((m.p1 && out.has(m.p1)) || (m.p2 && out.has(m.p2))))
+      .sort((a, b) => a.orderIndex - b.orderIndex)[0];
+    if (!next) return;
+    const target = pointsToWin(next.stage, next.roundLabel);
+    const noShow = next.p1 && out.has(next.p1) ? 1 : 2;
+    const [s1, s2] = noShow === 1 ? [0, target] : [target, 0];
+    await recordResult(pb, tournamentId, next.code, s1, s2, true);
+  }
+}
+
+// A blader leaves (or comes back). Leaving walks over everything of theirs
+// that's playable now, and anything that becomes playable later. Coming back
+// stops that; walkovers already recorded stay (fix them with Fix if needed).
+export async function setWithdrawn(
+  pb: PocketBase,
+  tournamentId: string,
+  playerId: string,
+  withdrawn: boolean,
+): Promise<void> {
+  await pb.collection("players").update(playerId, { withdrawn });
+  if (withdrawn) await autoWalkovers(pb, tournamentId);
+}
+
+// Fix a typo in a name. Names must stay unique (ignoring case).
+export async function renamePlayer(
+  pb: PocketBase,
+  tournamentId: string,
+  playerId: string,
+  name: string,
+): Promise<void> {
+  const clean = name.trim();
+  if (!clean) throw new Error("A name can't be empty.");
+  const players = await pb.collection("players").getFullList({
+    filter: pb.filter("tournament = {:id}", { id: tournamentId }),
+  });
+  if (players.some((p) => p.id !== playerId && p.name.toLowerCase() === clean.toLowerCase())) {
+    throw new Error(`There's already a blader called ${clean}.`);
+  }
+  await pb.collection("players").update(playerId, { name: clean });
 }
 
 // Fix a result that's already been recorded. The engine works out whether
@@ -318,8 +402,9 @@ export async function correctScore(
   applyCorrection(loaded.state, code, p1Score, p2Score);
   await markGroupsComplete(pb, loaded);
   await persistDelta(pb, loaded, before, beforeRanks);
-  await stampResult(pb, loaded, code);
+  await stampResult(pb, loaded, code, false); // a fixed score is a played result
   await dropLogIfWrong(pb, loaded, code, p1Score, p2Score);
+  await autoWalkovers(pb, tournamentId); // a re-route may reach a withdrawn blader
 }
 
 // After a correction the round log may no longer add up to the score (it
@@ -341,10 +426,16 @@ async function dropLogIfWrong(
   if (pts(1) !== p1Score || pts(2) !== p2Score) await pb.collection("matches").update(id, { liveLog: [] });
 }
 
-// Remember when this match's result went in (for "Undo last result").
-async function stampResult(pb: PocketBase, loaded: LoadedTournament, code: string): Promise<void> {
+// Remember when this match's result went in (for "Last result"), and whether
+// it was a walkover. A walkover's partial round log (if any) doesn't count.
+async function stampResult(pb: PocketBase, loaded: LoadedTournament, code: string, walkover: boolean): Promise<void> {
   const id = loaded.matchIdByCode.get(code);
-  if (id) await pb.collection("matches").update(id, { resultAt: new Date().toISOString() });
+  if (!id) return;
+  await pb.collection("matches").update(id, {
+    resultAt: new Date().toISOString(),
+    walkover,
+    ...(walkover ? { liveLog: [] } : {}),
+  });
 }
 
 // Generate the knockout bracket once every group is complete.
@@ -362,6 +453,7 @@ export async function generateKnockoutStage(
   const beforeRanks = rankMap(before);
   generateKnockout(loaded.state); // random pool draws (Math.random)
   await persistDelta(pb, loaded, before, beforeRanks);
+  await autoWalkovers(pb, tournamentId);
 }
 
 async function markGroupsComplete(pb: PocketBase, loaded: LoadedTournament): Promise<void> {

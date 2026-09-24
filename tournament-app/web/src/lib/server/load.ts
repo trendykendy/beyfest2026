@@ -30,6 +30,7 @@ const toPlayer = (r: RecordModel): PBPlayer => ({
   groupIndex: r.groupIndex ?? null,
   drawOrder: r.drawOrder ?? null,
   finalGroupRank: r.finalGroupRank ?? null,
+  withdrawn: !!r.withdrawn,
 });
 
 const toMatch = (r: RecordModel): PBMatch => {
@@ -54,6 +55,7 @@ const toMatch = (r: RecordModel): PBMatch => {
     liveLog: Array.isArray(r.liveLog) ? r.liveLog : [],
     resultAt: done ? r.resultAt || "" : "",
     startedAt: r.startedAt || "",
+    walkover: done && !!r.walkover,
     winner: r.winner || "",
     loser: r.loser || "",
     matchStatus: r.matchStatus,

@@ -42,11 +42,11 @@
   </div>
   <div class="side" class:won={aWon} class:tbd={a.tbd}>
     <span class="pname">{a.name}</span>
-    {#if done}<span class="score">{match.p1Score}</span>{/if}
+    {#if done}<span class="score">{match.walkover ? (aWon ? "W/O" : "") : match.p1Score}</span>{/if}
   </div>
   <div class="side" class:won={bWon} class:tbd={b.tbd}>
     <span class="pname">{b.name}</span>
-    {#if done}<span class="score">{match.p2Score}</span>{/if}
+    {#if done}<span class="score">{match.walkover ? (bWon ? "W/O" : "") : match.p2Score}</span>{/if}
   </div>
 </div>
 
