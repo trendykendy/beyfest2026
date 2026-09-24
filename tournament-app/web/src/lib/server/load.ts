@@ -53,6 +53,7 @@ const toMatch = (r: RecordModel): PBMatch => {
     liveP2: r.liveP2 ?? 0,
     liveLog: Array.isArray(r.liveLog) ? r.liveLog : [],
     resultAt: done ? r.resultAt || "" : "",
+    startedAt: r.startedAt || "",
     winner: r.winner || "",
     loser: r.loser || "",
     matchStatus: r.matchStatus,

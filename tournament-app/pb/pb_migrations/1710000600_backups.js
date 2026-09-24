@@ -7,6 +7,7 @@ migrate(
     const settings = app.settings();
     settings.backups.cron = "*/10 * * * *";
     settings.backups.cronMaxKeep = 20;
+    settings.meta.appName = "Beyfest"; // backup files are named after the app
     app.save(settings);
   },
   (app) => {

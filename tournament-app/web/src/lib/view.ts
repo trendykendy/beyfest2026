@@ -33,6 +33,7 @@ export interface PBMatch {
   liveP2: number;
   liveLog: LiveRound[]; // how each round was won, oldest first; kept once done (may be empty for old or corrected results)
   resultAt: string; // when the result was recorded/corrected (ISO), "" if not played
+  startedAt: string; // when the organiser pressed Start match (ISO), "" if not
   winner: string;
   loser: string;
   matchStatus: "pending" | "ready" | "done";
@@ -79,8 +80,9 @@ export function roundName(roundLabel: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// A match is live once it's playable and someone has scored.
-export const isLive = (m: PBMatch) => m.matchStatus === "ready" && (m.liveP1 > 0 || m.liveP2 > 0);
+// A match is live once it's playable and has been started or scored.
+export const isLive = (m: PBMatch) =>
+  m.matchStatus === "ready" && (m.liveP1 > 0 || m.liveP2 > 0 || !!m.startedAt);
 
 // Where a match sits, in words: "Group 3, match 2 of 6" or "Mid bracket round 2".
 export function matchContext(m: PBMatch, matches: PBMatch[]): string {

@@ -69,6 +69,19 @@
   });
 
   const last = $derived(rounds[rounds.length - 1]);
+
+  // "Start match": the launch. Makes the match live on the TV straight away and
+  // cues its 3·2·1 countdown. Only offered before the first round.
+  const wasStarted = () => !!match.startedAt; // read once, like the saved rounds
+  let started = $state(wasStarted());
+  async function setStarted(start: boolean) {
+    started = start;
+    await fetch("/admin/start", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: match.code, start }),
+    }).catch(() => {});
+  }
   const nameOf = (who: 1 | 2) => (who === 1 ? p1Name : p2Name);
   const SIDES = [1, 2] as const;
 </script>
@@ -79,11 +92,17 @@
 <div class="rs tier-{tier}" class:over>
   <div class="rs-status">
     {#if over}<span class="tag won"><Trophy /> Match won</span>
-    {:else if rounds.length}<span class="tag live">Live</span>
+    {:else if rounds.length || started}<span class="tag live">Live</span>
     {:else}<span class="tag ready">Ready</span>{/if}
     <span class="context">{context}</span>
     <span class="ft">First to {target}</span>
   </div>
+
+  {#if !started && rounds.length === 0}
+    <button type="button" class="start" onclick={() => setStarted(true)}>
+      Start match <span>Let it rip on the TV</span>
+    </button>
+  {/if}
 
   <div class="rs-duel">
     {#each SIDES as who (who)}
@@ -128,6 +147,9 @@
           Record result: {nameOf(winner as 1 | 2)} wins {Math.max(s1, s2)}–{Math.min(s1, s2)}
         </button>
       </form>
+    {/if}
+    {#if started && rounds.length === 0}
+      <button type="button" class="undo" onclick={() => setStarted(false)}>Cancel start</button>
     {/if}
     {#if last}
       <button type="button" class="undo" onclick={undo}>
@@ -363,6 +385,35 @@
     cursor: pointer;
   }
   .record:active {
+    transform: translate(3px, 3px);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  /* The launch button: red slab, full width, above the cards. */
+  .start {
+    width: 100%;
+    min-height: 64px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: 2rem;
+    line-height: 1;
+    background: var(--red);
+    color: var(--paper);
+    border: var(--outline) solid var(--ink);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
+    cursor: pointer;
+  }
+  .start span {
+    font-family: var(--font-text);
+    text-transform: none;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .start:active {
     transform: translate(3px, 3px);
     box-shadow: 2px 2px 0 var(--ink);
   }

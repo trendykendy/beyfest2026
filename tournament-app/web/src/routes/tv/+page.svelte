@@ -95,7 +95,7 @@
   let primed = false;
   $effect(() => {
     const snap = new Map(
-      data.matches.map((m) => [m.code, `${m.matchStatus}|${m.liveP1}-${m.liveP2}|${m.p1Score}-${m.p2Score}`]),
+      data.matches.map((m) => [m.code, `${m.matchStatus}|${m.liveP1}-${m.liveP2}|${m.p1Score}-${m.p2Score}|${m.startedAt}`]),
     );
     if (primed) {
       let hit: PBMatch | null = null;
@@ -283,6 +283,43 @@
       });
     };
   }
+
+  // ── Launch countdown ────────────────────────────────────────────────
+  // "Start match" in admin stamps startedAt. The cut above brings Match centre
+  // up on that match; once it's showing, count the launch in:
+  // 3 · 2 · 1 · LET IT RIP! (ゴーシュート). Each beat is its own keyed element
+  // with a CSS transform/opacity animation (Pi-safe).
+  const BEATS = ["3", "2", "1", "rip"] as const;
+  const BEAT_MS = 800;
+  let startSeen = new Map<string, string>();
+  let startPrimed = false;
+  let latestStart = $state<{ code: string; at: number } | null>(null);
+  $effect(() => {
+    for (const m of data.matches) {
+      const before = startSeen.get(m.code);
+      if (startPrimed && m.startedAt && before !== undefined && before !== m.startedAt) {
+        latestStart = { code: m.code, at: Date.now() };
+      }
+      startSeen.set(m.code, m.startedAt);
+    }
+    startPrimed = true;
+  });
+
+  let beat = $state<(typeof BEATS)[number] | null>(null);
+  let beatTimers: ReturnType<typeof setTimeout>[] = [];
+  let launched = "";
+  $effect(() => {
+    const ev = latestStart;
+    if (!ev || scene !== "spotlight" || spotMatch?.code !== ev.code) return;
+    const key = `${ev.code}@${ev.at}`;
+    if (key === launched) return;
+    launched = key;
+    if (Date.now() - ev.at > CALLOUT_FRESH_MS) return; // stale by the time it showed
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    beatTimers.forEach(clearTimeout);
+    beatTimers = BEATS.map((b, i) => setTimeout(() => (beat = b), i * BEAT_MS));
+    beatTimers.push(setTimeout(() => (beat = null), BEATS.length * BEAT_MS + 900));
+  });
 
   // ── Operator control (keyboard / mouse at the TV) ───────────────────
   let barVisible = $state(true);
@@ -568,6 +605,21 @@
               <div class="fx" bind:this={fxEl}>
                 <span class="fx-card"><span class="fx-label"><b>{fx.label}</b></span><span class="fx-pts"><b>+{fx.pts}</b></span></span>
               </div>
+            </div>
+          {/if}
+
+          {#if beat}
+            <div class="lir" aria-live="polite">
+              {#key beat}
+                {#if beat === "rip"}
+                  <div class="lir-rip">
+                    <span class="lir-kana" lang="ja">ゴーシュート</span>
+                    <span class="lir-card"><b>Let it rip!</b></span>
+                  </div>
+                {:else}
+                  <div class="lir-num">{beat}</div>
+                {/if}
+              {/key}
             </div>
           {/if}
 
@@ -1561,5 +1613,120 @@
   .aw-note {
     color: var(--on-field-soft);
     font-size: 1.6rem;
+  }
+  /* Launch countdown over Match centre: a black band across the screen with
+     each beat slamming in. Transform/opacity only. */
+  .lir {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+  }
+  .lir::before {
+    content: "";
+    position: absolute;
+    left: -5%;
+    right: -5%;
+    top: 50%;
+    height: 420px;
+    margin-top: -210px;
+    background: var(--ink);
+    transform: skewY(-4deg);
+    animation: lir-band 260ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  }
+  .lir-num,
+  .lir-rip {
+    position: relative;
+    grid-area: 1 / 1;
+    animation: lir-slam 800ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  }
+  .lir-num {
+    font-family: var(--font-display);
+    font-size: 24rem;
+    line-height: 0.8;
+    color: var(--gold);
+    -webkit-text-stroke: 6px var(--ink);
+    paint-order: stroke fill;
+  }
+  .lir-rip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    animation-duration: 1700ms;
+  }
+  .lir-kana {
+    font-family: var(--font-display);
+    font-size: 3.4rem;
+    line-height: 1;
+    color: var(--gold);
+  }
+  .lir-card {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: 12rem;
+    line-height: 1;
+    background: var(--red);
+    color: var(--paper);
+    border: 6px solid var(--paper);
+    box-shadow: 16px 16px 0 var(--gold);
+    padding: 6px 60px 16px;
+    transform: skewX(-10deg);
+  }
+  .lir-card b {
+    display: block;
+    font-weight: inherit;
+    transform: skewX(10deg);
+  }
+  @keyframes lir-band {
+    from {
+      transform: skewY(-4deg) scaleX(0);
+    }
+    to {
+      transform: skewY(-4deg) scaleX(1);
+    }
+  }
+  @keyframes lir-slam {
+    0% {
+      opacity: 0;
+      transform: scale(1.9);
+    }
+    22% {
+      opacity: 1;
+      transform: scale(0.96);
+    }
+    32% {
+      transform: scale(1);
+    }
+    80% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+  }
+  .lir-rip {
+    animation-name: lir-slam-hold;
+  }
+  @keyframes lir-slam-hold {
+    0% {
+      opacity: 0;
+      transform: scale(1.9);
+    }
+    14% {
+      opacity: 1;
+      transform: scale(0.96);
+    }
+    20% {
+      transform: scale(1);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 </style>
