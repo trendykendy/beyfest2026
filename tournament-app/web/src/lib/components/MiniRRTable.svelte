@@ -15,46 +15,41 @@
   } = $props();
 
   const tier = $derived(stage === "wb_rr" ? "wb" : "lb");
-  const title = $derived(stage === "wb_rr" ? "Winners Mini-RR" : "Losers Mini-RR");
+  const title = $derived(stage === "wb_rr" ? "Winners round-robin" : "Losers round-robin");
   const names = $derived(nameMap(players));
   const rows = $derived(miniRRStandings(matches, stage));
   const stageMatches = $derived(matches.filter((m) => m.stage === stage));
   const played = $derived(stageMatches.filter((m) => m.matchStatus === "done").length);
+  const finished = $derived(stageMatches.length > 0 && played === stageMatches.length);
 
-  function seedLabel(rank: number): string {
-    const prefix = stage === "wb_rr" ? "WB" : "LB";
-    return `${prefix}-${ordinal(rank)}`;
-  }
-  function fate(rank: number): { text: string; kind: "adv" | "out" } {
-    if (stage === "wb_rr") {
-      if (rank === 1) return { text: "→ Grand Final", kind: "adv" };
-      return { text: "→ Mid Bracket", kind: "adv" };
-    }
-    return rank <= advancers
-      ? { text: "→ Mid Bracket", kind: "adv" }
-      : { text: "Eliminated", kind: "out" };
+  // Where each place goes next, in words (matches the TV's round-robin scene).
+  function fate(rank: number): { text: string; tier: "gf" | "mb" | "out" } {
+    if (stage === "wb_rr") return rank === 1 ? { text: "Grand final", tier: "gf" } : { text: "Mid bracket", tier: "mb" };
+    return rank <= advancers ? { text: "Mid bracket", tier: "mb" } : { text: "Out", tier: "out" };
   }
 </script>
 
+<!-- A mini round-robin as a white slab with a green (Winners) or red (Losers)
+     header, the same build as the group tables. -->
 <div class="rr tier-{tier}">
-  <div class="rr-head">
-    <h4>{title}</h4>
-    <span class="prog">{played}/{stageMatches.length}</span>
-  </div>
+  <header class="rr-head">
+    <h3>{title}</h3>
+    <span class="prog">{finished ? "Final standings" : `${played} of ${stageMatches.length} played`}</span>
+  </header>
   <table>
     <tbody>
       {#each rows as row, i (row.playerId)}
         {@const f = fate(i + 1)}
-        <tr class:out={f.kind === "out"}>
-          <td class="seed">{seedLabel(i + 1)}</td>
+        <tr class:out={f.tier === "out"}>
+          <td class="seed">{ordinal(i + 1)}</td>
           <td class="pn">{names.get(row.playerId)}</td>
           <td class="rec">{row.wins}–{row.losses}</td>
-          <td class="pf" title="Points scored">{row.pointsFor}</td>
-          <td class="fate {f.kind}">{f.text}</td>
+          <td class="pf" title="Points scored">{row.pointsFor} pts</td>
+          <td class="fate"><span class="chip to-{f.tier}" class:projected={!finished}>{f.text}</span></td>
         </tr>
       {/each}
       {#if rows.length === 0}
-        <tr><td class="empty" colspan="5">Waiting for entrants…</td></tr>
+        <tr><td class="empty" colspan="5">Waiting for the group stage to finish.</td></tr>
       {/if}
     </tbody>
   </table>
@@ -62,13 +57,12 @@
 
 <style>
   .rr {
-    --tier: var(--neutral);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-top: 3px solid var(--tier);
-    border-radius: var(--radius);
-    padding: 12px 14px;
-    min-width: 240px;
+    --tier: var(--on-field-soft);
+    background: var(--paper);
+    color: var(--ink);
+    border: var(--outline) solid var(--ink);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
+    min-width: 0;
   }
   .tier-wb {
     --tier: var(--wb);
@@ -80,75 +74,101 @@
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    margin-bottom: 8px;
+    gap: 8px;
+    background: var(--tier);
+    color: var(--ink);
+    padding: 8px 14px 10px;
+    border-bottom: var(--outline) solid var(--ink);
   }
-  h4 {
-    font-family: var(--font-text);
-    font-stretch: 75%;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    font-size: 1.15rem;
-    letter-spacing: 0.04em;
-    color: var(--tier);
+  .tier-lb .rr-head {
+    color: var(--paper);
+  }
+  h3 {
+    font-size: 1.5rem;
   }
   .prog {
-    font-size: 0.72rem;
-    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 700;
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.88rem;
+    font-size: 0.95rem;
   }
   td {
-    padding: 4px 6px;
-    border-bottom: 1px solid var(--border);
+    padding: 7px 8px;
+    border-top: 1px solid #dfe3f2;
   }
-  tr:last-child td {
-    border-bottom: none;
+  tr:first-child td {
+    border-top: none;
   }
   .seed {
-    font-family: var(--font-text);
-    font-stretch: 75%;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 0.66rem;
-    font-weight: 700;
-    color: var(--tier);
-    width: 54px;
+    width: 44px;
+    font-family: var(--font-display);
+    color: var(--ink-soft);
   }
   .pn {
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-stretch: 62%;
+    text-transform: uppercase;
+    font-size: 1.25rem;
+    line-height: 1;
+    padding-right: 0.3em;
   }
   .rec {
+    width: 48px;
     text-align: center;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: var(--muted);
-    width: 44px;
   }
   .pf {
+    width: 60px;
     text-align: center;
+    color: var(--ink-soft);
     font-variant-numeric: tabular-nums;
-    color: var(--muted);
-    width: 30px;
   }
   .fate {
     text-align: right;
-    font-size: 0.72rem;
+    width: 110px;
+  }
+  .chip {
+    --c: var(--on-field-soft);
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 5px 8px;
     white-space: nowrap;
+    background: var(--c);
+    color: var(--ink);
+    border: 2px solid var(--ink);
   }
-  .fate.adv {
-    color: var(--tier);
-    font-weight: 600;
+  .chip.to-mb {
+    --c: var(--mb);
   }
-  .fate.out {
-    color: var(--muted);
+  /* The Grand Final is the inverted slab everywhere: black with gold. */
+  .chip.to-gf {
+    background: var(--ink);
+    color: var(--gold);
+  }
+  .chip.to-out {
+    background: #dfe3f2;
+    color: var(--ink-soft);
+    border-color: #dfe3f2;
+  }
+  .rr .chip.projected {
+    background: transparent;
+    color: var(--ink-soft);
+    border-color: var(--c);
+  }
+  .rr .chip.to-gf.projected {
+    border-color: var(--ink);
   }
   tr.out .pn {
-    color: var(--muted);
+    color: var(--ink-soft);
   }
   .empty {
-    color: var(--muted);
+    color: var(--ink-soft);
     font-style: italic;
     text-align: center;
   }

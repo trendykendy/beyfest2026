@@ -7,7 +7,7 @@
   import { nameMap, slotLabel, hasStage, availableScenes, SCENE_TITLE, isLive, matchContext, tierOf } from "$lib/view";
   import type { PBMatch } from "$lib/view";
   import GroupCard from "$lib/components/GroupCard.svelte";
-  import Bracket from "$lib/components/Bracket.svelte";
+  import BroadcastBracket from "$lib/components/tv/BroadcastBracket.svelte";
   import MiniRRTable from "$lib/components/MiniRRTable.svelte";
   import RoundScorer from "$lib/components/RoundScorer.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
@@ -250,9 +250,8 @@
     {:else}
       <!-- ─────────────── Knockout stage ─────────────── -->
       <section>
-        <h2>Knockout</h2>
         {#if structure && (hasStage(data.matches, "wb_rr") || hasStage(data.matches, "lb_rr"))}
-          <h3 class="play-title">Mini Round-Robins</h3>
+          <h2 class="kicker">Round-robins</h2>
           <div class="rr-row">
             {#if hasStage(data.matches, "wb_rr")}
               <MiniRRTable matches={data.matches} players={data.players} stage="wb_rr" advancers={miniRRAdvancers(structure, "wb_rr")} />
@@ -263,8 +262,13 @@
           </div>
         {/if}
 
-        <h3 class="play-title">Bracket</h3>
-        <Bracket matches={data.matches} players={data.players} {groupCount} />
+        {#if structure}
+          <h2 class="kicker">Knockout bracket</h2>
+          <!-- The TV's bracket, scaled to fit this box. -->
+          <div class="bracket-box">
+            <BroadcastBracket matches={data.matches} players={data.players} {structure} {groupCount} />
+          </div>
+        {/if}
       </section>
     {/if}
 
@@ -411,10 +415,6 @@
     gap: 16px;
     margin-bottom: 24px;
   }
-  .play-title {
-    font-size: 1.4rem;
-    margin: 18px 0 10px;
-  }
   /* Now playing (wide) beside Up next (narrow). */
   .play {
     display: grid;
@@ -506,10 +506,17 @@
     margin-top: 10px;
   }
   .rr-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  .bracket-box {
+    height: 640px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-bottom: 8px;
+    background: var(--field);
+    border: 2px solid var(--field-line);
+    padding: 16px;
   }
   .pn {
     font-weight: 600;
