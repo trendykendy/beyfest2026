@@ -17,7 +17,7 @@
 
   // Round log — each entry is one round win. Score is derived from it, so
   // Undo is just a pop.
-  type Round = { who: 1 | 2; pts: number; label: string };
+  type Round = { who: 1 | 2; pts: number; label: string; key: string };
   let rounds = $state<Round[]>([]);
 
   const s1 = $derived(rounds.filter((r) => r.who === 1).reduce((a, r) => a + r.pts, 0));
@@ -25,9 +25,9 @@
   const winner = $derived(s1 >= target ? 1 : s2 >= target ? 2 : 0);
   const over = $derived(winner !== 0);
 
-  function add(who: 1 | 2, pts: number, label: string) {
+  function add(who: 1 | 2, pts: number, label: string, key: string) {
     if (over) return;
-    rounds = [...rounds, { who, pts, label }];
+    rounds = [...rounds, { who, pts, label, key }];
   }
   function undo() {
     rounds = rounds.slice(0, -1);
@@ -38,7 +38,7 @@
   let everScored = false;
   let posted = "";
   $effect(() => {
-    const key = `${s1}-${s2}`;
+    const key = `${s1}-${s2}-${rounds.length}`;
     if (rounds.length === 0 && !everScored) return;
     everScored = true;
     if (key === posted) return;
@@ -46,7 +46,7 @@
     fetch("/admin/live", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code: match.code, s1, s2 }),
+      body: JSON.stringify({ code: match.code, s1, s2, log: rounds.map((r) => ({ who: r.who, finish: r.key })) }),
     }).catch(() => {});
   });
 </script>
@@ -64,7 +64,7 @@
       <div class="score">{s1}</div>
       <div class="finishes">
         {#each FINISHES as f (f.key)}
-          <button type="button" onclick={() => add(1, f.pts, f.label)} disabled={over} title={f.desc}>
+          <button type="button" onclick={() => add(1, f.pts, f.label, f.key)} disabled={over} title={f.desc}>
             {f.label} <span class="pts">+{f.pts}</span>
           </button>
         {/each}
@@ -78,7 +78,7 @@
       <div class="score">{s2}</div>
       <div class="finishes">
         {#each FINISHES as f (f.key)}
-          <button type="button" onclick={() => add(2, f.pts, f.label)} disabled={over} title={f.desc}>
+          <button type="button" onclick={() => add(2, f.pts, f.label, f.key)} disabled={over} title={f.desc}>
             {f.label} <span class="pts">+{f.pts}</span>
           </button>
         {/each}

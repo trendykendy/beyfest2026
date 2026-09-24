@@ -166,6 +166,7 @@ async function persistDelta(
         // wipes the tally once the final result lands.
         liveP1: 0,
         liveP2: 0,
+        liveLog: [],
       });
     }
   }

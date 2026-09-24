@@ -31,9 +31,16 @@ export interface PBMatch {
   p2Score: number | null;
   liveP1: number; // running score while a match is in progress (0 when not started)
   liveP2: number;
+  liveLog: LiveRound[]; // how each round so far was won (empty unless in progress)
   winner: string;
   loser: string;
   matchStatus: "pending" | "ready" | "done";
+}
+
+// One round of a match in progress, as logged by the admin scorer.
+export interface LiveRound {
+  who: 1 | 2;
+  finish: string; // a key from FINISHES ("spin" | "knockout" | "dominant")
 }
 
 export function ordinal(n: number): string {

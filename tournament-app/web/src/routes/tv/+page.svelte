@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick as svelteTick } from "svelte";
   import { invalidateAll } from "$app/navigation";
   import { pb } from "$lib/pbBrowser";
   import { EVENT } from "$lib/config";
+  import { FINISHES } from "$lib/finishes";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
   import {
     groupStandings,
@@ -184,6 +185,100 @@
   }
   const rrMatchesOf = (stage: string) =>
     data.matches.filter((m) => m.stage === stage).sort((a, b) => a.orderIndex - b.orderIndex);
+
+  // ── Finish call-out ─────────────────────────────────────────────────
+  // When a round is logged, Match centre calls the finish out big across the
+  // top ("KNOCKOUT +2"), then flies it down into a pill under the scorer's
+  // card, where it stays until the next round. Undo (the log shrinks) just
+  // updates the pill — no animation. Only transform/opacity animate (Pi).
+  const FINISH_BY_KEY = new Map(FINISHES.map((f) => [f.key, f]));
+  const CALLOUT_FRESH_MS = 6000; // don't replay a call-out the rotation lands on later
+
+  let logSeen = new Map<string, number>();
+  let logPrimed = false;
+  let latestRound = $state<{ code: string; n: number; at: number } | null>(null);
+  $effect(() => {
+    for (const m of data.matches) {
+      const n = m.liveLog.length;
+      const before = logSeen.get(m.code);
+      if (logPrimed && before !== undefined && n > before) latestRound = { code: m.code, n, at: Date.now() };
+      logSeen.set(m.code, n);
+    }
+    logPrimed = true;
+  });
+
+  // The round shown in the pill: the latest one of the match on screen.
+  const lastRound = $derived.by(() => {
+    const log = spotMatch?.liveLog ?? [];
+    const r = log[log.length - 1];
+    const f = r ? FINISH_BY_KEY.get(r.finish) : undefined;
+    return r && f ? { who: r.who, label: f.label, pts: f.pts } : null;
+  });
+
+  let fx = $state<{ label: string; pts: number } | null>(null);
+  let fxEl = $state<HTMLElement>();
+  let pillEl = $state<HTMLElement>();
+  let fxAnim: Animation | null = null;
+  let played = "";
+
+  $effect(() => {
+    const ev = latestRound;
+    if (!ev || scene !== "spotlight" || spotMatch?.code !== ev.code) return;
+    const key = `${ev.code}#${ev.n}`;
+    if (key === played) return;
+    played = key;
+    if (Date.now() - ev.at > CALLOUT_FRESH_MS) return;
+    if (spotMatch.liveLog.length !== ev.n || !lastRound) return; // undone since
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; // pill only
+    void playCallout(lastRound.label, lastRound.pts);
+  });
+
+  async function playCallout(label: string, pts: number) {
+    fxAnim?.cancel();
+    fx = { label, pts };
+    await svelteTick();
+    const big = fxEl;
+    const pill = pillEl;
+    if (!big || !pill) {
+      fx = null;
+      return;
+    }
+    // Fly from the big slab's resting place onto the pill (centre to centre),
+    // shrinking to the pill's height.
+    const b = big.getBoundingClientRect();
+    const t = pill.getBoundingClientRect();
+    const dx = t.left + t.width / 2 - (b.left + b.width / 2);
+    const dy = t.top + t.height / 2 - (b.top + b.height / 2);
+    const sc = t.height / b.height;
+    const anim = big.animate(
+      [
+        // slam in from above, oversized
+        { offset: 0, opacity: 0, transform: "translate(0, -70px) scale(1.5)", easing: "cubic-bezier(.2, .9, .3, 1.25)" },
+        { offset: 0.16, opacity: 1, transform: "translate(0, 0) scale(0.97)", easing: "ease-out" },
+        { offset: 0.22, opacity: 1, transform: "translate(0, 0) scale(1)", easing: "linear" },
+        // hold so the room can read it
+        { offset: 0.58, opacity: 1, transform: "translate(0, 0) scale(1)", easing: "cubic-bezier(.65, 0, .25, 1)" },
+        // fly down onto the pill
+        { offset: 1, opacity: 1, transform: `translate(${dx}px, ${dy}px) scale(${sc})` },
+      ],
+      { duration: 1500, fill: "forwards" },
+    );
+    fxAnim = anim;
+    // Safety net: a hidden/throttled tab can pause animations indefinitely,
+    // which would leave the pill hidden. Force the landing if it overruns.
+    setTimeout(() => {
+      if (fxAnim === anim && anim.playState !== "finished") anim.finish();
+    }, 1900);
+    anim.onfinish = () => {
+      if (fxAnim !== anim) return;
+      fx = null;
+      fxAnim = null;
+      pill.animate([{ transform: "scale(1.18)" }, { transform: "scale(1)" }], {
+        duration: 220,
+        easing: "cubic-bezier(.2, .9, .3, 1.3)",
+      });
+    };
+  }
 
   // ── Operator control (keyboard / mouse at the TV) ───────────────────
   let barVisible = $state(true);
@@ -444,6 +539,14 @@
             <span class="mc-ft">First to {t}</span>
           </div>
 
+          {#if fx}
+            <div class="fx-wrap" aria-hidden="true">
+              <div class="fx" bind:this={fxEl}>
+                <span class="fx-card"><span class="fx-label"><b>{fx.label}</b></span><span class="fx-pts"><b>+{fx.pts}</b></span></span>
+              </div>
+            </div>
+          {/if}
+
           <div class="mc-duel tier-{tierOf(spotMatch.stage)}">
             <div class="mc-side left" class:won={wonA} class:lost={wonB}>
               <div class="mc-slab">
@@ -451,6 +554,11 @@
                 <div class="mc-score">{showScore ? av : "–"}</div>
               </div>
               {#if wonA}<span class="mc-winner">Winner</span>{/if}
+              {#if lastRound?.who === 1 && !done}
+                <span class="mc-finish" class:waiting={fx} bind:this={pillEl}>
+                  <span class="fx-card"><span class="fx-label"><b>{lastRound.label}</b></span><span class="fx-pts"><b>+{lastRound.pts}</b></span></span>
+                </span>
+              {/if}
             </div>
             <div class="mc-vs" aria-label="versus">VS</div>
             <div class="mc-side right" class:won={wonB} class:lost={wonA}>
@@ -459,6 +567,11 @@
                 <div class="mc-name">{sideName(spotMatch, 2)}</div>
               </div>
               {#if wonB}<span class="mc-winner">Winner</span>{/if}
+              {#if lastRound?.who === 2 && !done}
+                <span class="mc-finish" class:waiting={fx} bind:this={pillEl}>
+                  <span class="fx-card"><span class="fx-label"><b>{lastRound.label}</b></span><span class="fx-pts"><b>+{lastRound.pts}</b></span></span>
+                </span>
+              {/if}
             </div>
           </div>
 
@@ -1075,6 +1188,97 @@
   .right .mc-winner {
     right: 40px;
   }
+  /* Finish call-out: one gold telop slab. The big one (.fx) slams in across
+     the top, then flies down and shrinks onto the pill (.mc-finish) — same
+     build at two sizes, so the hand-off reads as one object. */
+  .mc {
+    position: relative;
+  }
+  .fx-wrap {
+    position: absolute;
+    top: -22px; /* sits in the gap above the status line, not over it */
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 5;
+    pointer-events: none;
+  }
+  /* .fx / .mc-finish are the boxes that move (transform is animated); the
+     skewed .fx-card inside carries the slab look, text straightened back up. */
+  .fx,
+  .mc-finish {
+    display: inline-flex;
+    transform-origin: center center;
+  }
+  .fx {
+    font-size: 8rem;
+    will-change: transform, opacity;
+  }
+  .fx-card {
+    display: inline-flex;
+    align-items: stretch;
+    transform: skewX(-10deg);
+    background: var(--gold);
+    color: var(--ink);
+    border: var(--outline) solid var(--ink);
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .fx .fx-card {
+    border-width: 6px;
+    box-shadow: 16px 16px 0 var(--ink);
+  }
+  .fx-label,
+  .fx-pts {
+    display: grid;
+    place-items: center;
+  }
+  /* Straighten only the letters; the blocks stay slanted with the card. */
+  .fx-card b {
+    display: block;
+    font-weight: inherit;
+    transform: skewX(10deg);
+  }
+  .fx-label {
+    padding: 0.06em 0.34em 0.1em 0.3em;
+  }
+  .fx-pts {
+    background: var(--red);
+    color: var(--paper);
+    padding: 0.06em 0.3em 0.1em;
+  }
+  /* Slanted ink divider between the finish and its points. */
+  .fx-pts {
+    border-left: var(--outline) solid var(--ink);
+  }
+  .fx .fx-pts {
+    border-left-width: 6px;
+  }
+  .mc-finish {
+    position: absolute;
+    bottom: -30px;
+    font-size: 1.9rem;
+    z-index: 2;
+  }
+  .mc-finish .fx-card {
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+  /* Sits at the VS end of the card, under the score; the Winner chip keeps
+     the outer end. */
+  .left .mc-finish {
+    right: 80px;
+  }
+  .right .mc-finish {
+    left: 80px;
+  }
+  /* In place (for measuring) but hidden while the big call-out flies to it. */
+  .mc-finish.waiting {
+    opacity: 0;
+  }
+
   /* Outlined gold VS — a text stroke, not a blur/glow filter, so it's cheap. */
   .mc-vs {
     text-align: center;
