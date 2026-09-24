@@ -32,6 +32,7 @@ export interface PBMatch {
   liveP1: number; // running score while a match is in progress (0 when not started)
   liveP2: number;
   liveLog: LiveRound[]; // how each round so far was won (empty unless in progress)
+  resultAt: string; // when the result was recorded/corrected (ISO), "" if not played
   winner: string;
   loser: string;
   matchStatus: "pending" | "ready" | "done";

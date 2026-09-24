@@ -10,9 +10,13 @@
   import BroadcastBracket from "$lib/components/tv/BroadcastBracket.svelte";
   import MiniRRTable from "$lib/components/MiniRRTable.svelte";
   import RoundScorer from "$lib/components/RoundScorer.svelte";
+  import FixResult from "$lib/components/FixResult.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
 
   let { data, form } = $props();
+
+  // Which match a refused "Fix result" was about (its error shows in that panel).
+  const fixing = $derived(form && "fixing" in form && form.fixing ? String(form.fixing) : "");
 
   const structure = $derived(data.tournament ? pickStructure(data.tournament.structureKey) : null);
   const groupCount = $derived(data.groups.length);
@@ -94,7 +98,8 @@
     </form>
   </div>
 
-  {#if form?.error}
+  <!-- Errors from fixing a result show inside the Fix panel instead. -->
+  {#if form?.error && !fixing}
     <div class="banner err">{form.error}</div>
   {/if}
 
@@ -166,6 +171,14 @@
             <p class="all-done">Waiting on earlier results.</p>
           {/if}
         {/if}
+
+        <FixResult
+          matches={data.matches}
+          {label}
+          context={(m) => matchContext(m, data.matches)}
+          error={fixing ? (form?.error ?? "") : ""}
+          errorFor={fixing}
+        />
       </section>
 
       <aside class="queue">

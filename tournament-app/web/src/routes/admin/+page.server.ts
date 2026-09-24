@@ -4,6 +4,7 @@ import { loadTournamentView, loadTvState } from "$lib/server/load";
 import { SCENE_TITLE, type Scene } from "$lib/view";
 import {
   createTournament,
+  correctScore,
   enterScore,
   generateKnockoutStage,
   getActiveTournament,
@@ -69,6 +70,27 @@ export const actions: Actions = {
     return { scored: code };
   },
 
+  // Fix a result that's already in. The engine refuses (with a plain-words
+  // reason) if a later match has been played with the old winner or loser.
+  correct: async ({ request, locals }) => {
+    const data = await request.formData();
+    const code = String(data.get("code") || "");
+    const s1 = Number(data.get("s1"));
+    const s2 = Number(data.get("s2"));
+    const t = await getActiveTournament(locals.pb);
+    if (!t) return fail(400, { error: "No active tournament." });
+    if (!Number.isInteger(s1) || !Number.isInteger(s2) || s1 < 0 || s2 < 0) {
+      return fail(400, { error: "Scores must be non-negative whole numbers.", fixing: code });
+    }
+    if (s1 === s2) return fail(400, { error: "Matches can't end in a draw.", fixing: code });
+    try {
+      await correctScore(locals.pb, t.id, code, s1, s2);
+    } catch (e) {
+      return fail(400, { error: (e as Error).message, fixing: code });
+    }
+    return { corrected: code };
+  },
+
   generateKnockout: async ({ locals }) => {
     const t = await getActiveTournament(locals.pb);
     if (!t) return fail(400, { error: "No active tournament." });
@@ -98,6 +120,10 @@ export const actions: Actions = {
   reset: async ({ locals }) => {
     const t = await getActiveTournament(locals.pb);
     if (t) await resetTournament(locals.pb, t.id);
+    // A lock from the old tournament could point at a scene the new one
+    // doesn't have yet, so the TV goes back to rotating.
+    const tv = await loadTvState(locals.pb);
+    if (tv.id) await locals.pb.collection("tv_state").update(tv.id, { mode: "auto" });
     return { reset: true };
   },
 

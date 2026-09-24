@@ -4,6 +4,8 @@ import {
   createGroupStage,
   generateKnockout,
   applyResult,
+  applyCorrection,
+  planCorrection,
   champion,
   pickStructure,
   pointsToWin,
@@ -251,6 +253,20 @@ export async function createTournament(
   return tournament.id;
 }
 
+// Matches are played round-by-round; each round is worth 1–3 points (Spin /
+// Knockout / Dominant), accumulating until a blader REACHES the target. So the
+// winner's score is >= target and can overshoot by up to 2 (a 3-point finish
+// from target-1); the loser never reached the target.
+function checkScore(match: Match, p1Score: number, p2Score: number): void {
+  const code = match.code;
+  const target = pointsToWin(match.stage, match.roundLabel);
+  const hi = Math.max(p1Score, p2Score);
+  const lo = Math.min(p1Score, p2Score);
+  if (hi < target) throw new Error(`${code} is first to ${target} — the winner must reach ${target}.`);
+  if (lo >= target) throw new Error(`${code}: only one blader can reach ${target}.`);
+  if (hi > target + 2) throw new Error(`${code}: a winning score can't exceed ${target + 2}.`);
+}
+
 // Enter a score, advance the bracket, persist the delta.
 export async function enterScore(
   pb: PocketBase,
@@ -261,23 +277,50 @@ export async function enterScore(
 ): Promise<void> {
   const loaded = await loadTournament(pb, tournamentId);
   const match = loaded.state.matches.find((mt) => mt.code === code);
-  if (match) {
-    // Matches are played round-by-round; each round is worth 1–3 points (Spin /
-    // Knockout / Dominant), accumulating until a blader REACHES the target. So
-    // the winner's score is >= target and can overshoot by up to 2 (a 3-point
-    // finish from target-1); the loser never reached the target.
-    const target = pointsToWin(match.stage, match.roundLabel);
-    const hi = Math.max(p1Score, p2Score);
-    const lo = Math.min(p1Score, p2Score);
-    if (hi < target) throw new Error(`${code} is first to ${target} — the winner must reach ${target}.`);
-    if (lo >= target) throw new Error(`${code}: only one blader can reach ${target}.`);
-    if (hi > target + 2) throw new Error(`${code}: a winning score can't exceed ${target + 2}.`);
-  }
+  if (match) checkScore(match, p1Score, p2Score);
   const before = snapshot(loaded.state);
   const beforeRanks = rankMap(before);
   applyResult(loaded.state, code, p1Score, p2Score);
   await markGroupsComplete(pb, loaded);
   await persistDelta(pb, loaded, before, beforeRanks);
+  await stampResult(pb, loaded, code);
+}
+
+// Fix a result that's already been recorded. The engine works out whether
+// it's safe (see engine/src/correct.ts) and moves players in the next round if
+// the winner changes. Also refused if one of those next matches is being
+// scored right now, so a live tally is never handed to the wrong blader.
+export async function correctScore(
+  pb: PocketBase,
+  tournamentId: string,
+  code: string,
+  p1Score: number,
+  p2Score: number,
+): Promise<void> {
+  const loaded = await loadTournament(pb, tournamentId);
+  const match = loaded.state.matches.find((mt) => mt.code === code);
+  if (!match) throw new Error(`There's no match ${code}.`);
+  checkScore(match, p1Score, p2Score);
+  const plan = planCorrection(loaded.state, code, p1Score, p2Score);
+  if (!plan.ok) throw new Error(plan.reason);
+  for (const r of plan.repins) {
+    const rec = await pb.collection("matches").getOne(loaded.matchIdByCode.get(r.code)!);
+    if (rec.liveP1 > 0 || rec.liveP2 > 0) {
+      throw new Error(`${r.code} is being played right now. Finish or undo it first.`);
+    }
+  }
+  const before = snapshot(loaded.state);
+  const beforeRanks = rankMap(before);
+  applyCorrection(loaded.state, code, p1Score, p2Score);
+  await markGroupsComplete(pb, loaded);
+  await persistDelta(pb, loaded, before, beforeRanks);
+  await stampResult(pb, loaded, code);
+}
+
+// Remember when this match's result went in (for "Undo last result").
+async function stampResult(pb: PocketBase, loaded: LoadedTournament, code: string): Promise<void> {
+  const id = loaded.matchIdByCode.get(code);
+  if (id) await pb.collection("matches").update(id, { resultAt: new Date().toISOString() });
 }
 
 // Generate the knockout bracket once every group is complete.

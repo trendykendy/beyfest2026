@@ -123,6 +123,7 @@
   }
   .pf {
     width: 60px;
+    white-space: nowrap;
     text-align: center;
     color: var(--ink-soft);
     font-variant-numeric: tabular-nums;
