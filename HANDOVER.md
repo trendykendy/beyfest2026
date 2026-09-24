@@ -16,7 +16,7 @@ All work is on branch **`redesign/tournament-app`**. `main` is still the untouch
 | – | Match centre round-win animation | Done |
 | – | Bracket lines no longer hidden behind cards | Done |
 | 4 | Admin redesign for the Mac | **On hold**: waiting until there's a Mac to test on |
-| 5 | Public display (`/`) for phones | Not started |
+| 5 | Public display (`/`) for phones | **Parked (low priority):** nobody is expected to watch on phones. Audit and plan below under "Phone view" |
 | 6 | Mac + Pi launchers | Not started |
 
 ### Commits on `redesign/tournament-app` (oldest first)
@@ -72,7 +72,7 @@ A–C from end of day 1 are **done** (day 2):
   - Pills only show while live, because `load.ts` blanks `liveLog` once a match is done.
   - Possible follow-up: keep the round recap on the Result screen. That needs `load.ts` to stop blanking `liveLog`.
 
-Remaining: step 5 (public display) and step 6 (Mac + Pi launchers). Step 4 is still on hold.
+Remaining: step 6 (Mac + Pi launchers). Step 4 is on hold and step 5 is parked.
 
 Test helper worth recreating: a small script that PATCHes a live match's `liveP1/liveP2/liveLog` as the organiser, then screenshots Match centre. Add the last round while the page is open to catch the call-out.
 
@@ -83,11 +83,7 @@ Test helper worth recreating: a small script that PATCHes a live match's `liveP1
    - A "now playing" scorer instead of every playable match stacked (18 cards at the start).
    - Move **Reset tournament** away from Log out.
    - Apply the slab style.
-3. Step 5 public display:
-   - The header wraps and overlaps on phones.
-   - The meta line reads "4 / 4 / 4 groups"; it should say "3 groups of 4".
-   - The page says "players" while the TV says "bladers".
-   - It doesn't show finishes.
+3. Step 5 public display: parked. See "Phone view" below.
 4. Step 6: `start.ps1` and `pb/pocketbase.exe` are **Windows-only**. The Mac needs the macOS PocketBase build plus a `start.sh`. The Pi needs the arm64 build, or just Chromium in kiosk mode pointing at the Mac. Document both in the README.
 5. 8-player (double-elimination) bracket:
    - Its round headings aren't covered by `roundName()` yet ("UPPER BRACKET — QUARTERFINALS").
@@ -95,6 +91,42 @@ Test helper worth recreating: a small script that PATCHes a live match's `liveP1
 6. For the first ~250ms, the round-win slab overlaps the LIVE status line on Match centre.
 7. Before the event, change the default logins: organiser `organiser@beyfest.local` / `beyfest2026`, and PocketBase superuser `admin@beyfest.local` / `beyfestadmin2026`. They're in the seed migration and README.
 8. `svelte.config.js` shows a deprecation warning for `csrf.checkOrigin`; it predates the redesign and is harmless for now.
+
+## Phone view (step 5, parked)
+
+The user said this is low priority: nobody is expected to look on their phone at the event. **Don't build it unless asked.** This is the audit and the agreed plan, ready for when it's needed.
+
+### Audit (390px wide, mid-group and completed tournament)
+
+Nothing overflows sideways, but:
+
+- **Header:** "BEYFEST 2026" wraps onto two lines and "Triple Threat" is squashed against the nav. The nav shows Display / TV / Organiser, which spectators don't need.
+- **Nothing live:** no live match, score, finishes or "Next up" anywhere. That's the main reason anyone would open it.
+- **The rules come first:** three rule boxes sit above the standings and push them a screen down.
+- **Wording doesn't match the TV:**
+  - The meta line says "4 / 4 / 4 groups"; it should say "3 groups of 4".
+  - It says "players"; the TV says "bladers".
+  - Bracket columns use raw labels ("PHASE 1A — WB MINI-RR") instead of `roundName()`. `MiniRRTable` also uses "WB-1ST" seeds and "Winners Mini-RR".
+- **Knockout:** `Bracket.svelte` is a sideways-scrolling row of columns and shows about two at a time on a phone.
+- **Groups:** no fixture list; the TV shows it.
+- **Style:** the old rounded dark cards and faint pill chips, not the slab style. The files are `routes/+page.svelte`, `routes/+layout.svelte` (header), `GroupCard`, `MiniRRTable`, `Bracket` and `MatchCard`.
+
+### Agreed plan
+
+The user chose **one scrolling page** (no tabs) and **only an Organiser link, in the footer**.
+
+The page, top to bottom:
+
+1. **Slim header:** the BEYFEST slab plus katakana only. The Organiser link goes to a small footer link.
+2. **On now:** the live match as a slab with names, score, finish pills and "First to N", plus Next up. After the grand final it becomes the gold champion slab.
+3. **Groups:** white slabs with the standings (W–L, Point diff., Goes to), with fixtures underneath like the TV.
+4. **Mini round-robins:** the same slab style, with green and red headers.
+5. **Knockout:** on phones, a vertical list of rounds with `roundName()` headings. Each match is a compact row with scores, coloured by bracket. Wide screens can keep columns.
+6. **How it works:** the rules, moved to the bottom.
+
+Suggested commits: (a) header and footer, (b) On now, (c) group slabs with fixtures, (d) round-robins, (e) phone knockout list, (f) wording and rules. Reuse the TV's helpers from `view.ts` (`roundName`, `slotLabel`, `groupStandings`, `miniRRStandings`) and its finish-pill markup.
+
+A screenshot helper for this is worth recreating: puppeteer at 390×844 with `isMobile`, a full-page shot, and a log of `scrollWidth - innerWidth` to catch sideways overflow.
 
 ## Running it for development
 
