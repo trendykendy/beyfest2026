@@ -15,7 +15,7 @@ All work is on branch **`redesign/tournament-app`**. `main` is still the untouch
 | 3 | TV control: auto-rotate, cut to live scores, admin lock | Done |
 | – | Match centre round-win animation | Done |
 | – | Bracket lines no longer hidden behind cards | Done |
-| 4 | Admin redesign for the Mac | **On hold**: waiting until there's a Mac to test on |
+| 4 | Admin redesign | **Redesign done** (day 2, tested in Edge on Windows). Mac-specific checks wait until there's a Mac |
 | 5 | Public display (`/`) for phones | **Parked (low priority):** nobody is expected to watch on phones. Audit and plan below under "Phone view" |
 | 6 | Mac + Pi launchers | Not started |
 
@@ -72,17 +72,14 @@ A–C from end of day 1 are **done** (day 2):
   - Pills only show while live, because `load.ts` blanks `liveLog` once a match is done.
   - Possible follow-up: keep the round recap on the Result screen. That needs `load.ts` to stop blanking `liveLog`.
 
-Remaining: step 6 (Mac + Pi launchers). Step 4 is on hold and step 5 is parked.
+Remaining: step 6 (Mac + Pi launchers), plus checking admin on a real Mac. Step 5 is parked.
 
 Test helper worth recreating: a small script that PATCHes a live match's `liveP1/liveP2/liveLog` as the organiser, then screenshots Match centre. Add the last round while the page is open to catch the call-out.
 
 ## Known issues / to do
 
-1. **The scorer resets on reload (fix in step 4).** `RoundScorer.svelte` keeps the round log only in browser state. Reloading the admin page mid-match shows 0–0, and the next tap overwrites the live score **and** `liveLog`. Fix: start it from `match.liveP1`/`liveP2`/`liveLog`.
-2. Step 4 admin redesign ideas from the audit:
-   - A "now playing" scorer instead of every playable match stacked (18 cards at the start).
-   - Move **Reset tournament** away from Log out.
-   - Apply the slab style.
+1. ~~The scorer resets on reload~~: fixed in `8549e91`. `RoundScorer` starts from the match's saved `liveLog`.
+2. When the organiser picks a different match with "Score this", the TV's "Up next" still shows the default next match until the first point is scored. After that the TV cuts to the live match as normal. Minor; worth knowing.
 3. Step 5 public display: parked. See "Phone view" below.
 4. Step 6: `start.ps1` and `pb/pocketbase.exe` are **Windows-only**. The Mac needs the macOS PocketBase build plus a `start.sh`. The Pi needs the arm64 build, or just Chromium in kiosk mode pointing at the Mac. Document both in the README.
 5. 8-player (double-elimination) bracket:
@@ -91,6 +88,28 @@ Test helper worth recreating: a small script that PATCHes a live match's `liveP1
 6. For the first ~250ms, the round-win slab overlaps the LIVE status line on Match centre.
 7. Before the event, change the default logins: organiser `organiser@beyfest.local` / `beyfest2026`, and PocketBase superuser `admin@beyfest.local` / `beyfestadmin2026`. They're in the seed migration and README.
 8. `svelte.config.js` shows a deprecation warning for `csrf.checkOrigin`; it predates the redesign and is harmless for now.
+
+## How admin works now (step 4)
+
+- **Layout** (built for a laptop, one match at a time):
+  - A slim status row: stage tag, name, bladers, Log out.
+  - Then **Now playing** (wide) beside a sidebar with **TV screen** and **Up next**.
+  - Below: groups and fixtures (group stage), or round-robins and the bracket (knockout).
+  - At the bottom, the **Danger zone** with Reset.
+- **Now playing:**
+  - Picks the match the organiser chose with "Score this", else the live one, else the next ready one in play order.
+  - Recording a result moves it on by itself.
+  - Once every group is done, it shows the big **Generate knockout bracket** button instead.
+- **`RoundScorer`** is the Match centre build:
+  - player slabs, gold/red finish buttons, the round log as pills
+  - "Undo <finish> for <name>"
+  - The finish buttons hide once the match is won, so **Record result** sits right under the cards.
+  - Buttons only; the user said no keyboard shortcuts.
+- **Shared components got the slab style.** The public page uses them too.
+  - `GroupCard`: black header, a destination stripe per row, outlined chips until the group finishes, and a "Points" column, since points scored is the second tie-breaker.
+  - `MiniRRTable`: plain words.
+- **Bracket.** Admin reuses the TV's `BroadcastBracket` inside a 640px box. The old `Bracket`/`MatchCard` are now only used by the parked public page.
+- **Shared helpers** in `view.ts`: `isLive`, `matchContext` (used by the TV too) and `groupsInWords` ("3 groups of 4").
 
 ## Phone view (step 5, parked)
 
