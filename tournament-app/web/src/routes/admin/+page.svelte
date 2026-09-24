@@ -63,6 +63,11 @@
   }
 
   const target = (m: PBMatch) => pointsToWin(m.stage, m.roundLabel);
+  const STAGE_NAME: Record<string, string> = {
+    group_stage: "Group stage",
+    knockout: "Knockout",
+    complete: "Complete",
+  };
 
   // Scenes the organiser can put on the TV right now.
   const tvScenes = $derived(availableScenes(!!data.tournament, data.matches).filter((s) => s !== "standby"));
@@ -78,52 +83,20 @@
 
 <div class="container">
   <div class="head">
-    <div>
-      <h1>Admin</h1>
-      {#if data.tournament}
-        <p class="sub">
-          {data.tournament.name} · {data.tournament.playerCount} players ·
-          <span class="status status-{data.tournament.status}">{data.tournament.status.replace("_", " ")}</span>
-        </p>
-      {/if}
-    </div>
-    <div class="head-actions">
-      {#if data.tournament}
-        <form method="POST" action="?/reset" use:enhance={() => async ({ update }) => { if (confirm("Delete this tournament and all results? This cannot be undone.")) await update(); }}>
-          <button class="btn danger" type="submit">Reset tournament</button>
-        </form>
-      {/if}
-      <form method="POST" action="?/logout" use:enhance>
-        <button class="btn" type="submit">Log out</button>
-      </form>
-    </div>
+    {#if data.tournament}
+      <span class="stage stage-{data.tournament.status}">{STAGE_NAME[data.tournament.status] ?? data.tournament.status}</span>
+      <span class="head-name">{data.tournament.name}</span>
+      <span class="head-count">{data.tournament.playerCount} bladers</span>
+    {:else}
+      <span class="head-name">No tournament yet</span>
+    {/if}
+    <form method="POST" action="?/logout" use:enhance class="logout">
+      <button class="btn" type="submit">Log out</button>
+    </form>
   </div>
 
   {#if form?.error}
     <div class="banner err">{form.error}</div>
-  {/if}
-
-  {#if data.tournament}
-    <section class="tv-panel">
-      <div class="tv-panel-head">
-        <h2>TV screen</h2>
-        <p class="tv-now">
-          {#if data.tv.mode === "auto"}
-            Rotating through the scenes, and jumping to Match centre when a score changes.
-          {:else}
-            Locked on {SCENE_TITLE[data.tv.scene]}. Choose Auto to rotate again.
-          {/if}
-        </p>
-      </div>
-      <form method="POST" action="?/tv" use:enhance class="tv-buttons">
-        <button class="btn" class:primary={data.tv.mode === "auto"} name="mode" value="auto">Auto</button>
-        {#each tvScenes as sc (sc)}
-          <button class="btn" class:primary={data.tv.mode === "locked" && data.tv.scene === sc} name="scene" value={sc}>
-            {SCENE_TITLE[sc]}
-          </button>
-        {/each}
-      </form>
-    </section>
   {/if}
 
   <!-- ─────────────── No tournament: create ─────────────── -->
@@ -163,18 +136,13 @@
       </form>
     </section>
   {:else}
-    <!-- ─────────────── Champion banner ─────────────── -->
-    {#if champion}
-      <div class="champ">
-        <span class="tag">Champion</span>
-        <span class="champ-name"><Trophy /> {champion}</span>
-      </div>
-    {/if}
-
     <!-- ─────────────── Now playing + Up next ─────────────── -->
-    {#if !champion}
-      <div class="play">
-        <section class="now">
+    <div class="play">
+      <section class="now">
+        {#if champion}
+          <h2 class="kicker">Champion</h2>
+          <div class="champ"><Trophy /> <span>{champion}</span></div>
+        {:else}
           <h2 class="kicker">Now playing</h2>
           {#if current}
             <!-- Keyed so switching matches starts that match's own scorer. -->
@@ -193,9 +161,31 @@
           {:else}
             <p class="all-done">Waiting on earlier results.</p>
           {/if}
+        {/if}
+      </section>
+
+      <aside class="queue">
+        <!-- What the venue TV shows. Auto rotates and cuts to live scores. -->
+        <section class="tv">
+          <h2 class="kicker">TV screen</h2>
+          <form method="POST" action="?/tv" use:enhance class="tv-buttons">
+            <button class="tv-btn" class:on={data.tv.mode === "auto"} name="mode" value="auto">Auto</button>
+            {#each tvScenes as sc (sc)}
+              <button class="tv-btn" class:on={data.tv.mode === "locked" && data.tv.scene === sc} name="scene" value={sc}>
+                {SCENE_TITLE[sc]}
+              </button>
+            {/each}
+          </form>
+          <p class="tv-now">
+            {#if data.tv.mode === "auto"}
+              Rotating, and cutting to Match centre when a score changes.
+            {:else}
+              Locked on {SCENE_TITLE[data.tv.scene]}. Press Auto to rotate again.
+            {/if}
+          </p>
         </section>
 
-        <aside class="queue">
+        {#if !champion}
           <h2 class="kicker">Up next</h2>
           {#if upNext.length}
             <ol class="queue-list">
@@ -217,9 +207,9 @@
           {#if waiting}
             <p class="q-empty">{waiting} more {waiting === 1 ? "match is" : "matches are"} waiting on earlier results.</p>
           {/if}
-        </aside>
-      </div>
-    {/if}
+        {/if}
+      </aside>
+    </div>
 
     <!-- ─────────────── Group stage ─────────────── -->
     {#if !hasKnockout}
@@ -286,72 +276,92 @@
         <Bracket matches={data.matches} players={data.players} {groupCount} />
       </section>
     {/if}
+
+    <!-- Kept well away from everything else: it wipes the whole tournament. -->
+    <section class="danger-zone">
+      <div>
+        <h2>Danger zone</h2>
+        <p>Reset deletes this tournament and every result. It can't be undone.</p>
+      </div>
+      <form method="POST" action="?/reset" use:enhance={() => async ({ update }) => { if (confirm("Delete this tournament and all results? This cannot be undone.")) await update(); }}>
+        <button class="btn danger" type="submit">Reset tournament</button>
+      </form>
+    </section>
   {/if}
 </div>
 
 <style>
-  h1 {
-    font-size: 2.6rem;
-  }
   h2 {
     font-size: 1.9rem;
   }
+  /* Slim status row: stage tag, name, count … Log out. */
   .head {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 18px;
-  }
-  .head-actions {
-    display: flex;
-    gap: 8px;
-  }
-  .sub {
-    color: var(--muted);
-  }
-  .status {
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 20px;
-    background: var(--dark3);
-  }
-  .status-group_stage {
-    color: var(--gold);
-  }
-  .status-knockout {
-    color: var(--mb);
-  }
-  .status-complete {
-    color: var(--green);
-  }
-  .tv-panel {
-    display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px 24px;
-    flex-wrap: wrap;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 6px solid var(--gold);
-    padding: 14px 18px;
-    margin-bottom: 20px;
+    gap: 16px;
+    margin-bottom: 22px;
+    font-size: 1.1rem;
   }
-  .tv-panel h2 {
-    font-size: 1.5rem;
+  .stage {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: 1.2rem;
+    line-height: 1;
+    padding: 6px 16px 8px;
+    background: var(--ink);
+    color: var(--paper);
+    clip-path: polygon(var(--cut) 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
   }
-  .tv-now {
-    color: var(--muted);
-    font-size: 0.95rem;
+  .stage-group_stage,
+  .stage-knockout {
+    background: var(--gold);
+    color: var(--ink);
+  }
+  .stage-complete {
+    background: var(--green);
+    color: var(--ink);
+  }
+  .head-name {
+    font-weight: 700;
+  }
+  .head-count {
+    color: var(--on-field-soft);
+  }
+  .logout {
+    margin-left: auto;
+  }
+  /* TV control: a stack of scene buttons, the live one lit gold. */
+  .tv {
+    margin-bottom: 28px;
   }
   .tv-buttons {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 6px;
+  }
+  .tv-btn {
+    font-family: var(--font-text);
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-align: left;
+    padding: 9px 12px;
+    background: var(--field);
+    color: var(--paper);
+    border: 2px solid var(--field-line);
+    cursor: pointer;
+  }
+  .tv-btn:hover {
+    border-color: var(--paper);
+  }
+  .tv-btn.on {
+    background: var(--gold);
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  .tv-now {
+    color: var(--on-field-soft);
+    font-size: 0.9rem;
+    margin-top: 8px;
   }
   .banner.err {
     background: var(--lb-soft);
@@ -616,25 +626,37 @@
     background: color-mix(in oklch, var(--gold) 14%, transparent);
     white-space: nowrap;
   }
+  /* The champion, as the TV shows it: the big gold slab. */
   .champ {
+    display: inline-flex;
+    align-items: center;
+    gap: 22px;
+    background: var(--gold);
+    color: var(--ink);
+    border: 4px solid var(--ink);
+    box-shadow: 10px 10px 0 var(--ink);
+    padding: 14px 36px 16px;
+    font-family: var(--font-display);
+    font-stretch: 62%;
+    text-transform: uppercase;
+    font-size: 5rem;
+    line-height: 1;
+  }
+  .danger-zone {
     display: flex;
     align-items: center;
-    gap: 14px;
-    background: var(--gf-soft);
-    border: 1px solid var(--gf);
-    border-radius: var(--radius);
-    padding: 16px 22px;
-    margin-bottom: 20px;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 56px;
+    padding: 18px 22px;
+    border: 2px dashed var(--red);
   }
-  .champ .tag {
-    color: var(--gf);
-    font-size: 0.72rem;
+  .danger-zone h2 {
+    font-size: 1.4rem;
+    color: var(--red);
   }
-  .champ-name {
-    text-transform: uppercase;
-    font-family: var(--font-display);
-    font-size: 2rem;
-    letter-spacing: 0.04em;
+  .danger-zone p {
+    color: var(--on-field-soft);
   }
   @media (max-width: 640px) {
     .fixture-row {
