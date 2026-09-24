@@ -257,7 +257,7 @@
     const anim = big.animate(
       [
         // slam in from above, oversized
-        { offset: 0, opacity: 0, transform: "translate(0, -70px) scale(1.5)", easing: "cubic-bezier(.2, .9, .3, 1.25)" },
+        { offset: 0, opacity: 0, transform: "translate(0, -70px) scale(1.5)", easing: "cubic-bezier(.2, .9, .3, 1.1)" },
         { offset: 0.16, opacity: 1, transform: "translate(0, 0) scale(0.97)", easing: "ease-out" },
         { offset: 0.22, opacity: 1, transform: "translate(0, 0) scale(1)", easing: "linear" },
         // hold so the room can read it
@@ -611,15 +611,16 @@
             {:else}<span class="mc-tag next">Up next</span>{/if}
             <span class="mc-context">{matchContext(spotMatch, data.matches)}</span>
             <span class="mc-ft">First to {t}</span>
+            <!-- The finish call-out hangs above this line (see .fx-wrap). -->
+            {#if fx}
+              <div class="fx-wrap" aria-hidden="true">
+                <div class="fx" bind:this={fxEl}>
+                  <span class="fx-card"><span class="fx-label"><b>{fx.label}</b></span><span class="fx-pts"><b>+{fx.pts}</b></span></span>
+                </div>
+              </div>
+            {/if}
           </div>
 
-          {#if fx}
-            <div class="fx-wrap" aria-hidden="true">
-              <div class="fx" bind:this={fxEl}>
-                <span class="fx-card"><span class="fx-label"><b>{fx.label}</b></span><span class="fx-pts"><b>+{fx.pts}</b></span></span>
-              </div>
-            </div>
-          {/if}
 
           {#if beat}
             <div class="lir" aria-live="polite">
@@ -1171,6 +1172,7 @@
     gap: 48px;
   }
   .mc-status {
+    position: relative; /* for the call-out above it */
     display: flex;
     align-items: center;
     gap: 22px;
@@ -1306,7 +1308,10 @@
   }
   .fx-wrap {
     position: absolute;
-    top: -22px; /* sits in the gap above the status line, not over it */
+    /* Hangs above the status line it sits in, bottom-anchored and clear of
+       it by the slab's 16px shadow plus 8px, so neither the slam-in nor the
+       hold ever covers LIVE. */
+    bottom: calc(100% + 24px);
     left: 0;
     right: 0;
     display: flex;
@@ -1322,7 +1327,7 @@
     transform-origin: center center;
   }
   .fx {
-    font-size: 8rem;
+    font-size: 6.75rem; /* fits the 152px between the header and the status line */
     will-change: transform, opacity;
   }
   .fx-card {
