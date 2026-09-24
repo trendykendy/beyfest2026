@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick as svelteTick } from "svelte";
   import { invalidateAll } from "$app/navigation";
-  import { pb } from "$lib/pbBrowser";
+  import { liveUpdates } from "$lib/pbBrowser";
   import { EVENT } from "$lib/config";
   import { FINISHES } from "$lib/finishes";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
@@ -333,16 +333,21 @@
     return "Auto rotation";
   });
 
+  // False while the realtime connection is down; shows a small corner mark so
+  // the operator knows the screen may be behind (it catches up on reconnect).
+  let online = $state(true);
+
   onMount(() => {
     poke();
-    const subs = ["tournaments", "groups", "players", "matches", "tv_state"].map((c) =>
-      pb().collection(c).subscribe("*", () => invalidateAll()),
-    );
+    const stopLive = liveUpdates(["tournaments", "groups", "players", "matches", "tv_state"], () => invalidateAll(), {
+      onStatus: (up) => (online = up),
+      everyMs: 30_000,
+    });
     const clock = setInterval(tick, 1000);
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousemove", poke);
     return () => {
-      subs.forEach((p) => p.then((u) => u()).catch(() => {}));
+      stopLive();
       clearInterval(clock);
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mousemove", poke);
@@ -620,6 +625,9 @@
       </div>
     {/if}
   </main>
+
+  <!-- Small and in the corner: for the operator, not the room. -->
+  {#if !online}<div class="offline" role="status">Reconnecting</div>{/if}
 
   <nav class="opbar" class:hidden={!barVisible}>
     <span class="op-mode">{modeLabel}</span>
@@ -1454,5 +1462,26 @@
     .opbar {
       transition: none;
     }
+  }
+  .offline {
+    position: fixed;
+    left: 14px;
+    bottom: 14px;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-text);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--paper);
+    background: var(--ink);
+    padding: 4px 10px 4px 8px;
+  }
+  .offline::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background: var(--red);
   }
 </style>

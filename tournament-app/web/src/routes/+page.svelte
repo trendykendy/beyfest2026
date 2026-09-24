@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invalidateAll } from "$app/navigation";
-  import { pb } from "$lib/pbBrowser";
+  import { liveUpdates } from "$lib/pbBrowser";
   import { pickStructure, miniRRAdvancers } from "@beyfest/engine";
   import { nameMap, hasStage } from "$lib/view";
   import GroupCard from "$lib/components/GroupCard.svelte";
@@ -21,12 +21,7 @@
   });
   const callout = $derived(structure && "callout" in structure ? (structure as { callout?: string }).callout : undefined);
 
-  onMount(() => {
-    const subs = ["tournaments", "groups", "players", "matches"].map((c) =>
-      pb().collection(c).subscribe("*", () => invalidateAll()),
-    );
-    return () => subs.forEach((p) => p.then((unsub) => unsub()).catch(() => {}));
-  });
+  onMount(() => liveUpdates(["tournaments", "groups", "players", "matches"], () => invalidateAll()));
 </script>
 
 <div class="container">

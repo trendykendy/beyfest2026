@@ -2,7 +2,7 @@
   import { enhance } from "$app/forms";
   import { invalidateAll } from "$app/navigation";
   import { onMount } from "svelte";
-  import { pb } from "$lib/pbBrowser";
+  import { liveUpdates } from "$lib/pbBrowser";
   import { STRUCTURES, pickStructure, pointsToWin, miniRRAdvancers } from "@beyfest/engine";
   import { nameMap, slotLabel, hasStage, availableScenes, SCENE_TITLE, isLive, matchContext, tierOf, groupsInWords } from "$lib/view";
   import type { PBMatch } from "$lib/view";
@@ -76,12 +76,7 @@
   const tvScenes = $derived(availableScenes(!!data.tournament, data.matches).filter((s) => s !== "standby"));
 
   // Realtime: any change made anywhere refreshes this page.
-  onMount(() => {
-    const subs = ["tournaments", "groups", "players", "matches", "tv_state"].map((c) =>
-      pb().collection(c).subscribe("*", () => invalidateAll()),
-    );
-    return () => subs.forEach((p) => p.then((unsub) => unsub()).catch(() => {}));
-  });
+  onMount(() => liveUpdates(["tournaments", "groups", "players", "matches", "tv_state"], () => invalidateAll()));
 </script>
 
 <div class="container">
