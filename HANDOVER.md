@@ -89,6 +89,16 @@ Test helper worth recreating: a small script that PATCHes a live match's `liveP1
 7. Before the event, change the default logins: organiser `organiser@beyfest.local` / `beyfest2026`, and PocketBase superuser `admin@beyfest.local` / `beyfestadmin2026`. They're in the seed migration and README.
 8. `svelte.config.js` shows a deprecation warning for `csrf.checkOrigin`; it predates the redesign and is harmless for now.
 
+## Points to win (changed day 2, `aa2d2a3`)
+
+The first-to-7 rule is decided in `pointsToWin()` in `engine/src/rules.ts`. It now looks at the **stage** first, not just the round's name. The user's reasoning: the 10-player Winners semi-finals and final are a bracket within the bracket, not real semi-finals.
+
+- **9:** the Grand Final.
+- **7:** the Mid bracket semi-final(s) and final (9–15 bladers). For 8 bladers, only the upper and lower bracket finals; the user chose this.
+- **5:** everything else, including the 10-player Winners mini-bracket (WSF1, WSF2, WBF) and the 8-player semi-finals.
+
+`engine/test/rules.test.ts` pins every match's target for every format. The public page's rule text follows the same rule. `bracket-and-tourney/tournament-spec.txt` still describes the old rule; the user's decision replaces it.
+
 ## How admin works now (step 4)
 
 - **Layout** (built for a laptop, one match at a time):
