@@ -14,6 +14,9 @@ import {
   type State,
   type PlayerInput,
 } from "@beyfest/engine";
+import { FINISHES } from "../finishes"; // relative: scripts import this file outside SvelteKit
+
+const FINISH_PTS: Record<string, number> = Object.fromEntries(FINISHES.map((f) => [f.key, f.pts]));
 
 // ─── Loading ─────────────────────────────────────────────────────────
 export interface LoadedTournament {
@@ -164,11 +167,12 @@ async function persistDelta(
         loser: m.loser ?? "",
         matchStatus: m.status,
         // A match only changes here when it's resolved or recorded, never while
-        // it's being live-scored — so clearing the running score is safe and
-        // wipes the tally once the final result lands.
+        // it's being live-scored — so clearing the running tally is safe. The
+        // round log is KEPT once a match is done: it's the record of how every
+        // round was won (Result recap, awards).
         liveP1: 0,
         liveP2: 0,
-        liveLog: [],
+        ...(m.status === "done" ? {} : { liveLog: [] }),
       });
     }
   }
@@ -315,6 +319,26 @@ export async function correctScore(
   await markGroupsComplete(pb, loaded);
   await persistDelta(pb, loaded, before, beforeRanks);
   await stampResult(pb, loaded, code);
+  await dropLogIfWrong(pb, loaded, code, p1Score, p2Score);
+}
+
+// After a correction the round log may no longer add up to the score (it
+// describes the rounds as scored, not as fixed). A log that disagrees with the
+// result would feed wrong awards, so it goes.
+async function dropLogIfWrong(
+  pb: PocketBase,
+  loaded: LoadedTournament,
+  code: string,
+  p1Score: number,
+  p2Score: number,
+): Promise<void> {
+  const id = loaded.matchIdByCode.get(code);
+  if (!id) return;
+  const rec = await pb.collection("matches").getOne(id);
+  const log: { who: number; finish: string }[] = Array.isArray(rec.liveLog) ? rec.liveLog : [];
+  if (log.length === 0) return;
+  const pts = (who: number) => log.filter((r) => r.who === who).reduce((a, r) => a + (FINISH_PTS[r.finish] ?? 0), 0);
+  if (pts(1) !== p1Score || pts(2) !== p2Score) await pb.collection("matches").update(id, { liveLog: [] });
 }
 
 // Remember when this match's result went in (for "Undo last result").

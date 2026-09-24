@@ -31,7 +31,7 @@ export interface PBMatch {
   p2Score: number | null;
   liveP1: number; // running score while a match is in progress (0 when not started)
   liveP2: number;
-  liveLog: LiveRound[]; // how each round so far was won (empty unless in progress)
+  liveLog: LiveRound[]; // how each round was won, oldest first; kept once done (may be empty for old or corrected results)
   resultAt: string; // when the result was recorded/corrected (ISO), "" if not played
   winner: string;
   loser: string;
@@ -205,7 +205,7 @@ export function hasStage(matches: PBMatch[], stage: string): boolean {
 // ── TV scenes ─────────────────────────────────────────────────────────────
 // Shared by the TV (what it can show) and the admin page (what it can pick).
 
-export type Scene = "standby" | "groups" | "rr" | "bracket" | "spotlight" | "champion";
+export type Scene = "standby" | "groups" | "rr" | "bracket" | "spotlight" | "awards" | "champion";
 
 export const SCENE_TITLE: Record<Scene, string> = {
   standby: "Beyfest 2026",
@@ -213,6 +213,7 @@ export const SCENE_TITLE: Record<Scene, string> = {
   rr: "Mini round-robins",
   bracket: "Knockout bracket",
   spotlight: "Match centre",
+  awards: "Awards",
   champion: "Champion",
 };
 
@@ -230,6 +231,105 @@ export function availableScenes(hasTournament: boolean, matches: PBMatch[]): Sce
   if (hasStage(matches, "wb_rr") || hasStage(matches, "lb_rr")) s.push("rr");
   if (matches.some((m) => m.stage !== "group" && m.stage !== "wb_rr" && m.stage !== "lb_rr")) s.push("bracket");
   s.push("spotlight");
+  if (loggedResults(matches).length >= AWARDS_AFTER) s.push("awards");
   if (matches.some((m) => m.stage === "gf" && m.matchStatus === "done")) s.push("champion");
   return s;
+}
+
+// ─── Awards ─────────────────────────────────────────────────────────
+// Built from the round logs kept on finished matches. Only logs that add up to
+// the recorded score count (a corrected result's log is dropped, and older
+// results may have none). They're "so far" awards until the Grand Final.
+const FINISH_POINTS: Record<string, number> = { spin: 1, knockout: 2, dominant: 3 };
+const AWARDS_AFTER = 6; // logged results before the Awards scene appears
+
+export interface Award {
+  key: "knockout" | "dominant" | "wall" | "comeback";
+  title: string;
+  winners: string[]; // player ids (a tie lists everyone)
+  detail: string; // plain words; {name} placeholders resolved by the caller
+  opponent?: string; // comeback: who they came back against
+}
+
+// Finished matches whose round log adds up to the result.
+export function loggedResults(matches: PBMatch[]): PBMatch[] {
+  return matches.filter((m) => {
+    if (m.matchStatus !== "done" || m.liveLog.length === 0) return false;
+    const pts = (who: 1 | 2) => m.liveLog.filter((r) => r.who === who).reduce((a, r) => a + (FINISH_POINTS[r.finish] ?? 0), 0);
+    return pts(1) === m.p1Score && pts(2) === m.p2Score;
+  });
+}
+
+// Everyone tied on the best value (higher is better unless `lowest`).
+function best(values: Map<string, number>, lowest = false): { ids: string[]; value: number } | null {
+  if (values.size === 0) return null;
+  const pick = lowest ? Math.min(...values.values()) : Math.max(...values.values());
+  return { ids: [...values].filter(([, v]) => v === pick).map(([id]) => id), value: pick };
+}
+
+export function computeAwards(matches: PBMatch[]): Award[] {
+  const logged = loggedResults(matches);
+  const awards: Award[] = [];
+  const side = (m: PBMatch, who: 1 | 2) => (who === 1 ? m.p1 : m.p2);
+
+  // Most finishes of one kind.
+  for (const [key, finish, title, min, word] of [
+    ["knockout", "knockout", "Knockout king", 2, "knockouts"],
+    ["dominant", "dominant", "Dominator", 1, "dominant finishes"],
+  ] as const) {
+    const count = new Map<string, number>();
+    for (const m of logged) {
+      for (const r of m.liveLog) {
+        if (r.finish !== finish) continue;
+        const id = side(m, r.who);
+        count.set(id, (count.get(id) ?? 0) + 1);
+      }
+    }
+    const top = best(count);
+    if (top && top.value >= min) {
+      awards.push({ key, title, winners: top.ids, detail: top.value === 1 ? `1 ${word.replace(/s$/, "")}` : `${top.value} ${word}` });
+    }
+  }
+
+  // Iron wall: fewest points let in per match (every result counts; 3+ played).
+  const against = new Map<string, { pts: number; n: number }>();
+  for (const m of matches.filter((x) => x.matchStatus === "done")) {
+    for (const [id, conceded] of [[m.p1, m.p2Score ?? 0], [m.p2, m.p1Score ?? 0]] as const) {
+      const a = against.get(id) ?? { pts: 0, n: 0 };
+      against.set(id, { pts: a.pts + conceded, n: a.n + 1 });
+    }
+  }
+  const avg = new Map([...against].filter(([, a]) => a.n >= 3).map(([id, a]) => [id, Math.round((a.pts / a.n) * 10) / 10]));
+  const wall = best(avg, true);
+  if (wall) {
+    awards.push({ key: "wall", title: "Iron wall", winners: wall.ids, detail: `Let in ${wall.value} points a match` });
+  }
+
+  // Comeback: the biggest deficit a winner came back from.
+  let comeback: { id: string; opp: string; down: [number, number]; m: PBMatch } | null = null;
+  let deepest = 0;
+  for (const m of logged) {
+    const winnerSide: 1 | 2 = (m.p1Score ?? 0) > (m.p2Score ?? 0) ? 1 : 2;
+    let mine = 0;
+    let theirs = 0;
+    for (const r of m.liveLog) {
+      if (r.who === winnerSide) mine += FINISH_POINTS[r.finish] ?? 0;
+      else theirs += FINISH_POINTS[r.finish] ?? 0;
+      if (theirs - mine > deepest) {
+        deepest = theirs - mine;
+        comeback = { id: side(m, winnerSide), opp: side(m, winnerSide === 1 ? 2 : 1), down: [mine, theirs], m };
+      }
+    }
+  }
+  if (comeback && deepest >= 2) {
+    awards.push({
+      key: "comeback",
+      title: "Comeback",
+      winners: [comeback.id],
+      opponent: comeback.opp,
+      detail: `Came back from ${comeback.down[0]}–${comeback.down[1]} down`,
+    });
+  }
+  // A big tie isn't much of an award on the big screen: two names at most.
+  return awards.filter((a) => a.winners.length <= 2);
 }

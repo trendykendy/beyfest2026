@@ -18,6 +18,7 @@
     availableScenes,
     isLive,
     matchContext,
+    computeAwards,
     SCENE_TITLE,
     type PBMatch,
     type Scene,
@@ -44,10 +45,13 @@
     rr: "ラウンドロビン",
     bracket: "ノックアウト",
     spotlight: "マッチセンター",
+    awards: "アワード",
     champion: "チャンピオン",
   };
 
   const scenes = $derived(availableScenes(!!data.tournament, data.matches));
+  const awards = $derived(computeAwards(data.matches));
+  const tournamentOver = $derived(data.matches.some((m) => m.stage === "gf" && m.matchStatus === "done"));
 
   // ── Which scene is on screen ────────────────────────────────────────
   // First match wins:
@@ -55,7 +59,7 @@
   //   2. the organiser locked a scene from the admin page
   //   3. a score just changed / a result went in → Match centre (REACT_SECONDS)
   //   4. auto rotation, each scene for its DWELL
-  const DWELL: Record<Scene, number> = { standby: 60, groups: 25, rr: 20, bracket: 25, spotlight: 15, champion: 30 };
+  const DWELL: Record<Scene, number> = { standby: 60, groups: 25, rr: 20, bracket: 25, spotlight: 15, awards: 20, champion: 30 };
   const REACT_SECONDS = 20;
   const LOCAL_SECONDS = 60;
 
@@ -525,7 +529,7 @@
 
     {:else if scene === "spotlight"}
       <!-- Under each card: the Winner chip at the outer end, then one pill per
-           round this side has won, oldest first (only while the match is on). -->
+           round this side has won, oldest first. Kept on the Result too, as a recap. -->
       {#snippet sideFoot(who: number, won: boolean, showPills: boolean)}
         {@const mine = showPills ? rounds.filter((r) => r.who === who) : []}
         {#if won || mine.length}
@@ -573,7 +577,7 @@
                 <div class="mc-name">{sideName(spotMatch, 1)}</div>
                 <div class="mc-score">{showScore ? av : "–"}</div>
               </div>
-              {@render sideFoot(1, wonA, !done)}
+              {@render sideFoot(1, wonA, true)}
             </div>
             <div class="mc-vs" aria-label="versus">VS</div>
             <div class="mc-side right" class:won={wonB} class:lost={wonA}>
@@ -581,7 +585,7 @@
                 <div class="mc-score">{showScore ? bv : "–"}</div>
                 <div class="mc-name">{sideName(spotMatch, 2)}</div>
               </div>
-              {@render sideFoot(2, wonB, !done)}
+              {@render sideFoot(2, wonB, true)}
             </div>
           </div>
 
@@ -604,6 +608,21 @@
         {:else}
           <div class="empty-scene">No matches yet. They'll appear here once the groups are drawn.</div>
         {/if}
+      </div>
+
+    {:else if scene === "awards"}
+      <!-- Built from how every round was won. "So far" until the grand final. -->
+      <div class="aw">
+        <div class="aw-grid">
+          {#each awards as a (a.key)}
+            <section class="aw-card aw-{a.key}">
+              <header class="aw-title">{a.title}</header>
+              <div class="aw-name">{a.winners.map((id) => names.get(id)).join(" & ")}</div>
+              <div class="aw-detail">{a.opponent ? `${a.detail} against ${names.get(a.opponent)}` : a.detail}</div>
+            </section>
+          {/each}
+        </div>
+        {#if !tournamentOver}<p class="aw-note">Awards so far. They're settled after the grand final.</p>{/if}
       </div>
 
     {:else if scene === "champion"}
@@ -1483,5 +1502,64 @@
     width: 10px;
     height: 10px;
     background: var(--red);
+  }
+  /* Awards: four gold telop slabs, black title bar on each. */
+  .aw {
+    width: 100%;
+    max-width: 1640px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 34px;
+  }
+  .aw-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px 48px;
+  }
+  .aw-card {
+    background: var(--gold);
+    color: var(--ink);
+    border: 5px solid var(--ink);
+    box-shadow: 12px 12px 0 var(--ink);
+    min-width: 0;
+  }
+  /* An odd one out sits centred on its own row. */
+  .aw-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc(50% - 24px);
+  }
+  .aw-title {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: 2.2rem;
+    line-height: 1;
+    background: var(--ink);
+    color: var(--gold);
+    padding: 10px 24px 12px;
+  }
+  .aw-name {
+    font-family: var(--font-display);
+    font-stretch: 62%;
+    text-transform: uppercase;
+    font-size: 6rem;
+    line-height: 1;
+    padding: 18px 24px 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 0.3em; /* italic overhang */
+  }
+  .aw-detail {
+    font-family: var(--font-text);
+    font-weight: 700;
+    font-size: 1.9rem;
+    padding: 0 24px 18px;
+  }
+  .aw-note {
+    color: var(--on-field-soft);
+    font-size: 1.6rem;
   }
 </style>
