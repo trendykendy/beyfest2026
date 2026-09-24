@@ -122,6 +122,7 @@ Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point 
    - Tested in WSL Ubuntu (x86_64): first-run download/install/build, both logins, LAN address, Ctrl+C and SIGTERM stopping both servers, kiosk wait and launch (with a stub Chromium).
    - **Not tested:** the macOS IP detection (`route`/`ipconfig getifaddr`), Gatekeeper and firewall prompts, the arm64 builds, real Chromium on the Pi, and whether labwc on the Pi honours the XDG autostart entry.
    - `.gitattributes` forces LF on `*.sh`/`*.command`, and git stores them as executable.
+   - **Pi package (day 3):** `.github/workflows/pi-package.yml` runs `tournament-app/scripts/pi-package.sh` on every push to `main` or `redesign/tournament-app`. That runs the tests, builds, and bundles `beyfest-pi-arm64.tar.gz` (built app + the `pocketbase` SDK, the only runtime package, + PocketBase linux-arm64 + migrations + start.sh + VERSION). It's published as a rolling prerelease tagged `pi-<branch>`, e.g. `pi-redesign-tournament-app`. Tested in WSL: it runs from the package with Node 18 alone (the Raspberry Pi OS version, no Bun). `start.sh` now needs Bun only to install or build.
 4. **The 8-player (double-elimination) bracket:**
    - Its round headings aren't covered by `roundName()` yet ("UPPER BRACKET — QUARTERFINALS").
    - Its first two column gaps have a dense bundle of lines.

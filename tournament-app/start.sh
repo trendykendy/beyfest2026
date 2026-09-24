@@ -33,11 +33,21 @@ fail() {
 }
 
 # ── Tools ────────────────────────────────────────────────────────────
-command -v bun >/dev/null 2>&1 ||
-  fail "bun is not installed. Install it with:  curl -fsSL https://bun.sh/install | bash"
+# Bun is only needed to install and build (from a git checkout). The Pi
+# package comes ready-built, so there Node alone is enough.
+need_bun() {
+  command -v bun >/dev/null 2>&1 ||
+    fail "bun is not installed. Install it with:  curl -fsSL https://bun.sh/install | bash"
+}
 
 # Prefer Node to run the server (what start.ps1 uses); Bun can run it too.
-if command -v node >/dev/null 2>&1; then runner="node"; else runner="bun"; fi
+if command -v node >/dev/null 2>&1; then
+  runner="node"
+elif command -v bun >/dev/null 2>&1; then
+  runner="bun"
+else
+  fail "Neither Node nor Bun is installed. Install Bun:  curl -fsSL https://bun.sh/install | bash"
+fi
 
 # ── Detect the LAN IP (the interface that owns the default route) ────
 detect_ip() {
@@ -82,11 +92,12 @@ if [[ ! -x "$pb_bin" ]]; then
 fi
 
 # ── Install packages and build the web app if needed ────────────────
-if [[ ! -d "$root/node_modules" ]]; then
-  echo "  First run: installing packages…"
-  (cd "$root" && bun install)
-fi
 if [[ ! -f "$web_build" ]]; then
+  need_bun
+  if [[ ! -d "$root/node_modules" ]]; then
+    echo "  First run: installing packages…"
+    (cd "$root" && bun install)
+  fi
   echo "  First run: building the web app…"
   (cd "$web_dir" && bun run build)
 fi

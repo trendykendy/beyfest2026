@@ -8,3 +8,4 @@ web/build/
 pb/pocketbase
 pb/pocketbase.log
 refimages/
+dist/
