@@ -7,3 +7,4 @@ web/build/
 .DS_Store
 pb/pocketbase
 pb/pocketbase.log
+refimages/
