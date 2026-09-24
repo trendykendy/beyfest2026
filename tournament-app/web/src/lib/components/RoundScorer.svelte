@@ -16,9 +16,20 @@
   } = $props();
 
   // Round log — each entry is one round win. Score is derived from it, so
-  // Undo is just a pop.
+  // Undo is just a pop. It starts from the log saved on the match, so
+  // reloading the page mid-match picks up where it left off instead of 0–0.
   type Round = { who: 1 | 2; pts: number; label: string; key: string };
-  let rounds = $state<Round[]>([]);
+  const FINISH_BY_KEY = new Map(FINISHES.map((f) => [f.key, f]));
+  function savedRounds(): Round[] {
+    const out: Round[] = [];
+    for (const r of match.liveLog) {
+      const f = FINISH_BY_KEY.get(r.finish);
+      if (f && (r.who === 1 || r.who === 2)) out.push({ who: r.who, pts: f.pts, label: f.label, key: f.key });
+    }
+    return out;
+  }
+  const initial = savedRounds();
+  let rounds = $state<Round[]>(initial);
 
   const s1 = $derived(rounds.filter((r) => r.who === 1).reduce((a, r) => a + r.pts, 0));
   const s2 = $derived(rounds.filter((r) => r.who === 2).reduce((a, r) => a + r.pts, 0));
@@ -34,9 +45,11 @@
   }
 
   // Push the running score to the server so the public/TV displays show it live.
-  // Skips the initial 0–0 on mount; de-dupes repeat values.
-  let everScored = false;
-  let posted = "";
+  // Skips the initial state on mount (it's already on the server); de-dupes
+  // repeat values.
+  const total = (who: 1 | 2) => initial.filter((r) => r.who === who).reduce((a, r) => a + r.pts, 0);
+  let everScored = initial.length > 0;
+  let posted = `${total(1)}-${total(2)}-${initial.length}`;
   $effect(() => {
     const key = `${s1}-${s2}-${rounds.length}`;
     if (rounds.length === 0 && !everScored) return;
