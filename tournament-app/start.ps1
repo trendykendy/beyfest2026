@@ -3,7 +3,7 @@
 #
 # Starts PocketBase (data + realtime API) and the built SvelteKit server,
 # both bound to 0.0.0.0 so phones on the venue wifi can reach them. Detects
-# the laptop's LAN IP and points the browser realtime client at it.
+# the laptop's LAN IP so it can print the addresses to open.
 #
 #   Right-click → "Run with PowerShell", or:  pwsh -File .\start.ps1
 # ─────────────────────────────────────────────────────────────────────
@@ -21,7 +21,6 @@ $ip = (Get-NetIPConfiguration |
   Select-Object -First 1).IPv4Address.IPAddress
 if (-not $ip) { $ip = "127.0.0.1" }
 
-$pbUrl = "http://${ip}:8090"
 $webPort = 3000
 
 Write-Host ""
@@ -52,7 +51,6 @@ $pb = Start-Process -FilePath $pbExe `
 # ── Start the web server in the foreground ──────────────────────────
 $env:HOST = "0.0.0.0"
 $env:PORT = "$webPort"
-$env:PUBLIC_PB_URL = $pbUrl
 try {
   node $webBuild
 }

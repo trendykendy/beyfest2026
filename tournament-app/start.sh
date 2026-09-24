@@ -5,11 +5,10 @@
 #
 # Starts PocketBase (data + realtime API) and the built SvelteKit server,
 # both bound to 0.0.0.0 so the TV and phones on the venue wifi can reach
-# them. Detects this machine's LAN IP and points the browser realtime
-# client at it.
+# them. Detects this machine's LAN IP so it can print the addresses to open.
 #
 #   ./start.sh                     (on a Mac you can double-click start.command)
-#   BEYFEST_IP=192.168.1.20 ./start.sh   to force the address it advertises
+#   BEYFEST_IP=192.168.1.20 ./start.sh   to force the address it prints
 #
 # First run needs the internet: it installs packages, builds the web app and
 # downloads the PocketBase build for this machine. Do it at home, not at the
@@ -56,7 +55,6 @@ detect_ip() {
   echo "${ip:-127.0.0.1}"
 }
 ip="${BEYFEST_IP:-$(detect_ip)}"
-pb_url="http://${ip}:8090"
 
 # ── PocketBase: download the build for this OS + CPU if it's missing ─
 if [[ ! -x "$pb_bin" ]]; then
@@ -134,7 +132,6 @@ trap 'exit 130' INT TERM HUP
 # handled straight away rather than after the server has exited.
 export HOST="0.0.0.0"
 export PORT="$web_port"
-export PUBLIC_PB_URL="$pb_url"
 "$runner" "$web_build" &
 web_pid=$!
 wait "$web_pid"

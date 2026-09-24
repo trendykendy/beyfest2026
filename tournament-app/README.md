@@ -46,7 +46,7 @@ with the default logins. After that it runs offline.
 4. Stop the Mac sleeping during the event (System Settings → Battery/Energy →
    *Prevent automatic sleeping*), and keep it plugged in.
 
-If it picks the wrong address (e.g. the Mac is on both wifi and a cable), force it:
+If it prints the wrong address (e.g. the Mac is on both wifi and a cable), force it:
 `BEYFEST_IP=192.168.1.20 ./start.sh`.
 
 ### The TV on a Raspberry Pi
