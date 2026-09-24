@@ -1,24 +1,31 @@
 # Handover: tournament app redesign
 
-Written 24 September 2026 (day 1), updated at the end of day 2. Read this first, then `CLAUDE.md`.
+Written 24 September 2026 (day 1), rewritten at the end of day 2. Read this first, then `CLAUDE.md`.
 
 ## Where things stand
 
-The tournament app (`tournament-app/`) is being redesigned because the old look read as AI-generated. The **TV and admin are finished**. The public page is parked (see Phone view). On day 2 the user also picked four event-day improvements, all built (see "Day 2 improvements").
+The tournament app (`tournament-app/`) is being redesigned because the old look read as AI-generated.
 
-All work is on branch **`redesign/tournament-app`**. `main` is still the untouched baseline and **nothing has been merged yet**. The working tree is clean.
+- **The TV and admin are finished** and tested in Edge on Windows. Admin hasn't been tried on a real Mac yet.
+- **All five event-day improvements the user picked are built:** fix a result, resilience, finish stats and awards, Let it rip, and walkovers/withdraw/rename. See "Day 2 improvements".
+- The **points-to-win rule** was corrected; see "Points to win".
+- **Parked by the user:**
+  - step 5, the public page for phones (plan ready below)
+  - step 6, the Mac and Pi launchers
+
+All work is on branch **`redesign/tournament-app`**. `main` is still the untouched baseline and **nothing has been merged yet**. At the end of day 2 the working tree was clean.
 
 | Step | What | Status |
 |---|---|---|
 | 1 | Design foundation (fonts, colours, no photo/glow/emoji) | Done |
-| 2 | Rebuild all 6 TV scenes | Done |
+| 2 | Rebuild all TV scenes | Done |
 | 3 | TV control: auto-rotate, cut to live scores, admin lock | Done |
-| – | Match centre round-win animation | Done |
-| – | Bracket lines no longer hidden behind cards | Done |
-| 4 | Admin redesign | **Redesign done** (day 2, tested in Edge on Windows). Mac-specific checks wait until there's a Mac |
-| 5 | Public display (`/`) for phones | **Parked (low priority):** nobody is expected to watch on phones. Audit and plan below under "Phone view" |
-| 6 | Mac + Pi launchers | Not started (user parked it on day 2) |
-| – | Day 2 improvements: fix a result, resilience, finish stats and awards, Let it rip | Done |
+| – | Match centre round-win animation, bracket line routing | Done |
+| 4 | Admin redesign | Done (day 2). Still to check on a real Mac |
+| 5 | Public display (`/`) for phones | **Parked (low priority).** Audit and plan under "Phone view" |
+| 6 | Mac + Pi launchers | **Parked** by the user on day 2 |
+| – | Day 2 improvements 1–5 | Done |
+| – | Points to win: first to 7 only on the main path | Done |
 
 ### Commits on `redesign/tournament-app` (oldest first)
 
@@ -36,9 +43,29 @@ c3760e4 fix group standings counting knockout rematches between group-mates
 6d7e2e1 tv: auto rotation, cut to match centre on score changes, admin can lock the TV scene
 03b549f tv bracket: route column-skipping lines through clear corridors so they never pass behind cards
 a876ea8 tv match centre: animated round-win call-out that settles as a finish pill; store round log
+── day 2 ──
+24e78ff tv champion: pad the name slab so the italic last letter isn't clipped
+204d36d group tables: label the +/- column "Point diff."
+27ab2f1 tv match centre: keep a finish pill for every round won, winner chip in the pill row
+8549e91 admin scorer: start from the saved live score so a reload doesn't reset to 0-0
+51fef3c admin: one Now playing scorer in the TV slab style, with an Up next queue
+473a080 admin: slim status header, TV control in the sidebar, champion slab, reset moved to a danger zone
+ae989c9 admin: group tables as white slabs, two-column fixtures marking Now playing, generate-knockout button in Now playing
+7259bd5 admin knockout: round-robin tables as slabs in plain words, the TV bracket scaled into a box
+245baa7 admin: new-tournament form and login as slabs, group sizes in plain words
+aa2d2a3 first to 7 only on the main path: Mid bracket semis and final, or the 8-player bracket finals
+e845177 admin: fix a recorded result, re-routing the next round when the winner changes
+a5c4409 tv/admin/public: heal after a dropout instead of stranding on the browser's offline page
+00f45e6 event-day safety: backups every 10 minutes, results download, rehearsal script
+200598e keep every round's finish: Result recap pills and a TV Awards scene
+d9e4b4f Start match: the TV cuts in with a 3·2·1 LET IT RIP countdown
+db2a816 walkovers, withdrawals and name fixes
 ```
+(handover-only commits left out)
 
-`c3760e4` is a real bug fix (group tables counted knockout rematches between group-mates) and can go onto `main` on its own if wanted before the redesign merges.
+Two commits could go onto `main` by themselves before the redesign merges, if wanted:
+- `c3760e4`: a real bug fix. Group tables counted knockout rematches between group-mates.
+- `aa2d2a3`: the points-to-win rule fix.
 
 ## Design decisions (agreed with the user)
 
@@ -56,45 +83,57 @@ a876ea8 tv match centre: animated round-win call-out that settles as a finish pi
 
 ## How the TV works now
 
-- Scenes: standby, groups, rr, bracket, spotlight (Match centre), champion. `availableScenes()` in `view.ts` decides which exist; the TV and admin both use it.
-- Which scene shows (first rule that applies wins): a key pressed at the TV (60s) → admin lock → a score just changed or a result went in (Match centre on that match, 20s) → auto rotation (groups 25s, rr 20s, bracket 25s, spotlight 15s, champion 30s). The logic is in `web/src/routes/tv/+page.svelte`.
-- The admin's "TV screen" panel writes the `tv_state` PocketBase record (migration `1710000300_tv_state.js`). The TV follows it live.
-- The round-win animation reads `matches.liveLog`, a list of `{who, finish}` (migration `1710000400_live_log.js`). The admin scorer posts it via `/admin/live`.
+- **Scenes:** standby, groups, rr, bracket, spotlight (Match centre), awards, champion. `availableScenes()` in `view.ts` decides which exist; the TV and the admin TV panel both use it.
+- **Which scene shows** (first rule that applies wins):
+  1. a key pressed at the TV (holds 60s)
+  2. the admin's lock
+  3. a score changed, a result went in, or a match was started: Match centre on that match for 20s
+  4. auto rotation: groups 25s, rr 20s, bracket 25s, spotlight 15s, awards 20s, champion 30s
 
-## Start here next session (raised by the user at end of day 1)
+  The logic is in `web/src/routes/tv/+page.svelte`.
+- **Admin control:** the "TV screen" panel writes the `tv_state` record (migration 300), and the TV follows it live. Reset puts it back to Auto.
+- **Round log:** `matches.liveLog` is a list of `{who, finish}` (migration 400). It drives the round-win call-out and the finish pills, and it's kept after the match for the Result recap and Awards.
+- **Start match:** stamps `matches.startedAt` (migration 700), which cues the launch countdown.
+- **Live updates:** all three pages use `liveUpdates()` from `lib/pbBrowser.ts`, which checks `/ping` before every refresh. The TV shows a "Reconnecting" mark bottom-left while it can't reach the server.
 
-A–C from end of day 1 are **done** (day 2):
+## Start here next session
 
-- A. Champion name clipping: `24e78ff` pads `.big-slab > span` by `0.1em` each side. Long names still end in "…" rather than overflowing.
-- B. The +/− header is now **"Point diff."** on the TV (wraps to two lines) and on the public page's `GroupCard`: `204d36d`.
-- C. Match centre keeps **one pill per round won** under each card, oldest first, at the VS end: `27ab2f1`.
-  - It steps down in size past 4 and 7 pills, and `.mc-duel` reserves room for two rows.
-  - The Winner chip is now the first item in the same row (`sideFoot` snippet).
-  - Pills only show while live, because `load.ts` blanks `liveLog` once a match is done.
-  - Possible follow-up: keep the round recap on the Result screen. That needs `load.ts` to stop blanking `liveLog`.
+Nothing is half-done. Ask the user what's next. Candidates, most useful first:
 
-Remaining: step 6 (Mac + Pi launchers), plus checking admin on a real Mac. Step 5 is parked.
+1. **A dress rehearsal on the real hardware**, whenever the Mac and the TV (and Pi) are available.
+   - Run `scripts/rehearsal.ts` against a **test** data folder; it resets the database it talks to.
+   - Watch the TV through a whole event, and pull the network cable once to see it recover.
+2. **Step 6: Mac + Pi launchers** (parked by the user). See known issue 3, including `PUBLIC_PB_URL`.
+3. **Before the event:** change the default logins (known issue 7). Then merge the branch into `main` and tag it.
+4. **Smaller polish:**
+   - the 8-player bracket headings and lines (known issue 4)
+   - the call-out overlapping LIVE for its first moments (known issue 5)
+   - walkovers currently count as target–0 in the tables; the user may prefer a win without the points
+5. **Step 5, the phone view:** only if the user asks.
 
-Test helper worth recreating: a small script that PATCHes a live match's `liveP1/liveP2/liveLog` as the organiser, then screenshots Match centre. Add the last round while the page is open to catch the call-out.
+Day 1's end-of-day items are all done: champion name clipping `24e78ff`, "Point diff." header `204d36d`, and one finish pill per round `27ab2f1`.
 
 ## Known issues / to do
 
-1. ~~The scorer resets on reload~~: fixed in `8549e91`. `RoundScorer` starts from the match's saved `liveLog`.
-2. When the organiser picks a different match with "Score this", the TV's "Up next" still shows the default next match until the first point is scored. After that the TV cuts to the live match as normal. Minor; worth knowing.
-3. Step 5 public display: parked. See "Phone view" below.
-4. Step 6: `start.ps1` and `pb/pocketbase.exe` are **Windows-only**.
+1. **"Score this" and the TV.** If the organiser picks a match with "Score this" but doesn't press **Start match**, the TV's "Up next" shows the default next match until the first point. Using Start avoids it.
+2. **Step 5,** the public display: parked. See "Phone view" below.
+3. **Step 6:** `start.ps1` and `pb/pocketbase.exe` are **Windows-only**.
    - The Mac needs the macOS PocketBase build plus a `start.sh`.
    - The Pi needs the arm64 build, or just Chromium in kiosk mode pointing at the Mac. Document both in the README.
-   - **Also:** the browser connects to PocketBase at `PUBLIC_PB_URL`, which defaults to `127.0.0.1:8090`. A TV on a Pi (or any other device) viewing the Mac's app must have that set to the Mac's LAN address, or its live updates never arrive.
-5. 8-player (double-elimination) bracket:
+   - **Important:** the browser connects to PocketBase at `PUBLIC_PB_URL`, which defaults to `127.0.0.1:8090`. A TV on a Pi (or any other device) viewing the Mac's app needs it set to the Mac's LAN address, or no live updates arrive.
+4. **The 8-player (double-elimination) bracket:**
    - Its round headings aren't covered by `roundName()` yet ("UPPER BRACKET — QUARTERFINALS").
    - Its first two column gaps have a dense bundle of lines.
-6. For the first ~250ms, the round-win slab overlaps the LIVE status line on Match centre.
-7. The sample scripts (`midgroup.ts`) set a live score **without** a round log. Admin's scorer then shows 0–0 for that match while the TV shows 3–2. This only happens with sample data; the real scorer always writes both.
-8. Before the event, change the default logins: organiser `organiser@beyfest.local` / `beyfest2026`, and PocketBase superuser `admin@beyfest.local` / `beyfestadmin2026`. They're in the seed migration and README.
-9. `svelte.config.js` shows a deprecation warning for `csrf.checkOrigin`; it predates the redesign and is harmless for now.
+5. For the first ~250ms, the round-win slab overlaps the LIVE status line on Match centre.
+6. **Sample data mismatch.** `midgroup.ts` sets a live score **without** a round log, so admin's scorer shows 0–0 for that match while the TV shows 3–2. This only happens with sample data; the real scorer always writes both.
+7. **Before the event, change the default logins:**
+   - organiser `organiser@beyfest.local` / `beyfest2026`
+   - PocketBase superuser `admin@beyfest.local` / `beyfestadmin2026`
 
-## Day 2 improvements (the user picked four of five suggestions)
+   They're in the seed migration and the README.
+8. `svelte.config.js` shows a deprecation warning for `csrf.checkOrigin`. It predates the redesign and is harmless for now.
+
+## Day 2 improvements (five suggestions, all built at the user's request)
 
 The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resilience, 5 walkovers and name fixes. All five are built; 5 came last, including a one-click withdraw (see 5 below).
 
@@ -128,11 +167,11 @@ The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resil
      - It's "so far" until the grand final.
 4. **Let it rip** (`d9e4b4f`).
    - Admin's scorer has **Start match** before the first round, with Cancel start to undo a wrong tap. It stamps `matches.startedAt` (migration 700) via `/admin/start`.
-   - `isLive()` counts started matches, so On now and Up next are right straight away. This also fixes known issue 2 whenever Start is used.
+   - `isLive()` counts started matches, so On now and Up next are right straight away. This also fixes known issue 1 whenever Start is used.
    - The TV cuts to the match and plays **3 · 2 · 1 · LET IT RIP!** with ゴーシュート: a black band plus keyed CSS animations, transform/opacity only, skipped for reduced motion.
    - The katakana subset was re-downloaded; its character list in `theme.css` now includes アワード and ゴーシュート.
 
-5. **Walkovers, withdrawals and name fixes** (the latest commit).
+5. **Walkovers, withdrawals and name fixes** (`db2a816`).
    - **Walkover…** in the scorer asks who didn't show. The result is recorded as target–0 with `matches.walkover = true`. `recordWalkover` in `tournament.ts`.
    - A **Bladers** panel in admin (`BladersPanel.svelte`), shown at every stage:
      - **Rename** (names must stay unique).
@@ -226,7 +265,8 @@ cd web && bun run dev          # http://localhost:5173  (/tv, /admin, /)
 
 - Migrations only run when PocketBase **starts**, so restart it after adding one.
 - A fresh data dir gets the organiser login from the seed migration.
-- Checks: `bun run check` (in `web`) and `bun run test` (in `tournament-app`, 47 engine tests).
+- Checks: `bun run check` (in `web`) and `bun run test` (in `tournament-app`, 75 engine tests).
+- A throwaway data dir has no superuser. To check settings (e.g. backups), add one: `pb/pocketbase.exe superuser upsert admin@beyfest.local beyfestadmin2026 --dir=<that dir>`.
 
 ### Sample data scripts (they talk to 127.0.0.1:8090)
 
@@ -236,15 +276,21 @@ cd web && bun run dev          # http://localhost:5173  (/tv, /admin, /)
 | `bun run scripts/midgroup.ts <players> 999` then `bun run scripts/advance.ts` | Completed tournament of any size |
 | `bun run scripts/sample.ts setup` then `bun run scripts/advance.ts` | Completed 12-player tournament |
 | `bun run scripts/fresh.ts <players>` | Unplayed group stage |
+| `bun run scripts/rehearsal.ts <players> <secondsPerRound>` | A whole tournament played round by round, live on the TV (**resets the database**) |
 
-- Checking screens: screenshot `/tv` at 1920×1080 in headless Edge with `puppeteer-core` (press 1–5 to switch scenes). **Wait for `load`, not `networkidle0`**; the realtime connection never goes idle.
+- **Checking screens:** screenshot `/tv` at 1920×1080 and `/admin` at 1440×900 in headless Edge with `puppeteer-core` (press 1–7 on the TV to switch scenes). **Wait for `load`, not `networkidle0`**; the realtime connection never goes idle.
+- **Testing a dropout:** `page.setOfflineMode(true)` does **not** close the realtime connection, so the "Reconnecting" mark only appears at the next heartbeat (≤30s). Stopping PocketBase triggers it immediately.
 
 ## Gotchas learned the hard way
 
 - **Katakana font subset:** `web/static/fonts/zenkaku_kana.woff2` contains *only* the characters listed in the `theme.css` header. New Japanese text needs the subset re-downloaded (Google Fonts css2 `text=` parameter).
 - **`@font-face` descriptors must match** across all faces of "Beyfest Display" (including `font-stretch`). Otherwise the browser picks the kana face at normal width and the Latin text falls back to plain Saira.
 - Slanted slabs use `transform: skewX()` rather than `clip-path`, so borders and hard shadows survive. Counter-skew the text inside.
-- Long multi-line Python heredocs in the Bash tool can break on quoting; write the script to a file and run it instead.
+- **Python heredocs.** Long multi-line ones in the Bash tool can break on quoting, and `\n` inside them can turn into real newlines. Write the script to a file and run it instead.
+- **Imports in `lib/server/tournament.ts`.** The scripts import it directly with Bun, outside SvelteKit, so it must not use `$lib/...` imports; use relative paths.
+- **Resolved slots are pinned.** Once a result resolves, the engine writes the player into the next match and clears the slot. Changing a past result therefore needs `applyCorrection` (it re-pins); re-running `applyResult` alone would leave the old winner in place.
+- **SvelteKit offline trap.** If `invalidateAll()` fails for network reasons, SvelteKit does a full page load. With no network that strands the browser on its own offline page, and nothing on our page runs to recover. That's why every refresh goes through `/ping` first.
+- **PocketBase 0.40 backups.** The backups API is superuser-only; the organiser login can't use it. Scheduled backups are set by migration 600.
 
 ## Public website (separate from the app)
 
