@@ -35,7 +35,7 @@ export interface PBMatch {
   liveLog: LiveRound[]; // how each round was won, oldest first; kept once done (may be empty for old or corrected results)
   resultAt: string; // when the result was recorded/corrected (ISO), "" if not played
   startedAt: string; // when the organiser pressed Start match (ISO), "" if not
-  walkover: boolean; // a no-show, recorded as target–0; shown as "W/O"
+  walkover: boolean; // a no-show: stored as target–0, but a win with no points in the tables; shown as "W/O"
   winner: string;
   loser: string;
   matchStatus: "pending" | "ready" | "done";
@@ -169,6 +169,7 @@ function toEngineMatch(m: PBMatch): Match {
     winner: m.winner || null,
     loser: m.loser || null,
     status: m.matchStatus,
+    walkover: m.walkover,
   };
 }
 

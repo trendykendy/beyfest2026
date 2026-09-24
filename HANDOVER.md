@@ -106,7 +106,6 @@ Nothing is half-done. Ask the user what's next. Candidates, most useful first:
 4. **Smaller polish:**
    - the 8-player bracket headings and lines (known issue 4)
    - the call-out overlapping LIVE for its first moments (known issue 5)
-   - walkovers currently count as target–0 in the tables; the user may prefer a win without the points
 5. **Step 5, the phone view:** only if the user asks.
 
 Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point diff." header `825f6f7`, and one finish pill per round `567884d`.
@@ -198,7 +197,7 @@ The five suggestions were: 1 fix a result, 2 finish stats, 3 Let it rip, 4 resil
      - Tested: a withdrawn blader's remaining group matches, and later their Losers round-robin matches, all became walkovers by themselves.
    - "W/O" shows in the TV fixtures and bracket plates ("Walkover" in the header), on Match centre (a "Walkover" tag, no scores), on the Champion line, and in the admin fixtures and Last result bar.
    - Awards skip walkovers.
-   - A walkover still counts as target–0 in the tables (points and point diff.).
+   - Day 3, the user's choice: a walkover counts as a **win with no points** in the tables (the match is still stored as target–0). `computeStandings` skips points when `match.walkover`, a Fix turns it into a played result, and it's pinned by `engine/test/walkover.test.ts`.
    - Migration 800.
 
 ## Points to win (changed day 2, `b5aa719`)

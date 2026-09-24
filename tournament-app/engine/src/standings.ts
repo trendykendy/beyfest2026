@@ -5,7 +5,8 @@ import type { Match, StandingRow } from "./types";
 // group stages and the WB/LB mini round-robins).
 //
 // Ordering (spec Part 1): wins → head-to-head (within the tied cluster) →
-// point differential → total points scored. Players still equal after all
+// point differential → total points scored. A walkover counts as a win and a
+// loss but adds no points, so a no-show can't decide a points tiebreak. Players still equal after all
 // four are flagged in `tiedWith` (they need a decider match).
 export function computeStandings(playerIds: string[], matches: Match[]): StandingRow[] {
   const set = new Set(playerIds);
@@ -37,10 +38,12 @@ export function computeStandings(playerIds: string[], matches: Match[]): Standin
   for (const mt of relevant) {
     const r1 = base.get(mt.p1!)!;
     const r2 = base.get(mt.p2!)!;
-    r1.pointsFor += mt.p1Score!;
-    r1.pointsAgainst += mt.p2Score!;
-    r2.pointsFor += mt.p2Score!;
-    r2.pointsAgainst += mt.p1Score!;
+    if (!mt.walkover) {
+      r1.pointsFor += mt.p1Score!;
+      r1.pointsAgainst += mt.p2Score!;
+      r2.pointsFor += mt.p2Score!;
+      r2.pointsAgainst += mt.p1Score!;
+    }
     if (mt.p1Score! > mt.p2Score!) {
       r1.wins++;
       r2.losses++;

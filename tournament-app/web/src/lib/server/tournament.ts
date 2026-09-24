@@ -62,6 +62,7 @@ function recToMatch(r: RecordModel): Match {
     winner: r.winner || null,
     loser: r.loser || null,
     status: r.matchStatus,
+    walkover: done && !!r.walkover,
   };
 }
 

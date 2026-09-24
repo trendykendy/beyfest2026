@@ -41,7 +41,8 @@ export function planCorrection(state: State, code: string, p1Score: number, p2Sc
     const before = computeStandings(ids, table).map((r) => r.playerId);
     const after = computeStandings(
       ids,
-      table.map((m) => (m.code === code ? { ...m, p1Score, p2Score } : m)),
+      // A fixed score is a played result, even if it was a walkover before.
+      table.map((m) => (m.code === code ? { ...m, p1Score, p2Score, walkover: false } : m)),
     ).map((r) => r.playerId);
     if (before.join() !== after.join()) {
       const where = mt.stage === "group" ? "group" : "round-robin";
@@ -81,6 +82,7 @@ export function applyCorrection(state: State, code: string, p1Score: number, p2S
   const mt = state.matches.find((m) => m.code === code)!;
   mt.p1Score = p1Score;
   mt.p2Score = p2Score;
+  mt.walkover = false; // a fixed score is a played result
   for (const r of plan.repins) {
     const next = state.matches.find((m) => m.code === r.code)!;
     if (r.side === 1) next.p1 = r.player;
