@@ -30,13 +30,30 @@ for every count from 8 to 15 players.
 
 ### Organiser workflow
 
-1. **Enter players** — paste the names (one per line, 8–15) → *Draw groups & build bracket*.
+1. **Enter bladers**: type the names (one per line, 8–15), then *Draw groups and build bracket*.
    The app randomly draws the groups and generates every group match.
-2. **Group stage** — enter each match score. Standings and tiebreakers update live.
-3. When all groups are complete, **Generate knockout bracket**.
-4. **Knockout** — enter scores as matches become ready; the bracket advances itself
-   through to the Grand Final and crowns the champion.
-5. **Reset tournament** clears everything to start again.
+2. **Now playing** shows one match at a time.
+   - Tap the finish for each round (Spin +1, Knockout +2, Dominant +3). The TV follows live.
+   - When someone reaches the target, press **Record result**. Now playing moves on to the next match.
+   - **Up next** lists what's ready. *Score this* switches to a different match.
+3. When every group is in, Now playing offers **Generate knockout bracket**.
+4. **Knockout**: same as the groups, through to the Grand Final.
+5. **Made a mistake?** Under Now playing, **Last result → Fix** corrects any recorded score.
+   - If the winner changes, the next round is updated.
+   - The fix is refused, with the reason, if a later match has already been played with the old winner or loser.
+6. **Danger zone** (bottom of the page):
+   - *Download results* saves a copy of everything as a file.
+   - *Reset tournament* deletes everything and starts again.
+
+## If something goes wrong
+
+- **The TV shows "Reconnecting" in the corner.** It has lost the laptop. Nothing to do: it catches up by itself as soon as the connection is back (it checks every 5 seconds).
+- **Backups.** PocketBase saves a backup of everything every 10 minutes into `pb/pb_data/backups/`, keeping the newest 20 (about 3 hours).
+- **To restore one:**
+  1. Log in to the PocketBase console (`http://<laptop>:8090/_/`) with the superuser.
+  2. Go to *Settings → Backups*.
+  3. Pick a backup and choose *Restore*. PocketBase restarts with that data.
+- **Admin says it can't reach the database.** PocketBase has stopped. Run `start.ps1` again; your data is safe in `pb/pb_data`.
 
 ## Development
 

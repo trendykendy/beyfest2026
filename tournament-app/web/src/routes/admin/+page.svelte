@@ -287,7 +287,9 @@
       <div>
         <h2>Danger zone</h2>
         <p>Reset deletes this tournament and every result. It can't be undone.</p>
+        <p>Backups are saved automatically every 10 minutes. Download a copy of the results to keep somewhere else too.</p>
       </div>
+      <a class="btn" href="/admin/export" download>Download results</a>
       <form method="POST" action="?/reset" use:enhance={() => async ({ update }) => { if (confirm("Delete this tournament and all results? This cannot be undone.")) await update(); }}>
         <button class="btn danger" type="submit">Reset tournament</button>
       </form>
@@ -678,6 +680,12 @@
     margin-top: 56px;
     padding: 18px 22px;
     border: 2px dashed var(--red);
+  }
+  .danger-zone > div {
+    flex: 1;
+  }
+  .danger-zone .btn {
+    white-space: nowrap;
   }
   .danger-zone h2 {
     font-size: 1.4rem;
