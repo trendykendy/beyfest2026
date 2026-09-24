@@ -62,19 +62,19 @@ a876ea8 tv match centre: animated round-win call-out that settles as a finish pi
 
 ## Start here next session (raised by the user at end of day 1)
 
-A. **The champion name's last letter is cut off** on the TV Champion scene.
-   - Likely cause: `.big-slab > span` in `routes/tv/+page.svelte` has `overflow: hidden` + `text-overflow: ellipsis`, and the italic display face's last letter overhangs its box.
-   - `.gs-name` fixed the same problem with `padding-right` for the italic overhang; try that, and check that long names still fit.
-   - Check the standby "BEYFEST 2026" slab and the Match centre names (`.mc-name`) too.
+A–C from end of day 1 are **done** (day 2):
 
-B. ~~Group table showed 3 after the first game~~: **resolved, not a bug.** It was a 5–2 result, and the **+/−** (point difference) column correctly showed +3.
-   - Optional follow-up: the user misread +/− as points, so spectators probably will too. Consider a clearer header ("Point diff." or "Margin") or de-emphasising the column. Ask the user before changing it.
+- A. Champion name clipping: `24e78ff` pads `.big-slab > span` by `0.1em` each side. Long names still end in "…" rather than overflowing.
+- B. The +/− header is now **"Point diff."** on the TV (wraps to two lines) and on the public page's `GroupCard`: `204d36d`.
+- C. Match centre keeps **one pill per round won** under each card, oldest first, at the VS end: `27ab2f1`.
+  - It steps down in size past 4 and 7 pills, and `.mc-duel` reserves room for two rows.
+  - The Winner chip is now the first item in the same row (`sideFoot` snippet).
+  - Pills only show while live, because `load.ts` blanks `liveLog` once a match is done.
+  - Possible follow-up: keep the round recap on the Result screen. That needs `load.ts` to stop blanking `liveLog`.
 
-C. **Persistent score pills on Match centre.** Today only the latest finish pill shows under the scoring side's card. The user wants pills to persist.
-   - **Confirm with the user first:** the likely meaning is one pill per round won, stacking up under each player's card for the whole match (e.g. Spin +1, Knockout +2, …). The alternative is simply keeping each side's latest pill visible instead of only the most recent overall.
-   - Data is already there: `matches.liveLog` holds every round as `{who, finish}`. The animation logic is in `routes/tv/+page.svelte`, from Agent A's commit `a876ea8`.
-   - The call-out should still fly into the newest pill's slot.
-   - Mind the space: a first-to-9 Grand Final can mean many pills, so plan wrapping or compaction.
+Remaining: step 5 (public display) and step 6 (Mac + Pi launchers). Step 4 is still on hold.
+
+Test helper worth recreating: a small script that PATCHes a live match's `liveP1/liveP2/liveLog` as the organiser, then screenshots Match centre. Add the last round while the page is open to catch the call-out.
 
 ## Known issues / to do
 
