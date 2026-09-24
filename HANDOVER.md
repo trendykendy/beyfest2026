@@ -101,7 +101,7 @@ Nothing is half-done. Ask the user what's next. Candidates, most useful first:
 1. **A dress rehearsal on the real hardware**, whenever the Mac and the TV (and Pi) are available.
    - Run `scripts/rehearsal.ts` against a **test** data folder; it resets the database it talks to.
    - Watch the TV through a whole event, and pull the network cable once to see it recover.
-2. **Try the Pi installer on the real Pi** (README "On a Raspberry Pi"). Next planned: **wifi setup + hotspot fallback** (add networks at install and with a `beyfest-wifi` command; venue wifi first, the Pi's own hotspot if none connects; the TV standby shows which network to join). Then also try the Mac launcher (README "On a Mac (backup setup)"). See known issue 3.
+2. **Try the Pi installer on the real Pi** (README "On a Raspberry Pi"). Include the wifi: add the home network during install, then switch the router off (or take the Pi out of range) and check that the "Beyfest" hotspot appears after about a minute, the Mac can join it, `http://beyfest.local/admin` opens, and the TV standby shows the hint. `beyfest-wifi auto` then goes back. Then also try the Mac launcher (README "On a Mac (backup setup)"). See known issue 3.
 3. **Before the event:** change the default logins (known issue 7). Then merge the branch into `main` and tag it.
 4. **Smaller polish:**
    - the 8-player bracket headings and lines (known issue 4)
@@ -130,6 +130,14 @@ Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point 
      - `BEYFEST_CHANNEL` picks the release (default `redesign-tournament-app`; switch the default to `main` after merging). `BEYFEST_PKG_URL` overrides it, for testing.
      - Tested in a throwaway Debian 13 WSL distro with systemd, using an amd64 package: first install (password checks: short and mismatch), pages on port 80, new passwords work and old ones are refused, an update keeps the data, no prompts on update, kill -9 recovery, `--passwords`, `--no-kiosk`, starting at boot, and the kiosk on :80.
      - **Not tested:** real Raspberry Pi OS (raspi-config steps), a Pi 3's speed and memory with Chromium, whether the labwc/wayfire session runs the XDG autostart entry, and `beyfest.local` from the Mac.
+   - **Wifi + hotspot fallback (day 3):** `scripts/beyfest-wifi.sh` (linked as the `beyfest-wifi` command), using NetworkManager/nmcli.
+     - Networks added by the installer (first install or `--wifi`) or with `beyfest-wifi add` become NM profiles `beyfest-wifi-<ssid>` (autoconnect, priority 10).
+     - `beyfest-hotspot` is an AP-mode profile: SSID "Beyfest", 2.4 GHz, WPA2/CCMP, `ipv4.method shared` (dnsmasq-base), autoconnect off.
+     - `beyfest-network.service` (root) runs `beyfest-wifi.sh watch`. Every 10s it writes `/run/beyfest/network.json` and brings the hotspot up after ~60s with no connected wifi or ethernet. It never leaves the hotspot by itself (`beyfest-wifi auto` does).
+     - The web service gets `BEYFEST_NETWORK_FILE`; `web/src/lib/server/network.ts` reads it, and the TV standby shows "Join wifi X · Live results beyfest.local (ip) · Organiser beyfest.local/admin", or "On the venue network" on a cable. No file (Windows/Mac/dev) means nothing is shown.
+     - The installer sets the wifi country to IE if it's empty. Added `@types/node` (dev) to web.
+     - Tested in a throwaway Debian 13 + NetworkManager WSL distro, with no wifi chip (`BEYFEST_WIFI_DEVICE=wlan0` override): the installer's wifi prompts, profile settings, open vs WPA networks, list/remove/status and the error paths, the watcher's fallback attempt after ~60s, ethernet mode on the TV, an update keeping the profiles, and all 3 services after a restart. The TV hint was screenshotted in headless Edge at 1920×1080.
+     - **Not tested:** the hotspot actually broadcasting on a Pi 3 and a Mac/phone joining it and resolving beyfest.local; joining real venue wifi.
    - **Pi package (day 3):** `.github/workflows/pi-package.yml` runs `tournament-app/scripts/pi-package.sh` on every push to `main` or `redesign/tournament-app`. That runs the tests, builds, and bundles `beyfest-pi-arm64.tar.gz` (built app + the `pocketbase` SDK, the only runtime package, + PocketBase linux-arm64 + migrations + start.sh + VERSION). It's published as a rolling prerelease tagged `pi-<branch>`, e.g. `pi-redesign-tournament-app`. Tested in WSL: it runs from the package with Node 18 alone (the Raspberry Pi OS version, no Bun). `start.sh` now needs Bun only to install or build.
 4. **The 8-player (double-elimination) bracket:**
    - Its round headings aren't covered by `roundName()` yet ("UPPER BRACKET — QUARTERFINALS").

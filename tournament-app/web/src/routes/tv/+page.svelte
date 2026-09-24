@@ -421,6 +421,17 @@
         <div class="finale-title">Triple Threat</div>
         <div class="finale-sub">{EVENT.date}, {EVENT.place}</div>
         <div class="finale-note">The groups are drawn once everyone has checked in.</div>
+        {#if data.network}
+          {@const n = data.network}
+          <!-- Only on the Raspberry Pi: how to reach the app on the day. -->
+          <div class="join">
+            <span class="join-step"><span>
+              {#if n.mode === "ethernet"}On the venue network{:else}Join wifi <b>{n.ssid}</b>{/if}
+            </span></span>
+            <span class="join-step"><span>Live results <b>{n.host}</b>{#if n.ip}<span class="join-ip">({n.ip})</span>{/if}</span></span>
+            <span class="join-step"><span>Organiser <b>{n.host}/admin</b></span></span>
+          </div>
+        {/if}
       </div>
 
     {:else if scene === "groups"}
@@ -1472,6 +1483,34 @@
     font-weight: 500;
     font-size: 1.7rem;
     color: var(--on-field-soft);
+  }
+  /* Standby only, on the Pi: which wifi to join and where to go. */
+  .join {
+    display: flex;
+    gap: 18px;
+    margin-top: 10px;
+  }
+  .join-step {
+    background: var(--ink);
+    color: var(--paper);
+    border: 3px solid var(--paper);
+    padding: 8px 22px;
+    font-family: var(--font-text);
+    font-weight: 500;
+    font-size: 1.6rem;
+    transform: skewX(-10deg);
+  }
+  .join-step > span {
+    display: block;
+    transform: skewX(10deg);
+  }
+  .join-step b {
+    color: var(--gold);
+    font-weight: 800;
+  }
+  .join-ip {
+    color: var(--on-field-soft);
+    margin-left: 0.4em;
   }
 
   /* Operator bar */

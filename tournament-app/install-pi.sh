@@ -9,6 +9,7 @@
 # Run the same command again at any time to update. It keeps the tournament
 # data and backups; only the app is replaced. Options (add after "bash -s --"):
 #   --passwords   set new organiser and PocketBase admin passwords
+#   --wifi        add wifi networks and set a new hotspot password
 #   --no-kiosk    don't open the TV screen on this Pi (server only)
 #
 # What it sets up:
@@ -17,6 +18,8 @@
 #   beyfest-pb.service, beyfest-web.service   start at boot, restart if they crash
 #   hostname "beyfest", so admin is http://beyfest.local/admin
 #   desktop auto-login, no screen blanking, the TV page full-screen at login
+#   wifi: the networks you add, and a fallback "Beyfest" hotspot when none
+#     connects (beyfest-network.service); manage them later with `beyfest-wifi`
 # ─────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -37,10 +40,12 @@ fail() {
 }
 
 set_passwords=false
+set_wifi=false
 kiosk=true
 for arg in "$@"; do
   case "$arg" in
     --passwords) set_passwords=true ;;
+    --wifi) set_wifi=true ;;
     --no-kiosk) kiosk=false ;;
     *) fail "Unknown option $arg" ;;
   esac
@@ -55,11 +60,19 @@ command -v systemctl >/dev/null 2>&1 || fail "systemd is needed (Raspberry Pi OS
 
 first_install=false
 [[ -d "$data" ]] || first_install=true
-if $first_install; then set_passwords=true; fi
+if $first_install; then
+  set_passwords=true
+  set_wifi=true
+fi
+
+# Wifi is managed with NetworkManager (standard since Raspberry Pi OS Bookworm).
+has_nm=false
+if command -v nmcli >/dev/null 2>&1; then has_nm=true; fi
+$has_nm || set_wifi=false
 
 # Questions are read from the terminal, because the script itself arrives on
 # stdin when it's run as "curl … | bash".
-if $set_passwords; then
+if $set_passwords || $set_wifi; then
   [[ -r /dev/tty ]] || fail "Passwords have to be typed in, so run this from a terminal."
 fi
 
@@ -93,12 +106,40 @@ if $set_passwords; then
   superuser_pw="$REPLY"
 fi
 
+wifi_names=()
+wifi_passwords=()
+if $set_wifi; then
+  say "Wifi. Add every network the Pi might need (home, venue, a phone hotspot…)."
+  echo "  It joins whichever is in range. Press Enter on an empty name to finish."
+  echo "  (A Pi 3 model B only sees 2.4 GHz networks.)"
+  while true; do
+    read -rp "  Wifi network name: " name </dev/tty
+    [[ -n "$name" ]] || break
+    while true; do
+      read -rsp "  Its password (Enter if it has none): " pw </dev/tty
+      echo
+      [[ -z "$pw" || ${#pw} -ge 8 ]] && break
+      echo "  Wifi passwords are at least 8 characters, try again."
+    done
+    wifi_names+=("$name")
+    wifi_passwords+=("$pw")
+  done
+  say "If none of those networks connects, the Pi makes its own wifi called \"Beyfest\"."
+  while true; do
+    read -rsp "  Password for the Beyfest wifi (at least 8 characters): " hotspot_pw </dev/tty
+    echo
+    ((${#hotspot_pw} >= 8)) && break
+    echo "  Too short, try again."
+  done
+fi
+
 sudo -v || fail "sudo is needed to install."
 
 # ── System packages ─────────────────────────────────────────────────
 say "Installing system packages (this can take a few minutes on a Pi 3)…"
 sudo apt-get update -qq
 pkgs=(nodejs curl avahi-daemon)
+if $has_nm; then pkgs+=(dnsmasq-base); fi # hands out addresses on the hotspot
 if $kiosk && ! command -v chromium-browser >/dev/null 2>&1 && ! command -v chromium >/dev/null 2>&1; then
   # The package name differs between Raspberry Pi OS releases (chromium-browser
   # on Bookworm, chromium on Trixie). Pick the one that can actually be installed.
@@ -163,6 +204,8 @@ Wants=beyfest-pb.service
 [Service]
 User=$USER
 Environment=HOST=0.0.0.0 PORT=$web_port
+# Written by beyfest-network.service; the TV's standby screen shows it.
+Environment=BEYFEST_NETWORK_FILE=/run/beyfest/network.json
 # Lets the app use port 80 without running as root.
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 ExecStart=$(command -v node) $app/web/build/index.js
@@ -221,6 +264,45 @@ JS
   unset organiser_pw superuser_pw
 fi
 
+# ── Wifi: known networks, the fallback hotspot, and the watcher ───────
+if $has_nm; then
+  sudo ln -sf "$app/beyfest-wifi.sh" /usr/local/bin/beyfest-wifi
+  # Raspberry Pi OS keeps wifi switched off until a country is set.
+  if command -v raspi-config >/dev/null 2>&1 &&
+    [[ -z "$(sudo raspi-config nonint get_wifi_country 2>/dev/null)" ]]; then
+    sudo raspi-config nonint do_wifi_country IE
+  fi
+  if $set_wifi; then
+    say "Setting up wifi…"
+    for i in "${!wifi_names[@]}"; do
+      WIFI_SSID="${wifi_names[$i]}" WIFI_PASSWORD="${wifi_passwords[$i]}" "$app/beyfest-wifi.sh" add
+    done
+    HOTSPOT_PASSWORD="$hotspot_pw" "$app/beyfest-wifi.sh" setup-hotspot
+    unset wifi_passwords hotspot_pw
+  fi
+  sudo tee /etc/systemd/system/beyfest-network.service >/dev/null <<UNIT
+[Unit]
+Description=Beyfest wifi: status for the TV, and the hotspot when no network connects
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+ExecStart=$app/beyfest-wifi.sh watch
+Restart=always
+RestartSec=5
+RuntimeDirectory=beyfest
+RuntimeDirectoryPreserve=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  sudo systemctl daemon-reload
+  sudo systemctl enable beyfest-network >/dev/null 2>&1
+  sudo systemctl restart beyfest-network
+else
+  say "NetworkManager isn't installed (older Raspberry Pi OS?), so wifi setup and the hotspot were skipped."
+fi
+
 # ── Raspberry Pi OS settings: name, auto-login, no blanking ──────────
 reboot_needed=false
 if command -v raspi-config >/dev/null 2>&1; then
@@ -263,6 +345,7 @@ echo "  TV screen       : http://beyfest.local/tv"
 echo "  PocketBase admin: http://beyfest.local:8090/_/  (backups, restores)"
 echo "  Logins          : $organiser_email / $superuser_email"
 echo "  Data + backups  : $data"
+if $has_nm; then echo "  Wifi            : beyfest-wifi list | add | status | hotspot | auto"; fi
 echo "  ------------------------------------------------------------"
 
 if ! $first_install; then

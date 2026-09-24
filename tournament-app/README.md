@@ -56,7 +56,35 @@ data and backups (in `/opt/beyfest/data`) are kept, and the previous app is kept
 `/opt/beyfest/app.previous`. Options go after `bash -s --`, e.g. `… | bash -s -- --passwords`:
 
 - `--passwords` sets new passwords.
+- `--wifi` adds wifi networks and sets a new hotspot password.
 - `--no-kiosk` runs the Pi as a server only, without the TV screen.
+
+#### Wifi, and the fallback hotspot
+
+On the first install (or with `--wifi`) the installer asks for every wifi network the
+Pi might need: home, the venue, a phone hotspot. The Pi joins whichever is in range,
+or uses a network cable if one is plugged in.
+
+**If nothing connects for about a minute, the Pi makes its own wifi called "Beyfest"**,
+with the password you chose. Join it from the Mac (and phones), then open
+`http://beyfest.local/admin`. Nothing needs the internet. The TV's waiting screen
+shows which wifi to join and the addresses, so nobody has to remember them.
+
+Once on its hotspot, the Pi stays on it until you run `beyfest-wifi auto` or restart it,
+so nobody gets dropped mid-event. On the Pi (a keyboard, or SSH):
+
+```sh
+beyfest-wifi status          # what it's connected to, and its address
+beyfest-wifi list            # the networks it knows
+beyfest-wifi add "Hall wifi" # add one (asks for the password)
+beyfest-wifi remove "Hall wifi"
+beyfest-wifi hotspot         # switch to the Beyfest hotspot now
+beyfest-wifi auto            # leave the hotspot and try the known networks again
+```
+
+A Pi 3 model B only sees 2.4 GHz networks (the 3B+ sees 5 GHz too). If the venue
+wifi is 5 GHz only, the hotspot takes over by itself. The installer sets the wifi
+country to Ireland if it isn't set, because Raspberry Pi OS keeps wifi off until it is.
 
 GitHub builds the package the installer downloads on every push (see
 `.github/workflows/pi-package.yml` and `scripts/pi-package.sh`).
@@ -182,6 +210,7 @@ tournament-app/
   start.command          double-click wrapper for start.sh on a Mac
   install-pi.sh          Raspberry Pi: install or update everything (see above)
   scripts/pi-kiosk.sh    Raspberry Pi: TV screen full-screen in Chromium
+  scripts/beyfest-wifi.sh  Raspberry Pi: wifi networks + fallback hotspot (the `beyfest-wifi` command)
   scripts/pi-package.sh  builds the ready-to-run Pi package (GitHub runs it)
   engine/                pure-TS tournament logic + tests
   pb/                    PocketBase binary + migrations (pb_data is runtime)
