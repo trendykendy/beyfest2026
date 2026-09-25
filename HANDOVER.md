@@ -1,33 +1,153 @@
-# Handover: tournament app redesign
+# Handover: Beyfest tournament app
 
-Written 24 September 2026 (day 1), rewritten at the end of day 2, updated day 3 (25 September). Read this first, then `CLAUDE.md`.
+Rewritten at the end of day 3 (25 September 2026). Read this first, then `CLAUDE.md` and `tournament-app/README.md`. The event is **7 November 2026** in Innishannon.
 
 ## Where things stand
 
-The tournament app (`tournament-app/`) is being redesigned because the old look read as AI-generated.
+- **Everything is merged into `main`** (merge commit `856782b`, PR #1). Work from `main`, on a new branch per task; don't commit to `main` directly. The old `redesign/tournament-app` branch is finished.
+- **The repo is public:** https://github.com/trendykendy/beyfest2026. Its history was rewritten on day 3 (before the first push) to drop deleted images and `refimages/`. All commit IDs in this file are the new ones.
+- **The app is feature-complete for the event:**
+  - the redesign (TV, admin)
+  - the day 2 event-day features
+  - day 3's polish
+- **The Raspberry Pi is the main setup.** It runs the app, the database and the TV screen. The organiser uses admin from the Mac (or any device) at `http://beyfest.local/admin`. The Mac (`start.sh`) and Windows (`start.ps1`) launchers are the backups.
+- **None of the Pi or Mac setup has run on real hardware yet.** It was tested in throwaway Debian/Ubuntu systems in WSL. That test is the next job.
+- **Nothing is half-done.** GitHub's `pi-main` package is built from `856782b`.
 
-- **The TV and admin are finished** and tested in Edge on Windows. Admin hasn't been tried on a real Mac yet.
-- **All five event-day improvements the user picked are built:** fix a result, resilience, finish stats and awards, Let it rip, and walkovers/withdraw/rename. See "Day 2 improvements".
-- The **points-to-win rule** was corrected; see "Points to win".
-- **Parked by the user:** step 5, the public page for phones (plan ready below).
-- **Day 3:** the Raspberry Pi is now the main setup. There's a one-command installer (`install-pi.sh`) and a GitHub-built Pi package, with wifi plus a fallback "Beyfest" hotspot. The Mac launcher is the backup. All of it is **untested on real hardware**; see known issue 3. The day's polish list is done too (known issues 1 and 4–8).
-- **The repo is public** at https://github.com/trendykendy/beyfest2026. Its history was rewritten on day 3 to drop deleted images and `refimages/` (commit IDs here are the new ones).
+| Area | Status |
+|---|---|
+| Design, TV scenes, TV control, admin redesign | Done |
+| Day 2 event-day features (fix a result, resilience, awards, Let it rip, walkovers) | Done |
+| Pi installer, Pi package, wifi + hotspot fallback | Done. **Needs the real-Pi test** |
+| Mac / Windows launchers (backup) | Done. Mac untested on a real Mac |
+| Day 3 polish (the old known-issues list) | Done |
+| Phone view of the public page (`/`) | **Parked** by the user (low priority); plan under "Phone view" |
+| Version tag | Not yet: tag whatever passes the Pi test |
 
-**Day 3: merged into `main`** through a pull request, with a merge commit, so the commit IDs below still hold. `main` is now the branch to work from; the installer and the Pi package use `main` (release `pi-main`).
+## Start here tomorrow
 
-| Step | What | Status |
-|---|---|---|
-| 1 | Design foundation (fonts, colours, no photo/glow/emoji) | Done |
-| 2 | Rebuild all TV scenes | Done |
-| 3 | TV control: auto-rotate, cut to live scores, admin lock | Done |
-| – | Match centre round-win animation, bracket line routing | Done |
-| 4 | Admin redesign | Done (day 2). Still to check on a real Mac |
-| 5 | Public display (`/`) for phones | **Parked (low priority).** Audit and plan under "Phone view" |
-| 6 | Mac + Pi launchers | Written day 3: `start.sh`, `start.command`, `scripts/pi-kiosk.sh`. Tested in WSL Ubuntu only |
-| – | Day 2 improvements 1–5 | Done |
-| – | Points to win: first to 7 only on the main path | Done |
+Ask the user whether the Pi is available. If it is, walk them through this (full instructions in the README, "On a Raspberry Pi"):
 
-### Commits on `redesign/tournament-app` (oldest first)
+1. **Flash the SD card** with Raspberry Pi Imager: **Raspberry Pi OS (64-bit) with desktop**. Set a username, and enable SSH if they want to run it from the Mac. The user thinks it's a Pi 3 (memory unknown).
+2. **Run the installer** in a terminal on the Pi:
+   `curl -fsSL https://raw.githubusercontent.com/trendykendy/beyfest2026/main/tournament-app/install-pi.sh | bash`
+   - Choose the passwords, add the home wifi, and set a hotspot password. Say yes to the restart.
+3. **After the restart,** check:
+   - The TV comes up full-screen by itself.
+   - `http://beyfest.local/admin` opens from the Mac.
+   - The standby screen shows the "Join wifi / Live results / Organiser" line.
+4. **Hotspot test:**
+   - Switch the router off (or take the Pi out of range). After about a minute a "Beyfest" wifi should appear.
+   - The Mac joins it. `beyfest.local/admin` opens (or `http://10.42.0.1/admin`), and the TV hint changes to "Join wifi Beyfest".
+   - `beyfest-wifi auto` goes back to the home wifi.
+5. **Rehearsal:** play a tournament through (by hand, or `scripts/rehearsal.ts` against a **test** database, since it resets whatever it talks to). Watch whether the Pi 3 keeps up with Chromium. Pull the network once to see the TV's "Reconnecting" mark and recovery.
+6. **If it all passes:** tag it (`git tag v1.0 && git push --tags`) so there's a known-good version for the day.
+
+**Likely snags on the real Pi, and where to look:**
+- **The TV doesn't open at login.** The kiosk uses an XDG autostart entry (`~/.config/autostart/beyfest-tv.desktop`), and it's unconfirmed whether the Pi's labwc/wayfire session runs it. The fallback is labwc's own autostart file.
+- **Wifi or the hotspot does nothing.** Check `beyfest-wifi status`, `journalctl -u beyfest-network`, and that a wifi country is set (the installer sets IE if it's empty).
+- **The app doesn't answer.** Run `systemctl status beyfest-web beyfest-pb` and `journalctl -u beyfest-web -u beyfest-pb -n 50`.
+- **A Pi 3 is too slow with Chromium.** Options: a Pi 4, or the Mac runs the app and the Pi is only the TV (`pi-kiosk.sh --install <mac>.local`).
+
+If the Pi isn't available, candidates: the phone view (only if the user asks), or anything the user brings.
+
+## How the event setup works (day 3)
+
+**The Pi installer, `tournament-app/install-pi.sh`,** is run as `curl … | bash`. Its questions are read from `/dev/tty`.
+- **Folders:** the app lives in `/opt/beyfest/app`, which is replaced on every update, with the previous one kept as `app.previous`. The data and backups live in `/opt/beyfest/data`, which is never touched.
+- **Services:**
+  - `beyfest-pb`: PocketBase on :8090.
+  - `beyfest-web`: Node on **port 80**, via `CAP_NET_BIND_SERVICE`.
+  - `beyfest-network`: the wifi watcher, running as root.
+  - All three restart themselves if they crash. The first two run as the installing user.
+- **Passwords:** asked on the first install, or with `--passwords`. The organiser password is set through the PocketBase API as the superuser.
+- **Pi settings,** through raspi-config:
+  - hostname `beyfest`
+  - desktop auto-login (B4)
+  - blanking off
+  - wifi country IE if it's unset
+  - plus the kiosk autostart entry
+- **Options:** `--passwords`, `--wifi`, `--no-kiosk`. `BEYFEST_CHANNEL` picks the release (default `main`). `BEYFEST_PKG_URL` overrides the download, for testing.
+- **Updating:** run the same command again. It keeps the data, the wifi profiles and the passwords, and offers a restart so the TV loads the new code.
+
+**The Pi package:** `.github/workflows/pi-package.yml` runs `tournament-app/scripts/pi-package.sh` on every push to `main`.
+- It runs the tests, builds, and bundles `beyfest-pi-arm64.tar.gz`, containing:
+  - the built app, plus the `pocketbase` SDK, its only runtime package
+  - PocketBase linux-arm64
+  - the migrations
+  - `start.sh`, `pi-kiosk.sh`, `beyfest-wifi.sh`, `scripts/set-organiser-password.mjs`
+  - `VERSION`
+- It's published as the rolling prerelease `pi-main`. The Pi only needs Node from Raspberry Pi OS, with no Bun and no build (a Pi 3 can't build).
+- `pi-package.sh` copies the SDK with `cp -L` because Bun stores it as a symlink.
+
+**Wifi, `scripts/beyfest-wifi.sh`** (the `beyfest-wifi` command), using NetworkManager:
+- **Known networks:** NM profiles named `beyfest-wifi-<ssid>`, with autoconnect at priority 10.
+- **The hotspot:** `beyfest-hotspot`, in access-point mode. SSID "Beyfest", 2.4 GHz, WPA2/CCMP, shared IPv4 (address 10.42.0.1), autoconnect off.
+- **The watcher** (`watch`, run by the service):
+  - Every 10s it writes `/run/beyfest/network.json`.
+  - It starts the hotspot after ~60s with no wifi or cable.
+  - It never leaves the hotspot by itself; `beyfest-wifi auto` does.
+- **The TV hint:** the web service reads that file through `BEYFEST_NETWORK_FILE` (`web/src/lib/server/network.ts`), and the TV standby shows the join line. Off the Pi there's no file, so nothing is shown.
+
+**Addresses:**
+- The browser connects to PocketBase at port 8090 on whatever host served the page (`browserPbUrl()` in `web/src/lib/config.ts`). The server always uses 127.0.0.1.
+- So an IP change, `beyfest.local` or the hotspot all work without setting `PUBLIC_PB_URL`, which is now only an override.
+
+**Backup launchers:** `start.sh` (+ `start.command` to double-click on the Mac) and `start.ps1` (Windows).
+- On a new database they ask for the passwords (`scripts/set-organiser-password.mjs` sets the organiser's). With no keyboard, they keep the dev defaults and warn in the banner.
+- `start.sh` downloads the right PocketBase on first run, and needs Bun only to install or build.
+- `pi-kiosk.sh --install <mac>.local` makes a Pi into just the TV for a Mac-hosted app.
+- `.gitattributes` keeps `*.sh`/`*.command` LF, and git stores them as executable.
+
+## Still untested / open
+
+- **On a real Pi:**
+  - the raspi-config steps
+  - the kiosk autostart under labwc/wayfire
+  - Chromium's speed and memory on a Pi 3
+  - the hotspot broadcasting, and a Mac or phone joining it
+  - `beyfest.local` from the Mac
+  - joining real venue wifi
+- **On a real Mac:**
+  - `start.sh`'s IP detection (`route`/`ipconfig getifaddr`)
+  - the Gatekeeper and firewall prompts
+  - the admin page in Safari
+- **Duplicated code:** the installer has its own copy of the organiser-password code (the same logic as `scripts/set-organiser-password.mjs`). It could use the shared script now that it's in the package; left alone because the installer's version is tested.
+- **Android and `.local`:** older Android phones may not resolve `.local` names. The TV hint shows the IP as well.
+
+## Day 3 commits (on `main`)
+
+```
+e9b1478 Mac and Pi launchers: start.sh, start.command, pi-kiosk.sh
+cfa55b5 browser finds PocketBase from the page's own address
+70fcb9e GitHub builds a ready-to-run Pi package on every push
+6bfc852 Raspberry Pi installer: install-pi.sh
+02f8983 Pi wifi: known networks, fallback hotspot, network hint on the TV
+983441d walkovers: a win with no points in the tables
+8b849d8 svelte config: trustedOrigins instead of deprecated checkOrigin
+cb3402b TV: 8-player bracket as upper and lower rows, with proper round names
+d145844 TV: finish call-out never covers the LIVE line
+fc75bf2 "Score this" tells the TV: Up next shows the picked match
+ee09477 sample data: live match has a round log matching its score
+66811f8 launchers ask for passwords on a new database, like the Pi installer
+2e7d0ee point the installer, README and Pi package at main
+856782b Merge: tournament app redesign, Raspberry Pi setup and event-day features
+```
+
+**Day 3 fixes, in detail:**
+1. **Walkovers** count as a **win with no points** in the tables (the user's choice). The match is still stored as target–0. `computeStandings` skips points when `match.walkover`, a Fix turns it into a played result, and `engine/test/walkover.test.ts` pins the rule.
+2. **8-player bracket:** `roundName()` names the double-elimination rounds ("Upper bracket quarter-finals"). The TV draws two rows (upper and lower) with the Grand Final at the end, and only winner lines; the plates already say "Loser of QF1". Other sizes are unchanged.
+3. **Finish call-out:**
+   - It overlapped LIVE during the slam-in and the hold (a 172px slab in a 152px gap).
+   - It now hangs from `.mc-status`, bottom-anchored 24px above it, at 6.75rem, with a softer overshoot.
+   - Measured at 1/10 speed: it stays ≥9px clear.
+4. **"Score this":** it saves the pick to `tv_state.next` (migration 900, admin action `pick`). The TV's Up next and Match centre put it first, admin keeps it after a reload, and Reset clears it.
+5. **Logins:** every launcher and the installer ask for passwords on a new database. The migrations still seed the dev defaults (`.env.example`).
+6. **Smaller:**
+   - `csrf.trustedOrigins: ["*"]` replaces the deprecated `checkOrigin`, with the same behaviour; a login from a foreign Origin was checked.
+   - `midgroup.ts` writes a round log matching its 3–2.
+
+### Earlier commits (days 1–2, oldest first)
 
 ```
 de55722 move public website into public-site folder
@@ -62,10 +182,6 @@ f7d9f5d admin: fix a recorded result, re-routing the next round when the winner 
 ```
 (handover-only commits left out)
 
-Two commits could go onto `main` by themselves before the redesign merges, if wanted:
-- `ebd2b7b`: a real bug fix. Group tables counted knockout rematches between group-mates.
-- `b5aa719`: the points-to-win rule fix.
-
 ## Design decisions (agreed with the user)
 
 - **Direction:** Japanese Beyblade tournament broadcast. White "telop" slabs with heavy black outlines and **hard** offset shadows (no blur), diagonal cuts, on an ultramarine background with static diagonal speed lines. Katakana accents above scene titles.
@@ -78,7 +194,7 @@ Two commits could go onto `main` by themselves before the redesign merges, if wa
   - Fonts are self-hosted in `web/static/fonts`, since the app must run offline.
 - **Pi-friendly:** only `transform`/`opacity` animation, no filters/blur/glow, no photos, no emoji (Raspberry Pi OS has no colour emoji font; use `components/Trophy.svelte`).
 - **Words:** plain language on screen ("Mid bracket round 2", not "Phase 4 — MB R2"). Use `roundName()` and `slotLabel()` in `web/src/lib/view.ts`.
-- **Hardware:** the TV screens are 16:9 at the venue and will eventually run on a Raspberry Pi; admin runs on a Mac. **The Pi's role is undecided** (TV browser only, or the whole server), so keep both working.
+- **Hardware:** the TV is 16:9 at the venue. **Decided day 3:** the Pi runs everything (server + TV), and the Mac is an admin browser; the Mac launcher is the backup. Keep TV scenes light for a Pi 3.
 
 ## How the TV works now
 
@@ -90,58 +206,10 @@ Two commits could go onto `main` by themselves before the redesign merges, if wa
   4. auto rotation: groups 25s, rr 20s, bracket 25s, spotlight 15s, awards 20s, champion 30s
 
   The logic is in `web/src/routes/tv/+page.svelte`.
-- **Admin control:** the "TV screen" panel writes the `tv_state` record (migration 300), and the TV follows it live. Reset puts it back to Auto.
+- **Admin control:** the "TV screen" panel writes the `tv_state` record (migration 300), and the TV follows it live. Reset puts it back to Auto. `tv_state.next` (migration 900) holds the "Score this" pick.
 - **Round log:** `matches.liveLog` is a list of `{who, finish}` (migration 400). It drives the round-win call-out and the finish pills, and it's kept after the match for the Result recap and Awards.
 - **Start match:** stamps `matches.startedAt` (migration 700), which cues the launch countdown.
 - **Live updates:** all three pages use `liveUpdates()` from `lib/pbBrowser.ts`, which checks `/ping` before every refresh. The TV shows a "Reconnecting" mark bottom-left while it can't reach the server.
-
-## Start here next session
-
-Nothing is half-done. Ask the user what's next. Candidates, most useful first:
-
-1. **A dress rehearsal on the real hardware**, whenever the Mac and the TV (and Pi) are available.
-   - Run `scripts/rehearsal.ts` against a **test** data folder; it resets the database it talks to.
-   - Watch the TV through a whole event, and pull the network cable once to see it recover.
-2. **Try the Pi installer on the real Pi** (README "On a Raspberry Pi"). Include the wifi: add the home network during install, then switch the router off (or take the Pi out of range) and check that the "Beyfest" hotspot appears after about a minute, the Mac can join it, `http://beyfest.local/admin` opens, and the TV standby shows the hint. `beyfest-wifi auto` then goes back. Then also try the Mac launcher (README "On a Mac (backup setup)"). See known issue 3.
-3. **Tag** the version that passes the Pi rehearsal (e.g. `git tag v1.0 && git push --tags`). It isn't tagged yet on purpose.
-4. **Step 5, the phone view:** only if the user asks.
-
-Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point diff." header `825f6f7`, and one finish pill per round `567884d`.
-
-## Known issues / to do
-
-1. ~~**"Score this" and the TV**~~ fixed day 3: "Score this" now saves the pick to `tv_state.next` (migration 900, admin action `pick`). The TV's "Up next" and Match centre put that match first, and admin keeps the pick after a reload. Reset clears it. A finished or live pick is ignored.
-2. **Step 5,** the public display: parked. See "Phone view" below.
-3. **Step 6, launchers (written day 3, not yet run on a Mac or Pi).**
-   - `start.sh` (+ `start.command` for double-click) is the macOS/Linux twin of `start.ps1`. On first run it downloads PocketBase 0.40.4 for the OS/CPU into `pb/pocketbase` (gitignored), runs `bun install` and the build, and on a fresh `pb_data` creates the default superuser. It prints the LAN addresses (override with `BEYFEST_IP`).
-   - Day 3: the launchers no longer set `PUBLIC_PB_URL`. The browser now uses port 8090 on whatever host served the page (`browserPbUrl()` in `web/src/lib/config.ts`), and the server always uses 127.0.0.1. So an IP change, `beyfest.local` or the Pi's hotspot all just work. Checked in headless Edge: the TV opened via 10.0.1.15 connects realtime to 10.0.1.15:8090, and via localhost to localhost:8090.
-   - `scripts/pi-kiosk.sh [--install] [host]` waits for `/ping`, then opens `/tv` in Chromium kiosk mode; `--install` adds an XDG autostart entry.
-   - Tested in WSL Ubuntu (x86_64): first-run download/install/build, both logins, LAN address, Ctrl+C and SIGTERM stopping both servers, kiosk wait and launch (with a stub Chromium).
-   - **Not tested:** the macOS IP detection (`route`/`ipconfig getifaddr`), Gatekeeper and firewall prompts, the arm64 builds, real Chromium on the Pi, and whether labwc on the Pi honours the XDG autostart entry.
-   - `.gitattributes` forces LF on `*.sh`/`*.command`, and git stores them as executable.
-   - **Pi installer (day 3):** `tournament-app/install-pi.sh`, run as `curl … | bash` (the URL is in the README). The Pi is now the **main setup**: it runs everything, and the Mac is only an admin browser; the Mac launcher is the backup.
-     - It puts the app in `/opt/beyfest/app` and the data in `/opt/beyfest/data`, and keeps the last app as `app.previous`.
-     - Services `beyfest-pb` and `beyfest-web` (port 80, via `CAP_NET_BIND_SERVICE`), with `Restart=always`, run as the installing user.
-     - Passwords are asked on the first install or with `--passwords`. The organiser password is set through the PocketBase API as the superuser. There's also `--no-kiosk`.
-     - It uses raspi-config for the hostname `beyfest`, desktop auto-login (B4) and blanking off, plus a kiosk XDG autostart entry. It installs `nodejs`, `avahi-daemon` and `chromium` or `chromium-browser`, whichever has an installable version.
-     - `BEYFEST_CHANNEL` picks the release (default `main` since the merge). `BEYFEST_PKG_URL` overrides it, for testing.
-     - Tested in a throwaway Debian 13 WSL distro with systemd, using an amd64 package: first install (password checks: short and mismatch), pages on port 80, new passwords work and old ones are refused, an update keeps the data, no prompts on update, kill -9 recovery, `--passwords`, `--no-kiosk`, starting at boot, and the kiosk on :80.
-     - **Not tested:** real Raspberry Pi OS (raspi-config steps), a Pi 3's speed and memory with Chromium, whether the labwc/wayfire session runs the XDG autostart entry, and `beyfest.local` from the Mac.
-   - **Wifi + hotspot fallback (day 3):** `scripts/beyfest-wifi.sh` (linked as the `beyfest-wifi` command), using NetworkManager/nmcli.
-     - Networks added by the installer (first install or `--wifi`) or with `beyfest-wifi add` become NM profiles `beyfest-wifi-<ssid>` (autoconnect, priority 10).
-     - `beyfest-hotspot` is an AP-mode profile: SSID "Beyfest", 2.4 GHz, WPA2/CCMP, `ipv4.method shared` (dnsmasq-base), autoconnect off.
-     - `beyfest-network.service` (root) runs `beyfest-wifi.sh watch`. Every 10s it writes `/run/beyfest/network.json` and brings the hotspot up after ~60s with no connected wifi or ethernet. It never leaves the hotspot by itself (`beyfest-wifi auto` does).
-     - The web service gets `BEYFEST_NETWORK_FILE`; `web/src/lib/server/network.ts` reads it, and the TV standby shows "Join wifi X · Live results beyfest.local (ip) · Organiser beyfest.local/admin", or "On the venue network" on a cable. No file (Windows/Mac/dev) means nothing is shown.
-     - The installer sets the wifi country to IE if it's empty. Added `@types/node` (dev) to web.
-     - Tested in a throwaway Debian 13 + NetworkManager WSL distro, with no wifi chip (`BEYFEST_WIFI_DEVICE=wlan0` override): the installer's wifi prompts, profile settings, open vs WPA networks, list/remove/status and the error paths, the watcher's fallback attempt after ~60s, ethernet mode on the TV, an update keeping the profiles, and all 3 services after a restart. The TV hint was screenshotted in headless Edge at 1920×1080.
-     - **Not tested:** the hotspot actually broadcasting on a Pi 3 and a Mac/phone joining it and resolving beyfest.local; joining real venue wifi.
-   - **Pi package (day 3):** `.github/workflows/pi-package.yml` runs `tournament-app/scripts/pi-package.sh` on every push to `main` (and on demand). That runs the tests, builds, and bundles `beyfest-pi-arm64.tar.gz` (built app + the `pocketbase` SDK, the only runtime package, + PocketBase linux-arm64 + migrations + start.sh + VERSION). It's published as a rolling prerelease tagged `pi-<branch>`, e.g. `pi-main`. Tested in WSL: it runs from the package with Node 18 alone (the Raspberry Pi OS version, no Bun). `start.sh` now needs Bun only to install or build.
-4. ~~**The 8-player (double-elimination) bracket**~~ fixed day 3: `roundName()` now names its rounds ("Upper bracket quarter-finals"…), and the TV draws it as two rows (upper on top, lower underneath, Grand Final at the end between them) with winner lines only. The plates already say "Loser of QF1". Other sizes are unchanged (checked 12).
-5. ~~Round-win slab over LIVE~~ fixed day 3: it overlapped during the slam-in *and* the hold (measured: 172px slab in a 152px gap). The call-out now hangs from `.mc-status` (bottom-anchored 24px above it), at 6.75rem, with a softer overshoot. Its lowest point, shadow included, stays ≥9px above LIVE (measured through the slam-in at 1/10 speed).
-6. ~~**Sample data mismatch**~~ fixed day 3: `midgroup.ts` now writes a round log that adds up to its 3–2.
-7. ~~**Default logins**~~ fixed day 3: on a new database, `start.ps1`, `start.sh` and `install-pi.sh` all ask for the organiser and PocketBase admin passwords (10+ characters, typed twice). The organiser password is set through the API: `scripts/set-organiser-password.mjs` for the launchers, inline in the installer (same logic). A launcher run with no keyboard (stdin not a terminal) keeps the dev defaults and says so in its banner. The migrations still seed the dev defaults (`.env.example`).
-   - Tested: `start.sh` in WSL Ubuntu via pty (short password and mismatch rejected, chosen work, defaults refused, a second run asks nothing, no-keyboard falls back loudly). `start.ps1` on Windows with `Read-Host` stood in for (same checks) and with redirected input (the defaults, with the warning).
-8. ~~`csrf.checkOrigin` deprecation~~ fixed day 3: now `csrf.trustedOrigins: ["*"]` (same behaviour; checked that a login POST with a foreign Origin still works).
 
 ## Day 2 improvements (five suggestions, all built at the user's request)
 
@@ -275,8 +343,8 @@ cd web && bun run dev          # http://localhost:5173  (/tv, /admin, /)
 
 - Migrations only run when PocketBase **starts**, so restart it after adding one.
 - A fresh data dir gets the organiser login from the seed migration.
-- Checks: `bun run check` (in `web`) and `bun run test` (in `tournament-app`, 75 engine tests).
-- A throwaway data dir has no superuser. To check settings (e.g. backups), add one: `pb/pocketbase.exe superuser upsert admin@beyfest.local beyfestadmin2026 --dir=<that dir>`.
+- Checks: `bun run check` (in `web`), `bun run test` (in `tournament-app`, 77 engine tests), and `bun run e2e <players>` against a throwaway PocketBase (it plays a whole tournament through the server code).
+- A throwaway data dir (served directly, not through a launcher) has no superuser. To check settings (e.g. backups), add one: `pb/pocketbase.exe superuser upsert admin@beyfest.local beyfestadmin2026 --dir=<that dir>`.
 
 ### Sample data scripts (they talk to 127.0.0.1:8090)
 
@@ -296,7 +364,11 @@ cd web && bun run dev          # http://localhost:5173  (/tv, /admin, /)
 - **Katakana font subset:** `web/static/fonts/zenkaku_kana.woff2` contains *only* the characters listed in the `theme.css` header. New Japanese text needs the subset re-downloaded (Google Fonts css2 `text=` parameter).
 - **`@font-face` descriptors must match** across all faces of "Beyfest Display" (including `font-stretch`). Otherwise the browser picks the kana face at normal width and the Latin text falls back to plain Saira.
 - Slanted slabs use `transform: skewX()` rather than `clip-path`, so borders and hard shadows survive. Counter-skew the text inside.
-- **Python heredocs.** Long multi-line ones in the Bash tool can break on quoting, and `\n` inside them can turn into real newlines. Write the script to a file and run it instead.
+- **Python heredocs.** Long multi-line ones in the Bash tool can break on quoting, and `\n` inside them can turn into real newlines. A line reading just `EOF` inside one ends the heredoc early, and bash then runs the rest as commands; unbalanced quotes in the text can fail the whole command. Write files with the Write tool and run them, or use the Edit tool.
+- **Testing Linux bits on this PC:** `wsl --install Debian --name <x> --no-launch` gives a disposable Debian 13 with systemd, and `wsl --unregister <x>` removes it. Use `wsl -d <x> -e bash -c '…'`: plain `wsl -- …` re-parses the command, so `$?` and quotes break. There's no wifi chip in WSL (`BEYFEST_WIFI_DEVICE=wlan0` lets `beyfest-wifi` create profiles anyway). A small Python pty driver can answer interactive prompts.
+- **Git Bash `tar`** reads `C:/…` as a remote host. Use `/c/…` paths.
+- **`gh`** is installed at `C:\Program Files\GitHub CLI\gh.exe` and logged in as `trendykendy`. It may not be on PATH in an old terminal.
+- **Merging to `main`** needs the user's explicit go-ahead (the auto-mode review blocks it otherwise). Use a merge commit, not a squash, so the commit IDs here stay valid.
 - **Imports in `lib/server/tournament.ts`.** The scripts import it directly with Bun, outside SvelteKit, so it must not use `$lib/...` imports; use relative paths.
 - **Resolved slots are pinned.** Once a result resolves, the engine writes the player into the next match and clears the slot. Changing a past result therefore needs `applyCorrection` (it re-pins); re-running `applyResult` alone would leave the old winner in place.
 - **SvelteKit offline trap.** If `invalidateAll()` fails for network reasons, SvelteKit does a full page load. With no network that strands the browser on its own offline page, and nothing on our page runs to recover. That's why every refresh goes through `/ping` first.
