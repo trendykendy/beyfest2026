@@ -9,6 +9,7 @@ export interface TournamentView {
     playerCount: number;
     structureKey: number;
     status: "setup" | "group_stage" | "knockout" | "complete";
+    stadiaOff: string[]; // stadia taken out of the draw
   } | null;
   groups: PBGroup[];
   players: PBPlayer[];
@@ -55,6 +56,8 @@ const toMatch = (r: RecordModel): PBMatch => {
     liveLog: Array.isArray(r.liveLog) ? r.liveLog : [],
     resultAt: done ? r.resultAt || "" : "",
     startedAt: r.startedAt || "",
+    stadium: r.stadium || "",
+    stadiumAt: r.stadiumAt || "",
     walkover: done && !!r.walkover,
     winner: r.winner || "",
     loser: r.loser || "",
@@ -83,6 +86,7 @@ export async function loadTournamentView(pb: PocketBase): Promise<TournamentView
       playerCount: t.playerCount,
       structureKey: t.structureKey,
       status: t.status,
+      stadiaOff: Array.isArray(t.stadiaOff) ? t.stadiaOff : [],
     },
     groups: groups.map(toGroup),
     players: players.map(toPlayer),

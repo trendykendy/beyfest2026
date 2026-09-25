@@ -161,6 +161,7 @@
                 target={target(current)}
                 context={matchContext(current, data.matches)}
                 tier={tierOf(current.stage)}
+                stadiaOff={data.tournament?.stadiaOff ?? []}
               />
             {/key}
           {:else if !hasKnockout && allGroupsComplete}

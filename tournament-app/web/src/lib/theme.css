@@ -6,10 +6,14 @@
 
    The three arena colours carry meaning everywhere, never decoration:
    green = Winners path, gold = Mid bracket, red = Losers bracket.
+   They also mark the three stadia (as on the public site): gold = I Xtreme
+   Battle, green = II Double Xtreme, red = III Drop Attack. Stadium colour only
+   appears next to the stadium's numeral, so the two never get confused.
 
    Katakana used on screen (the font subset in fonts.css only has these):
    ベイフェスト トリプルスレット グループステージ ノックアウト マッチセンター
-   チャンピオン スタンバイ ラウンドロビン ライブ 勝者 決勝 次 アワード ゴーシュート */
+   チャンピオン スタンバイ ラウンドロビン ライブ 勝者 決勝 次 アワード ゴーシュート
+   スタジアム */
 
 :root {
   /* Field (backgrounds) */
@@ -63,6 +67,21 @@
   --border-strong: color-mix(in srgb, var(--paper) 28%, transparent);
   --accent: var(--gold);
   --radius: 4px;
+}
+
+/* Stadium colour for anything tagged data-stadium="<key>" (see lib/stadia.ts):
+   --st fills the numeral block, --st-ink is the numeral on it. */
+[data-stadium="xtreme"] {
+  --st: var(--gold);
+  --st-ink: var(--ink);
+}
+[data-stadium="motor"] {
+  --st: var(--green);
+  --st-ink: var(--paper);
+}
+[data-stadium="drop"] {
+  --st: var(--red);
+  --st-ink: var(--paper);
 }
 
 *,

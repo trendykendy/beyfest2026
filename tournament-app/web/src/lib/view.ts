@@ -35,6 +35,8 @@ export interface PBMatch {
   liveLog: LiveRound[]; // how each round was won, oldest first; kept once done (may be empty for old or corrected results)
   resultAt: string; // when the result was recorded/corrected (ISO), "" if not played
   startedAt: string; // when the organiser pressed Start match (ISO), "" if not
+  stadium: string; // stadium key for the round about to be played (see stadia.ts), "" if none drawn
+  stadiumAt: string; // when that stadium was drawn (ISO); a change cues the TV's draw animation
   walkover: boolean; // a no-show: stored as target–0, but a win with no points in the tables; shown as "W/O"
   winner: string;
   loser: string;
@@ -45,6 +47,7 @@ export interface PBMatch {
 export interface LiveRound {
   who: 1 | 2;
   finish: string; // a key from FINISHES ("spin" | "knockout" | "dominant")
+  stadium?: string; // where the round was played (a key from STADIA); missing on older logs
 }
 
 export function ordinal(n: number): string {
