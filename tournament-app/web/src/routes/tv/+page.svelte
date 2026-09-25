@@ -114,12 +114,16 @@
   // Locked to the Ascent look; the bracket runs left-to-right on 16:9 screens.
   const bracketOrientation = "horizontal";
 
+  // Play order, except the match the organiser picked with "Score this" goes first.
+  const nextOrder = (a: PBMatch, b: PBMatch) =>
+    Number(b.code === data.tv.next) - Number(a.code === data.tv.next) || a.orderIndex - b.orderIndex;
+
   // ── Spotlight ───────────────────────────────────────────────────────
   const featured = $derived.by(() => {
     const live = data.matches.filter(isLive).sort((a, b) => a.orderIndex - b.orderIndex);
     const ready = data.matches
       .filter((m) => m.matchStatus === "ready" && !isLive(m))
-      .sort((a, b) => a.orderIndex - b.orderIndex);
+      .sort(nextOrder);
     const done = data.matches
       .filter((m) => m.matchStatus === "done")
       .sort((a, b) => b.orderIndex - a.orderIndex);
@@ -158,9 +162,7 @@
   }
   // The next fixture to be played (not the one currently live) — for the "prep" strip.
   const nextUp = $derived(
-    data.matches
-      .filter((m) => m.matchStatus === "ready" && !isLive(m))
-      .sort((a, b) => a.orderIndex - b.orderIndex)[0] ?? null,
+    data.matches.filter((m) => m.matchStatus === "ready" && !isLive(m)).sort(nextOrder)[0] ?? null,
   );
 
   // The match on the table right now (first live one), for the "On now" band.

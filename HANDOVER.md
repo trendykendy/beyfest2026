@@ -110,7 +110,7 @@ Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point 
 
 ## Known issues / to do
 
-1. **"Score this" and the TV.** If the organiser picks a match with "Score this" but doesn't press **Start match**, the TV's "Up next" shows the default next match until the first point. Using Start avoids it.
+1. ~~**"Score this" and the TV**~~ fixed day 3: "Score this" now saves the pick to `tv_state.next` (migration 900, admin action `pick`). The TV's "Up next" and Match centre put that match first, and admin keeps the pick after a reload. Reset clears it. A finished or live pick is ignored.
 2. **Step 5,** the public display: parked. See "Phone view" below.
 3. **Step 6, launchers (written day 3, not yet run on a Mac or Pi).**
    - `start.sh` (+ `start.command` for double-click) is the macOS/Linux twin of `start.ps1`. On first run it downloads PocketBase 0.40.4 for the OS/CPU into `pb/pocketbase` (gitignored), runs `bun install` and the build, and on a fresh `pb_data` creates the default superuser. It prints the LAN addresses (override with `BEYFEST_IP`).

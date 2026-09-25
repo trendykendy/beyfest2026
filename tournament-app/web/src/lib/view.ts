@@ -232,6 +232,7 @@ export interface TvState {
   id: string;
   mode: "auto" | "locked";
   scene: Scene;
+  next: string; // code of the match picked with "Score this" ("" if none)
 }
 
 // Scenes that have something to show right now, in rotation order.

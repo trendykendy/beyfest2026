@@ -40,9 +40,12 @@
   const playable = $derived(
     data.matches.filter((m) => m.matchStatus === "ready").sort((a, b) => a.orderIndex - b.orderIndex),
   );
+  // The pick is saved on the server too (tv_state.next), so it survives a
+  // reload and the TV can show it as "Up next"; chosenCode applies it at once.
   let chosenCode = $state<string | null>(null);
+  const pickedCode = $derived(chosenCode ?? data.tv.next);
   const current = $derived(
-    playable.find((m) => m.code === chosenCode) ?? playable.find(isLive) ?? playable[0] ?? null,
+    playable.find((m) => m.code === pickedCode) ?? playable.find(isLive) ?? playable[0] ?? null,
   );
   const upNext = $derived(playable.filter((m) => m.code !== current?.code));
   const waiting = $derived(data.matches.filter((m) => m.matchStatus === "pending").length);
@@ -210,9 +213,12 @@
                     <span class="q-context">{matchContext(m, data.matches)}</span>
                     <span class="q-names">{label(m, 1)} <i>v</i> {label(m, 2)}</span>
                   </div>
-                  <button type="button" class="q-pick" onclick={() => (chosenCode = m.code)}>
-                    {isLive(m) ? "Resume" : "Score this"}
-                  </button>
+                  <form method="POST" action="?/pick" use:enhance>
+                    <input type="hidden" name="code" value={m.code} />
+                    <button class="q-pick" onclick={() => (chosenCode = m.code)}>
+                      {isLive(m) ? "Resume" : "Score this"}
+                    </button>
+                  </form>
                 </li>
               {/each}
             </ol>

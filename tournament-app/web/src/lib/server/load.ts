@@ -95,8 +95,8 @@ export async function loadTournamentView(pb: PocketBase): Promise<TournamentView
 export async function loadTvState(pb: PocketBase): Promise<TvState> {
   try {
     const r = await pb.collection("tv_state").getFirstListItem("");
-    return { id: r.id, mode: r.mode === "locked" ? "locked" : "auto", scene: r.scene || "groups" };
+    return { id: r.id, mode: r.mode === "locked" ? "locked" : "auto", scene: r.scene || "groups", next: r.next || "" };
   } catch {
-    return { id: "", mode: "auto", scene: "groups" };
+    return { id: "", mode: "auto", scene: "groups", next: "" };
   }
 }

@@ -163,13 +163,22 @@ export const actions: Actions = {
     return { tv: true };
   },
 
+  // "Score this": remember the organiser's pick, so the TV's "Up next" shows
+  // that match and a reload of this page keeps it.
+  pick: async ({ request, locals }) => {
+    const code = String((await request.formData()).get("code") || "").slice(0, 20);
+    const tv = await loadTvState(locals.pb);
+    if (tv.id) await locals.pb.collection("tv_state").update(tv.id, { next: code });
+    return { picked: code };
+  },
+
   reset: async ({ locals }) => {
     const t = await getActiveTournament(locals.pb);
     if (t) await resetTournament(locals.pb, t.id);
     // A lock from the old tournament could point at a scene the new one
     // doesn't have yet, so the TV goes back to rotating.
     const tv = await loadTvState(locals.pb);
-    if (tv.id) await locals.pb.collection("tv_state").update(tv.id, { mode: "auto" });
+    if (tv.id) await locals.pb.collection("tv_state").update(tv.id, { mode: "auto", next: "" });
     return { reset: true };
   },
 
