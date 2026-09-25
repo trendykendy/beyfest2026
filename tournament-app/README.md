@@ -41,7 +41,7 @@ connected to the TV and, for the install, to the internet. In a terminal on the 
 (or over SSH), run:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/trendykendy/beyfest2026/redesign/tournament-app/tournament-app/install-pi.sh | bash
+curl -fsSL https://raw.githubusercontent.com/trendykendy/beyfest2026/main/tournament-app/install-pi.sh | bash
 ```
 
 - It asks you to choose the **organiser** and **PocketBase admin** passwords. Write

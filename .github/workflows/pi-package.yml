@@ -6,7 +6,7 @@ name: Pi package
 
 on:
   push:
-    branches: [main, redesign/tournament-app]
+    branches: [main]
     paths: ["tournament-app/**", ".github/workflows/pi-package.yml"]
   workflow_dispatch:
 

@@ -1,6 +1,6 @@
 # Handover: tournament app redesign
 
-Written 24 September 2026 (day 1), rewritten at the end of day 2. Read this first, then `CLAUDE.md`.
+Written 24 September 2026 (day 1), rewritten at the end of day 2, updated day 3 (25 September). Read this first, then `CLAUDE.md`.
 
 ## Where things stand
 
@@ -10,9 +10,10 @@ The tournament app (`tournament-app/`) is being redesigned because the old look 
 - **All five event-day improvements the user picked are built:** fix a result, resilience, finish stats and awards, Let it rip, and walkovers/withdraw/rename. See "Day 2 improvements".
 - The **points-to-win rule** was corrected; see "Points to win".
 - **Parked by the user:** step 5, the public page for phones (plan ready below).
-- **Step 6, the Mac and Pi launchers, is written** (day 3) but **untested on real hardware**. See known issue 3.
+- **Day 3:** the Raspberry Pi is now the main setup. There's a one-command installer (`install-pi.sh`) and a GitHub-built Pi package, with wifi plus a fallback "Beyfest" hotspot. The Mac launcher is the backup. All of it is **untested on real hardware**; see known issue 3. The day's polish list is done too (known issues 1 and 4–8).
+- **The repo is public** at https://github.com/trendykendy/beyfest2026. Its history was rewritten on day 3 to drop deleted images and `refimages/` (commit IDs here are the new ones).
 
-All work is on branch **`redesign/tournament-app`**. `main` is still the untouched baseline and **nothing has been merged yet**. At the end of day 2 the working tree was clean.
+**Day 3: merged into `main`** through a pull request, with a merge commit, so the commit IDs below still hold. `main` is now the branch to work from; the installer and the Pi package use `main` (release `pi-main`).
 
 | Step | What | Status |
 |---|---|---|
@@ -102,9 +103,8 @@ Nothing is half-done. Ask the user what's next. Candidates, most useful first:
    - Run `scripts/rehearsal.ts` against a **test** data folder; it resets the database it talks to.
    - Watch the TV through a whole event, and pull the network cable once to see it recover.
 2. **Try the Pi installer on the real Pi** (README "On a Raspberry Pi"). Include the wifi: add the home network during install, then switch the router off (or take the Pi out of range) and check that the "Beyfest" hotspot appears after about a minute, the Mac can join it, `http://beyfest.local/admin` opens, and the TV standby shows the hint. `beyfest-wifi auto` then goes back. Then also try the Mac launcher (README "On a Mac (backup setup)"). See known issue 3.
-3. **Merge** the branch into `main` and tag it (see "Merge" below once done).
-4. **Smaller polish:**
-5. **Step 5, the phone view:** only if the user asks.
+3. **Tag** the version that passes the Pi rehearsal (e.g. `git tag v1.0 && git push --tags`). It isn't tagged yet on purpose.
+4. **Step 5, the phone view:** only if the user asks.
 
 Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point diff." header `825f6f7`, and one finish pill per round `567884d`.
 
@@ -124,7 +124,7 @@ Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point 
      - Services `beyfest-pb` and `beyfest-web` (port 80, via `CAP_NET_BIND_SERVICE`), with `Restart=always`, run as the installing user.
      - Passwords are asked on the first install or with `--passwords`. The organiser password is set through the PocketBase API as the superuser. There's also `--no-kiosk`.
      - It uses raspi-config for the hostname `beyfest`, desktop auto-login (B4) and blanking off, plus a kiosk XDG autostart entry. It installs `nodejs`, `avahi-daemon` and `chromium` or `chromium-browser`, whichever has an installable version.
-     - `BEYFEST_CHANNEL` picks the release (default `redesign-tournament-app`; switch the default to `main` after merging). `BEYFEST_PKG_URL` overrides it, for testing.
+     - `BEYFEST_CHANNEL` picks the release (default `main` since the merge). `BEYFEST_PKG_URL` overrides it, for testing.
      - Tested in a throwaway Debian 13 WSL distro with systemd, using an amd64 package: first install (password checks: short and mismatch), pages on port 80, new passwords work and old ones are refused, an update keeps the data, no prompts on update, kill -9 recovery, `--passwords`, `--no-kiosk`, starting at boot, and the kiosk on :80.
      - **Not tested:** real Raspberry Pi OS (raspi-config steps), a Pi 3's speed and memory with Chromium, whether the labwc/wayfire session runs the XDG autostart entry, and `beyfest.local` from the Mac.
    - **Wifi + hotspot fallback (day 3):** `scripts/beyfest-wifi.sh` (linked as the `beyfest-wifi` command), using NetworkManager/nmcli.
@@ -135,7 +135,7 @@ Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point 
      - The installer sets the wifi country to IE if it's empty. Added `@types/node` (dev) to web.
      - Tested in a throwaway Debian 13 + NetworkManager WSL distro, with no wifi chip (`BEYFEST_WIFI_DEVICE=wlan0` override): the installer's wifi prompts, profile settings, open vs WPA networks, list/remove/status and the error paths, the watcher's fallback attempt after ~60s, ethernet mode on the TV, an update keeping the profiles, and all 3 services after a restart. The TV hint was screenshotted in headless Edge at 1920×1080.
      - **Not tested:** the hotspot actually broadcasting on a Pi 3 and a Mac/phone joining it and resolving beyfest.local; joining real venue wifi.
-   - **Pi package (day 3):** `.github/workflows/pi-package.yml` runs `tournament-app/scripts/pi-package.sh` on every push to `main` or `redesign/tournament-app`. That runs the tests, builds, and bundles `beyfest-pi-arm64.tar.gz` (built app + the `pocketbase` SDK, the only runtime package, + PocketBase linux-arm64 + migrations + start.sh + VERSION). It's published as a rolling prerelease tagged `pi-<branch>`, e.g. `pi-redesign-tournament-app`. Tested in WSL: it runs from the package with Node 18 alone (the Raspberry Pi OS version, no Bun). `start.sh` now needs Bun only to install or build.
+   - **Pi package (day 3):** `.github/workflows/pi-package.yml` runs `tournament-app/scripts/pi-package.sh` on every push to `main` (and on demand). That runs the tests, builds, and bundles `beyfest-pi-arm64.tar.gz` (built app + the `pocketbase` SDK, the only runtime package, + PocketBase linux-arm64 + migrations + start.sh + VERSION). It's published as a rolling prerelease tagged `pi-<branch>`, e.g. `pi-main`. Tested in WSL: it runs from the package with Node 18 alone (the Raspberry Pi OS version, no Bun). `start.sh` now needs Bun only to install or build.
 4. ~~**The 8-player (double-elimination) bracket**~~ fixed day 3: `roundName()` now names its rounds ("Upper bracket quarter-finals"…), and the TV draws it as two rows (upper on top, lower underneath, Grand Final at the end between them) with winner lines only. The plates already say "Loser of QF1". Other sizes are unchanged (checked 12).
 5. ~~Round-win slab over LIVE~~ fixed day 3: it overlapped during the slam-in *and* the hold (measured: 172px slab in a 152px gap). The call-out now hangs from `.mc-status` (bottom-anchored 24px above it), at 6.75rem, with a softer overshoot. Its lowest point, shadow included, stays ≥9px above LIVE (measured through the slam-in at 1/10 speed).
 6. ~~**Sample data mismatch**~~ fixed day 3: `midgroup.ts` now writes a round log that adds up to its 3–2.
