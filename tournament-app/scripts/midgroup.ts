@@ -48,6 +48,16 @@ if (live) {
   const rec = await pb
     .collection("matches")
     .getFirstListItem(pb.filter("tournament = {:id} && code = {:code}", { id, code: live.code }));
-  await pb.collection("matches").update(rec.id, { liveP1: 3, liveP2: 2 });
+  // The round log must add up to the score, as the real scorer's does, or
+  // admin's scorer (which rebuilds from the log) would show 0–0.
+  await pb.collection("matches").update(rec.id, {
+    liveP1: 3,
+    liveP2: 2,
+    liveLog: [
+      { who: 1, finish: "spin" }, // 1–0
+      { who: 2, finish: "knockout" }, // 1–2
+      { who: 1, finish: "knockout" }, // 3–2
+    ],
+  });
 }
 console.log(`${count} players, ${toPlay} group matches played, ${live?.code ?? "none"} live at 3–2.`);
