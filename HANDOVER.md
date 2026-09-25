@@ -102,7 +102,7 @@ Nothing is half-done. Ask the user what's next. Candidates, most useful first:
    - Run `scripts/rehearsal.ts` against a **test** data folder; it resets the database it talks to.
    - Watch the TV through a whole event, and pull the network cable once to see it recover.
 2. **Try the Pi installer on the real Pi** (README "On a Raspberry Pi"). Include the wifi: add the home network during install, then switch the router off (or take the Pi out of range) and check that the "Beyfest" hotspot appears after about a minute, the Mac can join it, `http://beyfest.local/admin` opens, and the TV standby shows the hint. `beyfest-wifi auto` then goes back. Then also try the Mac launcher (README "On a Mac (backup setup)"). See known issue 3.
-3. **Before the event:** change the default logins (known issue 7). Then merge the branch into `main` and tag it.
+3. **Merge** the branch into `main` and tag it (see "Merge" below once done).
 4. **Smaller polish:**
 5. **Step 5, the phone view:** only if the user asks.
 
@@ -139,11 +139,8 @@ Day 1's end-of-day items are all done: champion name clipping `517f47a`, "Point 
 4. ~~**The 8-player (double-elimination) bracket**~~ fixed day 3: `roundName()` now names its rounds ("Upper bracket quarter-finals"…), and the TV draws it as two rows (upper on top, lower underneath, Grand Final at the end between them) with winner lines only. The plates already say "Loser of QF1". Other sizes are unchanged (checked 12).
 5. ~~Round-win slab over LIVE~~ fixed day 3: it overlapped during the slam-in *and* the hold (measured: 172px slab in a 152px gap). The call-out now hangs from `.mc-status` (bottom-anchored 24px above it), at 6.75rem, with a softer overshoot. Its lowest point, shadow included, stays ≥9px above LIVE (measured through the slam-in at 1/10 speed).
 6. ~~**Sample data mismatch**~~ fixed day 3: `midgroup.ts` now writes a round log that adds up to its 3–2.
-7. **Before the event, change the default logins:**
-   - organiser `organiser@beyfest.local` / `beyfest2026`
-   - PocketBase superuser `admin@beyfest.local` / `beyfestadmin2026`
-
-   They're in the seed migration and the README.
+7. ~~**Default logins**~~ fixed day 3: on a new database, `start.ps1`, `start.sh` and `install-pi.sh` all ask for the organiser and PocketBase admin passwords (10+ characters, typed twice). The organiser password is set through the API: `scripts/set-organiser-password.mjs` for the launchers, inline in the installer (same logic). A launcher run with no keyboard (stdin not a terminal) keeps the dev defaults and says so in its banner. The migrations still seed the dev defaults (`.env.example`).
+   - Tested: `start.sh` in WSL Ubuntu via pty (short password and mismatch rejected, chosen work, defaults refused, a second run asks nothing, no-keyboard falls back loudly). `start.ps1` on Windows with `Read-Host` stood in for (same checks) and with redirected input (the defaults, with the warning).
 8. ~~`csrf.checkOrigin` deprecation~~ fixed day 3: now `csrf.trustedOrigins: ["*"]` (same behaviour; checked that a login POST with a foreign Origin still works).
 
 ## Day 2 improvements (five suggestions, all built at the user's request)

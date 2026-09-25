@@ -34,6 +34,8 @@ bun run build
 # ── Assemble ────────────────────────────────────────────────────────
 mkdir -p "$stage/pb" "$stage/web/node_modules" "$out"
 cp start.sh scripts/pi-kiosk.sh scripts/beyfest-wifi.sh "$stage/"
+mkdir -p "$stage/scripts"
+cp scripts/set-organiser-password.mjs "$stage/scripts/" # used by start.sh on a new database
 cp -r pb/pb_migrations "$stage/pb/"
 cp -r web/build web/package.json "$stage/web/"
 

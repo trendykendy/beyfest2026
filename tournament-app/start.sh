@@ -102,12 +102,45 @@ if [[ ! -f "$web_build" ]]; then
   (cd "$web_dir" && bun run build)
 fi
 
-# ── Fresh database: create it and the PocketBase superuser ───────────
-# Same defaults as the README; change them before the event.
+# ── Fresh database: create it, and choose the passwords ───────────────
+organiser_email="organiser@beyfest.local"
+superuser_email="admin@beyfest.local"
+organiser_pw=""
+login_note="Login: $organiser_email"
+
+ask_password() { # $1 = what it's for; the answer is left in $REPLY
+  local first second
+  while true; do
+    read -rsp "  $1 (at least 10 characters): " first
+    echo
+    if ((${#first} < 10)); then
+      echo "  Too short, try again."
+      continue
+    fi
+    read -rsp "  Type it again: " second
+    echo
+    [[ "$first" == "$second" ]] && break
+    echo "  They didn't match, try again."
+  done
+  REPLY="$first"
+}
+
 if [[ ! -d "$pb_data" ]]; then
   echo "  First run: creating the database…"
   "$pb_bin" migrate up --dir="$pb_data" --migrationsDir="$pb_mig" >/dev/null
-  "$pb_bin" superuser upsert admin@beyfest.local beyfestadmin2026 --dir="$pb_data" >/dev/null
+  if [[ -t 0 ]]; then
+    echo ""
+    echo "  Choose the passwords. Write them down somewhere safe."
+    ask_password "Organiser password (for the admin page)"
+    organiser_pw="$REPLY"
+    ask_password "PocketBase admin password (for backups/restores)"
+    superuser_pw="$REPLY"
+  else
+    # Nobody at the keyboard to ask: the published defaults, loudly.
+    superuser_pw="beyfestadmin2026"
+    login_note="Login: $organiser_email / beyfest2026  (DEFAULT PASSWORDS: change them before the event)"
+  fi
+  "$pb_bin" superuser upsert "$superuser_email" "$superuser_pw" --dir="$pb_data" >/dev/null
 fi
 
 echo ""
@@ -118,7 +151,7 @@ echo "  TV screen      :  http://${ip}:${web_port}/tv"
 echo "  Organiser admin:  http://${ip}:${web_port}/admin"
 echo "  PocketBase admin: http://127.0.0.1:8090/_/  (on this machine)"
 echo "  ------------------------------------------------------------"
-echo "  Login: organiser@beyfest.local  /  beyfest2026"
+echo "  $login_note"
 echo "  Close this window (or Ctrl+C) to stop both servers."
 echo ""
 
@@ -126,6 +159,16 @@ echo ""
 "$pb_bin" serve --http=0.0.0.0:8090 --dir="$pb_data" --migrationsDir="$pb_mig" \
   >"$root/pb/pocketbase.log" 2>&1 &
 pb_pid=$!
+
+# The organiser login lives in the database, so its new password is set
+# through PocketBase's API once it's up (scripts/set-organiser-password.mjs).
+if [[ -n "$organiser_pw" ]]; then
+  SU_EMAIL="$superuser_email" SU_PW="$superuser_pw" ORG_EMAIL="$organiser_email" ORG_PW="$organiser_pw"     "$runner" "$root/scripts/set-organiser-password.mjs" || {
+    kill "$pb_pid" 2>/dev/null
+    fail "Couldn't set the organiser password (see above). Delete pb/pb_data and run this again."
+  }
+  unset organiser_pw superuser_pw
+fi
 
 web_pid=""
 

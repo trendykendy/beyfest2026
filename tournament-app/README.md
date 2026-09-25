@@ -21,8 +21,10 @@ for every count from 8 to 15 players.
 1. On Windows, double-click **`start.ps1`** (or `pwsh -File .\start.ps1`). For the Raspberry Pi and the Mac, see below.
    - It builds the web app on first run, starts PocketBase + the web server bound
      to `0.0.0.0`, detects the laptop's LAN IP, and prints the URLs.
-2. On the laptop, open the **Organiser admin** URL and log in:
-   - `organiser@beyfest.local` / `beyfest2026`
+   - On a brand-new database it asks you to **choose the organiser and PocketBase
+     admin passwords** (the same on the Mac with `start.sh`). Write them down.
+2. On the laptop, open the **Organiser admin** URL and log in as
+   `organiser@beyfest.local` with the password you chose.
 3. Put the **Public display** URL on the projector/TV. Players can open it on their
    phones (same wifi) — it updates live as you enter scores.
 4. **Windows Firewall** may prompt the first time — allow access on private networks
@@ -104,8 +106,8 @@ sudo systemctl restart beyfest-web beyfest-pb
 
 `start.sh` is the Mac/Linux twin of `start.ps1`. **Do the first run at home, with
 internet**: it installs packages, builds the web app, downloads the right PocketBase
-for the Mac (Apple Silicon or Intel) into `pb/pocketbase`, and creates the database
-with the default logins. After that it runs offline.
+for the Mac (Apple Silicon or Intel) into `pb/pocketbase`, and creates the database,
+asking you to choose the passwords. After that it runs offline.
 
 1. Install **Bun**: `curl -fsSL https://bun.sh/install | bash`. **Node** is optional;
    it's used to run the server if present, otherwise Bun does.
@@ -190,16 +192,16 @@ bun run build               # production build of the web app
 
 ## First-time / fresh database setup
 
-`pb/pb_data/` (gitignored) is created automatically. To rebuild it from scratch:
+`pb/pb_data/` (gitignored) holds everything. To start again from nothing, stop the
+app, delete `pb/pb_data/`, and run `start.ps1` / `start.sh`: it recreates the database
+and asks for new passwords. (The Pi keeps its data in `/opt/beyfest/data`.)
 
-```sh
-pb/pocketbase.exe migrate up --migrationsDir=pb/pb_migrations --dir=pb/pb_data
-pb/pocketbase.exe superuser upsert admin@beyfest.local beyfestadmin2026 --dir=pb/pb_data
-```
-
-The migrations create the schema and seed the organiser login. See `.env.example`
-for all credentials — **change them before a real event** from the PocketBase admin
-console (`http://127.0.0.1:8090/_/`).
+The logins are `organiser@beyfest.local` (the admin page) and `admin@beyfest.local`
+(the PocketBase console, `http://127.0.0.1:8090/_/`). The migrations seed them with the
+development defaults in `.env.example`. The launchers and the Pi installer replace
+those with the passwords you choose; only a launcher run with nobody at the keyboard
+keeps them, and it says so. To change a password later, use the PocketBase console,
+or on the Pi re-run the installer with `--passwords`.
 
 ## Layout
 
