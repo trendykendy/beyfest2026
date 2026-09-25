@@ -5,3 +5,7 @@ web/.svelte-kit/
 web/build/
 *.log
 .DS_Store
+pb/pocketbase
+pb/pocketbase.log
+refimages/
+dist/

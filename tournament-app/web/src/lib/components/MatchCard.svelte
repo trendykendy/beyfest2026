@@ -42,11 +42,11 @@
   </div>
   <div class="side" class:won={aWon} class:tbd={a.tbd}>
     <span class="pname">{a.name}</span>
-    {#if done}<span class="score">{match.p1Score}</span>{/if}
+    {#if done}<span class="score">{match.walkover ? (aWon ? "W/O" : "") : match.p1Score}</span>{/if}
   </div>
   <div class="side" class:won={bWon} class:tbd={b.tbd}>
     <span class="pname">{b.name}</span>
-    {#if done}<span class="score">{match.p2Score}</span>{/if}
+    {#if done}<span class="score">{match.walkover ? (bWon ? "W/O" : "") : match.p2Score}</span>{/if}
   </div>
 </div>
 
@@ -85,7 +85,8 @@
     margin-bottom: 4px;
   }
   .code {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     font-size: 0.62rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -93,7 +94,8 @@
     font-weight: 700;
   }
   .target {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     font-size: 0.58rem;
     letter-spacing: 0.06em;
     font-weight: 700;
@@ -134,7 +136,10 @@
     color: var(--tier);
   }
   .score {
-    font-family: "Bebas Neue", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     font-size: 1.1rem;
     line-height: 1;
     min-width: 18px;

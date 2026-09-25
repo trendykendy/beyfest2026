@@ -1,0 +1,50 @@
+# Builds the ready-to-run Raspberry Pi package and publishes it as a rolling
+# release per branch (tag pi-<branch>, e.g. pi-main), replacing the file each
+# time. install-pi.sh downloads it from there. The build itself is in
+# tournament-app/scripts/pi-package.sh, so it can be run and tested locally.
+name: Pi package
+
+on:
+  push:
+    branches: [main]
+    paths: ["tournament-app/**", ".github/workflows/pi-package.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # create/update the release and its tag
+
+concurrency:
+  group: pi-package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Test, build and package
+        run: tournament-app/scripts/pi-package.sh "$RUNNER_TEMP/dist"
+
+      - name: Publish as this branch's rolling release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="pi-${GITHUB_REF_NAME//\//-}"
+          file="$RUNNER_TEMP/dist/beyfest-pi-arm64.tar.gz"
+          notes="Raspberry Pi package built from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7} on $(date -u +'%Y-%m-%d %H:%M UTC')."
+
+          # Point the tag at this commit, then add or replace the file.
+          git tag -f "$tag"
+          git push -f origin "refs/tags/$tag"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$file" --clobber
+            gh release edit "$tag" --notes "$notes"
+          else
+            gh release create "$tag" "$file" --prerelease \
+              --title "Pi package (${GITHUB_REF_NAME})" --notes "$notes"
+          fi

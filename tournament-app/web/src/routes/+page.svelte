@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invalidateAll } from "$app/navigation";
-  import { pb } from "$lib/pbBrowser";
+  import { liveUpdates } from "$lib/pbBrowser";
   import { pickStructure, miniRRAdvancers } from "@beyfest/engine";
   import { nameMap, hasStage } from "$lib/view";
   import GroupCard from "$lib/components/GroupCard.svelte";
   import Bracket from "$lib/components/Bracket.svelte";
   import MiniRRTable from "$lib/components/MiniRRTable.svelte";
+  import Trophy from "$lib/components/Trophy.svelte";
 
   let { data } = $props();
 
@@ -20,12 +21,7 @@
   });
   const callout = $derived(structure && "callout" in structure ? (structure as { callout?: string }).callout : undefined);
 
-  onMount(() => {
-    const subs = ["tournaments", "groups", "players", "matches"].map((c) =>
-      pb().collection(c).subscribe("*", () => invalidateAll()),
-    );
-    return () => subs.forEach((p) => p.then((unsub) => unsub()).catch(() => {}));
-  });
+  onMount(() => liveUpdates(["tournaments", "groups", "players", "matches"], () => invalidateAll()));
 </script>
 
 <div class="container">
@@ -47,13 +43,16 @@
     {#if champion}
       <div class="champ">
         <span class="tag">Tournament Champion</span>
-        <span class="champ-name">🏆 {champion}</span>
+        <span class="champ-name"><Trophy /> {champion}</span>
       </div>
     {/if}
 
     <!-- How it works -->
     <section class="rules">
-      <div class="rule"><b>Format.</b> Every match is 1&nbsp;v&nbsp;1. First to <b>5</b> points — rising to <b>7</b> from the semi-finals and <b>9</b> in the Grand Final.</div>
+      <!-- Mirrors pointsToWin() in the engine. -->
+      <div class="rule"><b>Format.</b> Every match is 1&nbsp;v&nbsp;1. First to <b>5</b> points — rising to <b>7</b> for
+        {structure?.knockoutType === "double-elim" ? "the upper and lower bracket finals" : "the Mid bracket semi-finals and final"}
+        and <b>9</b> in the Grand Final.</div>
       <div class="rule"><b>Groups → knockout.</b> Group finishers split into three tiers: winners climb the <span class="wb">Winners</span> path, middles fight through the <span class="mb">Mid</span> bracket, last-placers get one more shot in the <span class="lb">Losers</span> bracket.</div>
       <div class="rule"><b>The advantage.</b> The Winners champion reaches the Grand Final undefeated — a shorter path, no elimination pressure.</div>
       {#if callout}
@@ -154,7 +153,8 @@
     color: var(--gf);
   }
   .champ-name {
-    font-family: "Bebas Neue", sans-serif;
+    text-transform: uppercase;
+    font-family: var(--font-display);
     font-size: clamp(2rem, 6vw, 3.4rem);
     letter-spacing: 0.04em;
   }
@@ -212,7 +212,8 @@
     margin-bottom: 12px;
   }
   .lg {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-size: 0.7rem;

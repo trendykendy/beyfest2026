@@ -4,6 +4,8 @@ import {
   createGroupStage,
   generateKnockout,
   applyResult,
+  applyCorrection,
+  planCorrection,
   champion,
   pickStructure,
   pointsToWin,
@@ -12,6 +14,9 @@ import {
   type State,
   type PlayerInput,
 } from "@beyfest/engine";
+import { FINISHES } from "../finishes"; // relative: scripts import this file outside SvelteKit
+
+const FINISH_PTS: Record<string, number> = Object.fromEntries(FINISHES.map((f) => [f.key, f.pts]));
 
 // ─── Loading ─────────────────────────────────────────────────────────
 export interface LoadedTournament {
@@ -57,6 +62,7 @@ function recToMatch(r: RecordModel): Match {
     winner: r.winner || null,
     loser: r.loser || null,
     status: r.matchStatus,
+    walkover: done && !!r.walkover,
   };
 }
 
@@ -162,10 +168,12 @@ async function persistDelta(
         loser: m.loser ?? "",
         matchStatus: m.status,
         // A match only changes here when it's resolved or recorded, never while
-        // it's being live-scored — so clearing the running score is safe and
-        // wipes the tally once the final result lands.
+        // it's being live-scored — so clearing the running tally is safe. The
+        // round log is KEPT once a match is done: it's the record of how every
+        // round was won (Result recap, awards).
         liveP1: 0,
         liveP2: 0,
+        ...(m.status === "done" ? {} : { liveLog: [] }),
       });
     }
   }
@@ -250,6 +258,20 @@ export async function createTournament(
   return tournament.id;
 }
 
+// Matches are played round-by-round; each round is worth 1–3 points (Spin /
+// Knockout / Dominant), accumulating until a blader REACHES the target. So the
+// winner's score is >= target and can overshoot by up to 2 (a 3-point finish
+// from target-1); the loser never reached the target.
+function checkScore(match: Match, p1Score: number, p2Score: number): void {
+  const code = match.code;
+  const target = pointsToWin(match.stage, match.roundLabel);
+  const hi = Math.max(p1Score, p2Score);
+  const lo = Math.min(p1Score, p2Score);
+  if (hi < target) throw new Error(`${code} is first to ${target} — the winner must reach ${target}.`);
+  if (lo >= target) throw new Error(`${code}: only one blader can reach ${target}.`);
+  if (hi > target + 2) throw new Error(`${code}: a winning score can't exceed ${target + 2}.`);
+}
+
 // Enter a score, advance the bracket, persist the delta.
 export async function enterScore(
   pb: PocketBase,
@@ -258,25 +280,163 @@ export async function enterScore(
   p1Score: number,
   p2Score: number,
 ): Promise<void> {
+  await recordResult(pb, tournamentId, code, p1Score, p2Score, false);
+  await autoWalkovers(pb, tournamentId);
+}
+
+// A no-show: the other blader wins at the match's target, 0 against. Recorded
+// like any result so tables and the bracket carry on, but flagged, so screens
+// say "W/O" and the awards leave it out.
+export async function recordWalkover(
+  pb: PocketBase,
+  tournamentId: string,
+  code: string,
+  noShow: 1 | 2,
+): Promise<void> {
   const loaded = await loadTournament(pb, tournamentId);
   const match = loaded.state.matches.find((mt) => mt.code === code);
-  if (match) {
-    // Matches are played round-by-round; each round is worth 1–3 points (Spin /
-    // Knockout / Dominant), accumulating until a blader REACHES the target. So
-    // the winner's score is >= target and can overshoot by up to 2 (a 3-point
-    // finish from target-1); the loser never reached the target.
-    const target = pointsToWin(match.stage, match.roundLabel);
-    const hi = Math.max(p1Score, p2Score);
-    const lo = Math.min(p1Score, p2Score);
-    if (hi < target) throw new Error(`${code} is first to ${target} — the winner must reach ${target}.`);
-    if (lo >= target) throw new Error(`${code}: only one blader can reach ${target}.`);
-    if (hi > target + 2) throw new Error(`${code}: a winning score can't exceed ${target + 2}.`);
-  }
+  if (!match) throw new Error(`There's no match ${code}.`);
+  if (match.status !== "ready") throw new Error(`${code} isn't ready to play.`);
+  const target = pointsToWin(match.stage, match.roundLabel);
+  const [s1, s2] = noShow === 1 ? [0, target] : [target, 0];
+  await recordResult(pb, tournamentId, code, s1, s2, true);
+  await autoWalkovers(pb, tournamentId);
+}
+
+async function recordResult(
+  pb: PocketBase,
+  tournamentId: string,
+  code: string,
+  p1Score: number,
+  p2Score: number,
+  walkover: boolean,
+): Promise<void> {
+  const loaded = await loadTournament(pb, tournamentId);
+  const match = loaded.state.matches.find((mt) => mt.code === code);
+  if (match) checkScore(match, p1Score, p2Score);
   const before = snapshot(loaded.state);
   const beforeRanks = rankMap(before);
   applyResult(loaded.state, code, p1Score, p2Score);
   await markGroupsComplete(pb, loaded);
   await persistDelta(pb, loaded, before, beforeRanks);
+  await stampResult(pb, loaded, code, walkover);
+}
+
+// Walk over every playable match that involves a withdrawn blader. Repeats,
+// because a walkover can drop a withdrawn blader straight into another ready
+// match (or send their opponent on to meet one).
+async function autoWalkovers(pb: PocketBase, tournamentId: string): Promise<void> {
+  for (let guard = 0; guard < 100; guard++) {
+    const gone = await pb.collection("players").getFullList({
+      filter: pb.filter("tournament = {:id} && withdrawn = true", { id: tournamentId }),
+    });
+    if (gone.length === 0) return;
+    const out = new Set(gone.map((p) => p.id));
+    const { state } = await loadTournament(pb, tournamentId);
+    const next = state.matches
+      .filter((m) => m.status === "ready" && ((m.p1 && out.has(m.p1)) || (m.p2 && out.has(m.p2))))
+      .sort((a, b) => a.orderIndex - b.orderIndex)[0];
+    if (!next) return;
+    const target = pointsToWin(next.stage, next.roundLabel);
+    const noShow = next.p1 && out.has(next.p1) ? 1 : 2;
+    const [s1, s2] = noShow === 1 ? [0, target] : [target, 0];
+    await recordResult(pb, tournamentId, next.code, s1, s2, true);
+  }
+}
+
+// A blader leaves (or comes back). Leaving walks over everything of theirs
+// that's playable now, and anything that becomes playable later. Coming back
+// stops that; walkovers already recorded stay (fix them with Fix if needed).
+export async function setWithdrawn(
+  pb: PocketBase,
+  tournamentId: string,
+  playerId: string,
+  withdrawn: boolean,
+): Promise<void> {
+  await pb.collection("players").update(playerId, { withdrawn });
+  if (withdrawn) await autoWalkovers(pb, tournamentId);
+}
+
+// Fix a typo in a name. Names must stay unique (ignoring case).
+export async function renamePlayer(
+  pb: PocketBase,
+  tournamentId: string,
+  playerId: string,
+  name: string,
+): Promise<void> {
+  const clean = name.trim();
+  if (!clean) throw new Error("A name can't be empty.");
+  const players = await pb.collection("players").getFullList({
+    filter: pb.filter("tournament = {:id}", { id: tournamentId }),
+  });
+  if (players.some((p) => p.id !== playerId && p.name.toLowerCase() === clean.toLowerCase())) {
+    throw new Error(`There's already a blader called ${clean}.`);
+  }
+  await pb.collection("players").update(playerId, { name: clean });
+}
+
+// Fix a result that's already been recorded. The engine works out whether
+// it's safe (see engine/src/correct.ts) and moves players in the next round if
+// the winner changes. Also refused if one of those next matches is being
+// scored right now, so a live tally is never handed to the wrong blader.
+export async function correctScore(
+  pb: PocketBase,
+  tournamentId: string,
+  code: string,
+  p1Score: number,
+  p2Score: number,
+): Promise<void> {
+  const loaded = await loadTournament(pb, tournamentId);
+  const match = loaded.state.matches.find((mt) => mt.code === code);
+  if (!match) throw new Error(`There's no match ${code}.`);
+  checkScore(match, p1Score, p2Score);
+  const plan = planCorrection(loaded.state, code, p1Score, p2Score);
+  if (!plan.ok) throw new Error(plan.reason);
+  for (const r of plan.repins) {
+    const rec = await pb.collection("matches").getOne(loaded.matchIdByCode.get(r.code)!);
+    if (rec.liveP1 > 0 || rec.liveP2 > 0) {
+      throw new Error(`${r.code} is being played right now. Finish or undo it first.`);
+    }
+  }
+  const before = snapshot(loaded.state);
+  const beforeRanks = rankMap(before);
+  applyCorrection(loaded.state, code, p1Score, p2Score);
+  await markGroupsComplete(pb, loaded);
+  await persistDelta(pb, loaded, before, beforeRanks);
+  await stampResult(pb, loaded, code, false); // a fixed score is a played result
+  await dropLogIfWrong(pb, loaded, code, p1Score, p2Score);
+  await autoWalkovers(pb, tournamentId); // a re-route may reach a withdrawn blader
+}
+
+// After a correction the round log may no longer add up to the score (it
+// describes the rounds as scored, not as fixed). A log that disagrees with the
+// result would feed wrong awards, so it goes.
+async function dropLogIfWrong(
+  pb: PocketBase,
+  loaded: LoadedTournament,
+  code: string,
+  p1Score: number,
+  p2Score: number,
+): Promise<void> {
+  const id = loaded.matchIdByCode.get(code);
+  if (!id) return;
+  const rec = await pb.collection("matches").getOne(id);
+  const log: { who: number; finish: string }[] = Array.isArray(rec.liveLog) ? rec.liveLog : [];
+  if (log.length === 0) return;
+  const pts = (who: number) => log.filter((r) => r.who === who).reduce((a, r) => a + (FINISH_PTS[r.finish] ?? 0), 0);
+  if (pts(1) !== p1Score || pts(2) !== p2Score) await pb.collection("matches").update(id, { liveLog: [] });
+}
+
+// Remember when this match's result went in (for "Last result"), and whether
+// it was a walkover. A walkover's partial round log (if any) doesn't count.
+async function stampResult(pb: PocketBase, loaded: LoadedTournament, code: string, walkover: boolean): Promise<void> {
+  const id = loaded.matchIdByCode.get(code);
+  if (!id) return;
+  await pb.collection("matches").update(id, {
+    resultAt: new Date().toISOString(),
+    walkover,
+    ...(walkover ? { liveLog: [] } : {}),
+  });
 }
 
 // Generate the knockout bracket once every group is complete.
@@ -294,6 +454,7 @@ export async function generateKnockoutStage(
   const beforeRanks = rankMap(before);
   generateKnockout(loaded.state); // random pool draws (Math.random)
   await persistDelta(pb, loaded, before, beforeRanks);
+  await autoWalkovers(pb, tournamentId);
 }
 
 async function markGroupsComplete(pb: PocketBase, loaded: LoadedTournament): Promise<void> {

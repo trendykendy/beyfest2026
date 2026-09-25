@@ -1,6 +1,6 @@
 import type PocketBase from "pocketbase";
 import type { RecordModel } from "pocketbase";
-import type { PBGroup, PBMatch, PBPlayer } from "$lib/view";
+import type { PBGroup, PBMatch, PBPlayer, TvState } from "$lib/view";
 
 export interface TournamentView {
   tournament: {
@@ -30,6 +30,7 @@ const toPlayer = (r: RecordModel): PBPlayer => ({
   groupIndex: r.groupIndex ?? null,
   drawOrder: r.drawOrder ?? null,
   finalGroupRank: r.finalGroupRank ?? null,
+  withdrawn: !!r.withdrawn,
 });
 
 const toMatch = (r: RecordModel): PBMatch => {
@@ -51,6 +52,10 @@ const toMatch = (r: RecordModel): PBMatch => {
     p2Score: done ? (r.p2Score ?? null) : null,
     liveP1: r.liveP1 ?? 0,
     liveP2: r.liveP2 ?? 0,
+    liveLog: Array.isArray(r.liveLog) ? r.liveLog : [],
+    resultAt: done ? r.resultAt || "" : "",
+    startedAt: r.startedAt || "",
+    walkover: done && !!r.walkover,
     winner: r.winner || "",
     loser: r.loser || "",
     matchStatus: r.matchStatus,
@@ -83,4 +88,15 @@ export async function loadTournamentView(pb: PocketBase): Promise<TournamentView
     players: players.map(toPlayer),
     matches: matches.map(toMatch),
   };
+}
+
+// The single TV-control record (see migration 1710000300_tv_state). Falls back
+// to auto rotation if it's missing, so the TV never breaks over it.
+export async function loadTvState(pb: PocketBase): Promise<TvState> {
+  try {
+    const r = await pb.collection("tv_state").getFirstListItem("");
+    return { id: r.id, mode: r.mode === "locked" ? "locked" : "auto", scene: r.scene || "groups", next: r.next || "" };
+  } catch {
+    return { id: "", mode: "auto", scene: "groups", next: "" };
+  }
 }

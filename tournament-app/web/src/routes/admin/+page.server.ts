@@ -1,16 +1,22 @@
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
-import { loadTournamentView } from "$lib/server/load";
+import { loadTournamentView, loadTvState } from "$lib/server/load";
+import { SCENE_TITLE, type Scene } from "$lib/view";
 import {
   createTournament,
+  correctScore,
   enterScore,
+  recordWalkover,
+  renamePlayer,
+  setWithdrawn,
   generateKnockoutStage,
   getActiveTournament,
   resetTournament,
 } from "$lib/server/tournament";
 
 export const load: PageServerLoad = async ({ locals }) => {
-  return await loadTournamentView(locals.pb);
+  const [view, tv] = await Promise.all([loadTournamentView(locals.pb), loadTvState(locals.pb)]);
+  return { ...view, tv };
 };
 
 export const actions: Actions = {
@@ -67,6 +73,70 @@ export const actions: Actions = {
     return { scored: code };
   },
 
+  // Fix a result that's already in. The engine refuses (with a plain-words
+  // reason) if a later match has been played with the old winner or loser.
+  correct: async ({ request, locals }) => {
+    const data = await request.formData();
+    const code = String(data.get("code") || "");
+    const s1 = Number(data.get("s1"));
+    const s2 = Number(data.get("s2"));
+    const t = await getActiveTournament(locals.pb);
+    if (!t) return fail(400, { error: "No active tournament." });
+    if (!Number.isInteger(s1) || !Number.isInteger(s2) || s1 < 0 || s2 < 0) {
+      return fail(400, { error: "Scores must be non-negative whole numbers.", fixing: code });
+    }
+    if (s1 === s2) return fail(400, { error: "Matches can't end in a draw.", fixing: code });
+    try {
+      await correctScore(locals.pb, t.id, code, s1, s2);
+    } catch (e) {
+      return fail(400, { error: (e as Error).message, fixing: code });
+    }
+    return { corrected: code };
+  },
+
+  // A no-show on a playable match: the other blader wins at the target, 0 against.
+  walkover: async ({ request, locals }) => {
+    const data = await request.formData();
+    const code = String(data.get("code") || "");
+    const noShow = Number(data.get("noShow"));
+    const t = await getActiveTournament(locals.pb);
+    if (!t) return fail(400, { error: "No active tournament." });
+    if (noShow !== 1 && noShow !== 2) return fail(400, { error: "Pick who didn't show." });
+    try {
+      await recordWalkover(locals.pb, t.id, code, noShow);
+    } catch (e) {
+      return fail(400, { error: (e as Error).message });
+    }
+    return { walkover: code };
+  },
+
+  // A blader leaves (withdrawn=true) or comes back (false).
+  withdraw: async ({ request, locals }) => {
+    const data = await request.formData();
+    const player = String(data.get("player") || "");
+    const t = await getActiveTournament(locals.pb);
+    if (!t) return fail(400, { error: "No active tournament." });
+    try {
+      await setWithdrawn(locals.pb, t.id, player, data.get("withdrawn") === "true");
+    } catch (e) {
+      return fail(400, { error: (e as Error).message });
+    }
+    return { withdrawn: player };
+  },
+
+  rename: async ({ request, locals }) => {
+    const data = await request.formData();
+    const player = String(data.get("player") || "");
+    const t = await getActiveTournament(locals.pb);
+    if (!t) return fail(400, { error: "No active tournament." });
+    try {
+      await renamePlayer(locals.pb, t.id, player, String(data.get("name") || ""));
+    } catch (e) {
+      return fail(400, { error: (e as Error).message, renaming: player });
+    }
+    return { renamed: player };
+  },
+
   generateKnockout: async ({ locals }) => {
     const t = await getActiveTournament(locals.pb);
     if (!t) return fail(400, { error: "No active tournament." });
@@ -78,9 +148,37 @@ export const actions: Actions = {
     return { knockout: true };
   },
 
+  // What the venue TV shows: "Auto" (rotate + cut to live scores) or lock it
+  // on one scene. The TV follows the tv_state record live.
+  tv: async ({ request, locals }) => {
+    const data = await request.formData();
+    const auto = data.get("mode") === "auto";
+    const scene = String(data.get("scene") || "") as Scene;
+    if (!auto && !(scene in SCENE_TITLE)) return fail(400, { error: "Unknown TV scene." });
+    const tv = await loadTvState(locals.pb);
+    if (!tv.id) {
+      return fail(500, { error: "TV settings are missing. Restart PocketBase so its migrations run." });
+    }
+    await locals.pb.collection("tv_state").update(tv.id, auto ? { mode: "auto" } : { mode: "locked", scene });
+    return { tv: true };
+  },
+
+  // "Score this": remember the organiser's pick, so the TV's "Up next" shows
+  // that match and a reload of this page keeps it.
+  pick: async ({ request, locals }) => {
+    const code = String((await request.formData()).get("code") || "").slice(0, 20);
+    const tv = await loadTvState(locals.pb);
+    if (tv.id) await locals.pb.collection("tv_state").update(tv.id, { next: code });
+    return { picked: code };
+  },
+
   reset: async ({ locals }) => {
     const t = await getActiveTournament(locals.pb);
     if (t) await resetTournament(locals.pb, t.id);
+    // A lock from the old tournament could point at a scene the new one
+    // doesn't have yet, so the TV goes back to rotating.
+    const tv = await loadTvState(locals.pb);
+    if (tv.id) await locals.pb.collection("tv_state").update(tv.id, { mode: "auto", next: "" });
     return { reset: true };
   },
 

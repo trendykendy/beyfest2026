@@ -50,6 +50,7 @@ export interface Match {
   winner: string | null;
   loser: string | null;
   status: MatchStatus;
+  walkover?: boolean; // a no-show: a win in the tables, but no points either way
 }
 
 // A pool of entrants (group middles) drawn randomly into poolDraw slots.

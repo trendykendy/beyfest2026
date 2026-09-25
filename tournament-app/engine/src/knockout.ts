@@ -47,12 +47,14 @@ function buildContext(state: State): Ctx {
   const byCode = new Map(matches.map((mt) => [mt.code, mt]));
   const playersById = new Map(players.map((p) => [p.id, p]));
 
-  const groupComplete = structure.groups.map((_, g) => {
-    const gm = matches.filter((mt) => mt.stage === "group" && mt.group === g);
-    return gm.length > 0 && gm.every((mt) => mt.status === "done");
-  });
+  // Only a group's own group-stage matches count towards its table — group-mates
+  // can meet again in the knockout, and that rematch must not move them.
+  const groupMatches = structure.groups.map((_, g) =>
+    matches.filter((mt) => mt.stage === "group" && mt.group === g),
+  );
+  const groupComplete = groupMatches.map((gm) => gm.length > 0 && gm.every((mt) => mt.status === "done"));
   const groupStandings = structure.groups.map((_, g) =>
-    groupComplete[g] ? computeStandings(groupPlayerIds(players, g), matches) : null,
+    groupComplete[g] ? computeStandings(groupPlayerIds(players, g), groupMatches[g]) : null,
   );
 
   let seedTable: Map<number, string> | null = null;

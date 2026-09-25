@@ -40,9 +40,8 @@
     position: sticky;
     top: 0;
     z-index: 50;
-    background: oklch(0.08 0.02 250 / 0.85);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border);
+    background: var(--field-deep);
+    border-bottom: var(--outline) solid var(--ink);
   }
   .bar-inner {
     display: flex;
@@ -57,7 +56,8 @@
     color: var(--text);
   }
   .brand-main {
-    font-family: "Bebas Neue", sans-serif;
+    text-transform: uppercase;
+    font-family: var(--font-display);
     font-size: 1.6rem;
     letter-spacing: 0.06em;
   }
@@ -70,7 +70,8 @@
     gap: 6px;
   }
   .nav a {
-    font-family: "Barlow Condensed", sans-serif;
+    font-family: var(--font-text);
+    font-stretch: 75%;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     font-weight: 600;
@@ -83,7 +84,7 @@
     color: var(--text);
   }
   .nav a.active {
-    color: var(--dark);
+    color: var(--ink);
     background: var(--gold);
   }
   main {
