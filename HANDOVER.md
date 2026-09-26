@@ -1,10 +1,11 @@
 # Handover: Beyfest tournament app
 
-Rewritten at the end of day 3 (25 September 2026). Read this first, then `CLAUDE.md` and `tournament-app/README.md`. The event is **7 November 2026** in Innishannon.
+Rewritten at the end of day 3 (25 September 2026) and updated at the end of day 4 (26 September). Read this first, then `CLAUDE.md` and `tournament-app/README.md`. The event is **7 November 2026** in Innishannon.
 
 ## Where things stand
 
-- **Everything is merged into `main`** (merge commit `856782b`, PR #1). Work from `main`, on a new branch per task; don't commit to `main` directly. The old `redesign/tournament-app` branch is finished.
+- **Day 4's work is on the branch `stadium-draw`: committed, but not merged or pushed.** It holds this handover, the per-round stadium draw (`7303d2f`) and the bracket-line fix (`2812b43`). See "Day 4" below. It's built on `handover/day-3`, so merging it brings the day 3 handover along too. Merging needs the user's go-ahead.
+- **Everything before that is merged into `main`** (merge commit `856782b`, PR #1). Work from `main`, on a new branch per task; don't commit to `main` directly. The old `redesign/tournament-app` branch is finished.
 - **The repo is public:** https://github.com/trendykendy/beyfest2026. Its history was rewritten on day 3 (before the first push) to drop deleted images and `refimages/`. All commit IDs in this file are the new ones.
 - **The app is feature-complete for the event:**
   - the redesign (TV, admin)
@@ -12,12 +13,14 @@ Rewritten at the end of day 3 (25 September 2026). Read this first, then `CLAUDE
   - day 3's polish
 - **The Raspberry Pi is the main setup.** It runs the app, the database and the TV screen. The organiser uses admin from the Mac (or any device) at `http://beyfest.local/admin`. The Mac (`start.sh`) and Windows (`start.ps1`) launchers are the backups.
 - **None of the Pi or Mac setup has run on real hardware yet.** It was tested in throwaway Debian/Ubuntu systems in WSL. That test is the next job.
-- **Nothing is half-done.** GitHub's `pi-main` package is built from `856782b`.
+- **Nothing is half-done.** GitHub's `pi-main` package is built from `856782b`, so it doesn't have the stadium draw until `stadium-draw` is merged to `main`.
 
 | Area | Status |
 |---|---|
 | Design, TV scenes, TV control, admin redesign | Done |
 | Day 2 event-day features (fix a result, resilience, awards, Let it rip, walkovers) | Done |
+| Day 4: stadium draw every round, bracket lines follow players | Done, on `stadium-draw`. **Not merged** |
+| Admin page on a phone | **Broken** (found day 4, not started): see "Admin on a phone" |
 | Pi installer, Pi package, wifi + hotspot fallback | Done. **Needs the real-Pi test** |
 | Mac / Windows launchers (backup) | Done. Mac untested on a real Mac |
 | Day 3 polish (the old known-issues list) | Done |
@@ -26,7 +29,9 @@ Rewritten at the end of day 3 (25 September 2026). Read this first, then `CLAUDE
 
 ## Start here tomorrow
 
-Ask the user whether the Pi is available. If it is, walk them through this (full instructions in the README, "On a Raspberry Pi"):
+First, ask the user whether to merge `stadium-draw` into `main` (merge commit, not squash) and push. The Pi installer downloads the package built from `main`, so the Pi test should run on a `main` that has the stadium draw in it.
+
+Then ask whether the Pi is available. If it is, walk them through this (full instructions in the README, "On a Raspberry Pi"). During the rehearsal, also watch the stadium draw animations on the Pi 3's Chromium; they're transform/opacity only, but haven't run on real hardware.
 
 1. **Flash the SD card** with Raspberry Pi Imager: **Raspberry Pi OS (64-bit) with desktop**. Set a username, and enable SSH if they want to run it from the Mac. The user thinks it's a Pi 3 (memory unknown).
 2. **Run the installer** in a terminal on the Pi:
@@ -49,7 +54,33 @@ Ask the user whether the Pi is available. If it is, walk them through this (full
 - **The app doesn't answer.** Run `systemctl status beyfest-web beyfest-pb` and `journalctl -u beyfest-web -u beyfest-pb -n 50`.
 - **A Pi 3 is too slow with Chromium.** Options: a Pi 4, or the Mac runs the app and the Pi is only the TV (`pi-kiosk.sh --install <mac>.local`).
 
-If the Pi isn't available, candidates: the phone view (only if the user asks), or anything the user brings.
+If the Pi isn't available, candidates: the admin page on a phone (the user was offered this as the next job), the public phone view (only if the user asks), or anything the user brings.
+
+## Day 4: stadium draw and bracket lines (branch `stadium-draw`)
+
+**Stadium draw (`7303d2f`).** Every round of every match is played in one of the three Triple Threat stadia, drawn just before the round.
+- **The stadia** are in `web/src/lib/stadia.ts`: `xtreme` I Xtreme Battle (gold), `motor` II Double Xtreme (green), `drop` III Drop Attack (red). The names and colours come from the public site. The user chose these short names and chose to keep the colours, even though gold/green/red also mean the bracket tiers. Colour tokens are `[data-stadium]` rules in `theme.css`.
+- **The draw is weighted, not a shuffle bag** (the user's choice). `pickStadium()`: weight = (1 + how many draws behind the most-used stadium)², counted across the whole event from the round logs. `test/stadia.test.ts` (7 tests, run by `bun run test`) pins it. `lib/server/stadium.ts` does the counting.
+- **Data (migration 1000):** `matches.stadium` is the stadium for the round about to be played. `matches.stadiumAt` is when it was drawn; a change cues the TV. Each `liveLog` entry gains `stadium`, where that round was played. `tournaments.stadiaOff` lists stadia taken out of the draw.
+- **When it draws** (all on the server):
+  - `/admin/start` draws round 1.
+  - `/admin/live` draws after each new round, unless that round won the match; then it clears the stadium. On Undo it puts the undone round's stadium back, with no new draw. The scorer doesn't send stadia; the server fills them in.
+  - `/admin/stadium` handles `{code, redraw: true}` (never the same stadium) and `{off: [...]}` (at least one stays in).
+  - Recording a result or re-routing a match clears the stadium.
+- **Scorer:** a stadium line ("Round 3 · II · Double Xtreme") with **Redraw**, and "Stadia in the draw" toggles for the whole event. Start match now says "Draws the stadium on the TV".
+- **TV:** `components/tv/StadiumDraw.svelte` replaces the 3·2·1 countdown. It has three looks (**reel**, **spotlight**, **spin**), and the TV picks one at random each time, never the same twice running. The user reviewed drafts of all three and wanted to keep them all.
+  - Start match plays the launch: the draw, then ゴーシュート / LET IT RIP, with the old band and slam kept.
+  - Every later draw, including a Redraw, is a ~3s shuffle, then the name.
+  - After a scored round it waits 1.7s so the finish call-out plays first.
+  - Match centre's status line shows a chip ("Round 3 · III · Drop Attack"), held back until the draw finishes so it doesn't spoil it.
+- **Katakana:** スタジアム was added, so the subset was re-downloaded (5.6KB).
+- **Scripts:** `rehearsal.ts` plays the launch and a draw every round; `midgroup.ts`'s live match has stadia.
+
+**Bracket lines (`2812b43`).** In `BroadcastBracket.svelte`, a line used to land by where its source sat on screen, so a drop line from above could push a winner's line onto the other player's row. Now each line lands on the row of the slot it feeds, and once its match is played it leaves from the row of the player it carries (winner, or loser on a drop line). Checked for every size from 8 to 15: all 73 resolved lines follow their player.
+
+### Admin on a phone (found day 4, not started)
+
+At 390px the admin page is 943px wide, and Now playing overlaps Up next. `.play` in `routes/admin/+page.svelte` is a fixed `minmax(0, 1fr) 320px` grid with no `@media` rules anywhere on the page, and the fixtures and Bladers sections run off the side too. The README says the organiser may score from a phone, so it matters more than the public phone view. It isn't caused by the stadium work.
 
 ## How the event setup works (day 3)
 
@@ -207,8 +238,8 @@ f7d9f5d admin: fix a recorded result, re-routing the next round when the winner 
 
   The logic is in `web/src/routes/tv/+page.svelte`.
 - **Admin control:** the "TV screen" panel writes the `tv_state` record (migration 300), and the TV follows it live. Reset puts it back to Auto. `tv_state.next` (migration 900) holds the "Score this" pick.
-- **Round log:** `matches.liveLog` is a list of `{who, finish}` (migration 400). It drives the round-win call-out and the finish pills, and it's kept after the match for the Result recap and Awards.
-- **Start match:** stamps `matches.startedAt` (migration 700), which cues the launch countdown.
+- **Round log:** `matches.liveLog` is a list of `{who, finish, stadium}` (migrations 400 and 1000). It drives the round-win call-out and the finish pills, and it's kept after the match for the Result recap and Awards.
+- **Start match:** stamps `matches.startedAt` (migration 700) and draws round 1's stadium. A change to `matches.stadiumAt` cues the stadium draw on the TV (see "Day 4").
 - **Live updates:** all three pages use `liveUpdates()` from `lib/pbBrowser.ts`, which checks `/ping` before every refresh. The TV shows a "Reconnecting" mark bottom-left while it can't reach the server.
 
 ## Day 2 improvements (five suggestions, all built at the user's request)
@@ -343,7 +374,7 @@ cd web && bun run dev          # http://localhost:5173  (/tv, /admin, /)
 
 - Migrations only run when PocketBase **starts**, so restart it after adding one.
 - A fresh data dir gets the organiser login from the seed migration.
-- Checks: `bun run check` (in `web`), `bun run test` (in `tournament-app`, 77 engine tests), and `bun run e2e <players>` against a throwaway PocketBase (it plays a whole tournament through the server code).
+- Checks: `bun run check` (in `web`), `bun run test` (in `tournament-app`: 84 tests, 77 engine plus 7 stadium draw), and `bun run e2e <players>` against a throwaway PocketBase (it plays a whole tournament through the server code).
 - A throwaway data dir (served directly, not through a launcher) has no superuser. To check settings (e.g. backups), add one: `pb/pocketbase.exe superuser upsert admin@beyfest.local beyfestadmin2026 --dir=<that dir>`.
 
 ### Sample data scripts (they talk to 127.0.0.1:8090)
@@ -373,6 +404,9 @@ cd web && bun run dev          # http://localhost:5173  (/tv, /admin, /)
 - **Resolved slots are pinned.** Once a result resolves, the engine writes the player into the next match and clears the slot. Changing a past result therefore needs `applyCorrection` (it re-pins); re-running `applyResult` alone would leave the old winner in place.
 - **SvelteKit offline trap.** If `invalidateAll()` fails for network reasons, SvelteKit does a full page load. With no network that strands the browser on its own offline page, and nothing on our page runs to recover. That's why every refresh goes through `/ping` first.
 - **PocketBase 0.40 backups.** The backups API is superuser-only; the organiser login can't use it. Scheduled backups are set by migration 600.
+- **Playwright on Windows (day 4).** `playwright-core` driving Edge (`channel: "msedge"`) hangs at launch under **Bun**. Run the script with `node --experimental-strip-types` instead. Plain headless `msedge.exe --screenshot` also hangs if Edge is already open, unless you pass `--user-data-dir=<temp>`.
+- **Scoped class names still clash inside one component.** In `StadiumDraw.svelte` a reel window called `.win` also matched the spotlight's `class:win` state and clipped the winning card. Give state classes and structural classes different names.
+- **Testing the TV beside the user's test server:** run a second PocketBase on another port and start vite with `PUBLIC_PB_URL=http://127.0.0.1:<port>` on another port, so their data isn't reset.
 
 ## Public website (separate from the app)
 
