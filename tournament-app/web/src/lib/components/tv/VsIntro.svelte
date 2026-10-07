@@ -26,6 +26,7 @@
   // BAND_BOT), with a border on its top and bottom edges.
   const BAND_TOP = 150;
   const BAND_BOT = 930;
+  const EDGE = 20; // border thickness; the bolt's glow stops inside it
 
   // The lightning seam, top to bottom of the band. Both banners are clipped to
   // it, so they interlock exactly. One diagonal shaped like an angular S (a ⚡):
@@ -157,9 +158,9 @@
           <filter id="vs-blur" filterUnits="userSpaceOnUse" x="-100" y="-100" width="2120" height="1280">
             <feGaussianBlur stdDeviation="16" />
           </filter>
-          <!-- The bolt and its glow stop at the band's outer edges. -->
+          <!-- The bolt and its glow stop at the inner edge of the white borders. -->
           <clipPath id="vs-band">
-            <rect x="-100" y={BAND_TOP} width="2120" height={BAND_BOT - BAND_TOP} />
+            <rect x="-100" y={BAND_TOP + EDGE} width="2120" height={BAND_BOT - BAND_TOP - 2 * EDGE} />
           </clipPath>
         </defs>
         <g class="bolt" clip-path="url(#vs-band)">
