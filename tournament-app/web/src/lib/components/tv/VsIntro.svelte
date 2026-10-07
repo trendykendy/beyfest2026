@@ -613,10 +613,15 @@
   .ch b {
     font: inherit;
   }
-  /* The letter: metallic fill over a heavy ink outline. */
+  /* The letter: metallic fill over a heavy ink outline. The italic glyphs lean
+     out past their box, and a background-clip fill only paints inside the
+     box (the outline doesn't care), so pad the box to cover the lean and pull
+     it back with negative margins so the letter doesn't move. */
   .ch b {
     position: relative;
     display: block;
+    padding: 0.1em 0.3em;
+    margin: -0.1em -0.3em;
     background: linear-gradient(180deg, #fff 0%, #fff 38%, #ffe27a 58%, #ff8a1f 100%);
     -webkit-background-clip: text;
     background-clip: text;
