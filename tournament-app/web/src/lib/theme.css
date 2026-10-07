@@ -10,7 +10,9 @@
    Battle, green = II Double Xtreme, red = III Drop Attack. Stadium colour only
    appears next to the stadium's numeral, so the two never get confused.
 
-   Katakana used on screen (the font subset in fonts.css only has these):
+   Katakana used on screen. The font subset in fonts.css has the whole
+   katakana block (so players' names can be written in katakana) plus the
+   kanji in this list:
    ベイフェスト トリプルスレット グループステージ ノックアウト マッチセンター
    チャンピオン スタンバイ ラウンドロビン ライブ 勝者 決勝 次 アワード ゴーシュート
    スタジアム */

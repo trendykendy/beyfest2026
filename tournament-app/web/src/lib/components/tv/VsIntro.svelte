@@ -122,6 +122,10 @@
     <div class="fighter">
       <img src={f.img} alt="" />
     </div>
+    <div class="tag">
+      {#if f.kana}<div class="kana"><span>{f.kana}</span></div>{/if}
+      <div class="name" class:long={f.name.length > 10}><span>{f.name}</span></div>
+    </div>
   </div>
 {/snippet}
 
@@ -641,6 +645,95 @@
   @keyframes fade-out {
     to {
       opacity: 0;
+    }
+  }
+
+  /* ── Name tags ──────────────────────────────────────────── */
+  /* Telop slabs at the outer bottom corner of each banner: the katakana on a
+     black tag, the name on a white slab with a side-colour stripe. Both are
+     slanted; the text inside is set upright again. */
+  .tag {
+    position: absolute;
+    bottom: 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 760px;
+  }
+  .red .tag {
+    left: 70px;
+    align-items: flex-start;
+  }
+  .blue .tag {
+    right: 70px;
+    align-items: flex-end;
+  }
+  .kana,
+  .name {
+    transform: skewX(-12deg);
+  }
+  .kana span,
+  .name span {
+    display: block;
+    transform: skewX(12deg);
+  }
+  .kana {
+    background: var(--ink);
+    padding: 6px 26px 10px;
+    font-family: var(--font-display);
+    font-size: 54px;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    animation: tag-in calc(320ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.15) calc(980ms * var(--k)) both;
+  }
+  .red .kana {
+    color: #ff6b5e;
+  }
+  .blue .kana {
+    color: #5fc4ff;
+  }
+  .name {
+    background: var(--paper);
+    border: 5px solid var(--ink);
+    box-shadow: 10px 10px 0 var(--ink);
+    padding: 4px 40px 10px;
+    font-family: var(--font-display);
+    font-stretch: 85%;
+    font-size: 132px;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--ink);
+    white-space: nowrap;
+    animation: tag-in calc(340ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.15) calc(860ms * var(--k)) both;
+  }
+  .name.long {
+    font-stretch: 62%;
+    font-size: 110px;
+  }
+  .red .name {
+    border-left: 26px solid var(--red);
+  }
+  .blue .name {
+    border-right: 26px solid #1f6bff;
+  }
+  .blue .kana,
+  .blue .name {
+    animation-name: tag-in-right;
+  }
+  .blue .name {
+    animation-delay: calc(920ms * var(--k));
+  }
+  .blue .kana {
+    animation-delay: calc(1040ms * var(--k));
+  }
+  @keyframes tag-in {
+    from {
+      transform: translateX(-900px) skewX(-12deg);
+    }
+  }
+  @keyframes tag-in-right {
+    from {
+      transform: translateX(900px) skewX(-12deg);
     }
   }
 
