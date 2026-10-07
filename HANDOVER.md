@@ -1,11 +1,11 @@
 # Handover: Beyfest tournament app
 
-Rewritten at the end of day 3 (25 September 2026) and updated at the end of day 4 (26 September). Read this first, then `CLAUDE.md` and `tournament-app/README.md`. The event is **7 November 2026** in Innishannon.
+Rewritten at the end of day 3 (25 September 2026) and updated at the end of day 4 (26 September) and at the checkpoint (7 October). Read this first, then `CLAUDE.md` and `tournament-app/README.md`. The event is **7 November 2026** in Innishannon.
 
 ## Where things stand
 
-- **Day 4's work is on the branch `stadium-draw`: committed, but not merged or pushed.** It holds this handover, the per-round stadium draw (`7303d2f`) and the bracket-line fix (`2812b43`). See "Day 4" below. It's built on `handover/day-3`, so merging it brings the day 3 handover along too. Merging needs the user's go-ahead.
-- **Everything before that is merged into `main`** (merge commit `856782b`, PR #1). Work from `main`, on a new branch per task; don't commit to `main` directly. The old `redesign/tournament-app` branch is finished.
+- **Checkpoint (7 October 2026): everything is merged into `main` and tagged `checkpoint-2026-10-07`.** That includes day 4's stadium draw (`7303d2f`), the bracket-line fix (`2812b43`) and the day 3 and day 4 handovers. The user is happy with this state; it's the known-good version to come back to (`git checkout checkpoint-2026-10-07`) if feature experiments go wrong.
+- Work from `main`, on a new branch per task (experiments on `experiment/<feature>`); don't commit to `main` directly. The old `redesign/tournament-app` branch is finished.
 - **The repo is public:** https://github.com/trendykendy/beyfest2026. Its history was rewritten on day 3 (before the first push) to drop deleted images and `refimages/`. All commit IDs in this file are the new ones.
 - **The app is feature-complete for the event:**
   - the redesign (TV, admin)
@@ -13,13 +13,13 @@ Rewritten at the end of day 3 (25 September 2026) and updated at the end of day 
   - day 3's polish
 - **The Raspberry Pi is the main setup.** It runs the app, the database and the TV screen. The organiser uses admin from the Mac (or any device) at `http://beyfest.local/admin`. The Mac (`start.sh`) and Windows (`start.ps1`) launchers are the backups.
 - **None of the Pi or Mac setup has run on real hardware yet.** It was tested in throwaway Debian/Ubuntu systems in WSL. That test is the next job.
-- **Nothing is half-done.** GitHub's `pi-main` package is built from `856782b`, so it doesn't have the stadium draw until `stadium-draw` is merged to `main`.
+- **Nothing is half-done.** GitHub's `pi-main` package is rebuilt from `main` on every push, so it now has the stadium draw.
 
 | Area | Status |
 |---|---|
 | Design, TV scenes, TV control, admin redesign | Done |
 | Day 2 event-day features (fix a result, resilience, awards, Let it rip, walkovers) | Done |
-| Day 4: stadium draw every round, bracket lines follow players | Done, on `stadium-draw`. **Not merged** |
+| Day 4: stadium draw every round, bracket lines follow players | Done, merged to `main` |
 | Admin page on a phone | **Broken** (found day 4, not started): see "Admin on a phone" |
 | Pi installer, Pi package, wifi + hotspot fallback | Done. **Needs the real-Pi test** |
 | Mac / Windows launchers (backup) | Done. Mac untested on a real Mac |
@@ -29,9 +29,7 @@ Rewritten at the end of day 3 (25 September 2026) and updated at the end of day 
 
 ## Start here tomorrow
 
-First, ask the user whether to merge `stadium-draw` into `main` (merge commit, not squash) and push. The Pi installer downloads the package built from `main`, so the Pi test should run on a `main` that has the stadium draw in it.
-
-Then ask whether the Pi is available. If it is, walk them through this (full instructions in the README, "On a Raspberry Pi"). During the rehearsal, also watch the stadium draw animations on the Pi 3's Chromium; they're transform/opacity only, but haven't run on real hardware.
+`stadium-draw` is merged and `main` is tagged `checkpoint-2026-10-07` (done 7 October). Ask whether the Pi is available. If it is, walk them through this (full instructions in the README, "On a Raspberry Pi"). During the rehearsal, also watch the stadium draw animations on the Pi 3's Chromium; they're transform/opacity only, but haven't run on real hardware.
 
 1. **Flash the SD card** with Raspberry Pi Imager: **Raspberry Pi OS (64-bit) with desktop**. Set a username, and enable SSH if they want to run it from the Mac. The user thinks it's a Pi 3 (memory unknown).
 2. **Run the installer** in a terminal on the Pi:
@@ -56,7 +54,7 @@ Then ask whether the Pi is available. If it is, walk them through this (full ins
 
 If the Pi isn't available, candidates: the admin page on a phone (the user was offered this as the next job), the public phone view (only if the user asks), or anything the user brings.
 
-## Day 4: stadium draw and bracket lines (branch `stadium-draw`)
+## Day 4: stadium draw and bracket lines (merged to `main`)
 
 **Stadium draw (`7303d2f`).** Every round of every match is played in one of the three Triple Threat stadia, drawn just before the round.
 - **The stadia** are in `web/src/lib/stadia.ts`: `xtreme` I Xtreme Battle (gold), `motor` II Double Xtreme (green), `drop` III Drop Attack (red). The names and colours come from the public site. The user chose these short names and chose to keep the colours, even though gold/green/red also mean the bracket tiers. Colour tokens are `[data-stadium]` rules in `theme.css`.
