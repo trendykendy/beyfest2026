@@ -9,3 +9,7 @@ pb/pocketbase
 pb/pocketbase.log
 refimages/
 dist/
+
+# Player cut-outs (real people; public repo): keep out of git
+combatants/
+web/static/lab/
