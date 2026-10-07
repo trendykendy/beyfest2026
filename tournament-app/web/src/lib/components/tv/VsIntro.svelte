@@ -33,8 +33,8 @@
   // burst, then down and left again at the same slope.
   const SEAM: [number, number][] = [
     [1150, BAND_TOP],
-    [675, 470],
-    [1255, 610],
+    [735, 465],
+    [1195, 615],
     [780, BAND_BOT],
   ];
   const pts = SEAM.map(([x, y]) => `${x}px ${y}px`).join(", ");
@@ -60,13 +60,13 @@
   }
   const crackles = [crackle(), crackle()];
 
-  // Small forked bolts where the seam meets the band's borders, crackling out
-  // over them.
+  // Small forked bolts off the seam near each end, crackling into the band
+  // (into open background, clear of the faces).
   const FORKS = [
-    "M1150 150 L1212 132 L1228 92 L1290 80 L1322 46",
-    "M1150 150 L1110 116 L1118 84",
-    "M780 930 L718 948 L702 990 L640 1004 L606 1040",
-    "M780 930 L822 966 L814 1000",
+    "M1084 200 L1030 214 L1018 252 L962 262 L936 296",
+    "M1110 180 L1070 170 L1060 196",
+    "M846 880 L904 870 L922 836 L980 826 L1006 792",
+    "M820 905 L862 914 L872 890",
   ];
 
   // Impact burst behind VS: a 16-point star with uneven spikes.
@@ -157,15 +157,19 @@
           <filter id="vs-blur" filterUnits="userSpaceOnUse" x="-100" y="-100" width="2120" height="1280">
             <feGaussianBlur stdDeviation="16" />
           </filter>
+          <!-- The bolt and its glow stop at the band's outer edges. -->
+          <clipPath id="vs-band">
+            <rect x="-100" y={BAND_TOP} width="2120" height={BAND_BOT - BAND_TOP} />
+          </clipPath>
         </defs>
-        <g class="bolt">
+        <g class="bolt" clip-path="url(#vs-band)">
           <path class="glow" d={seamPath} pathLength="1" />
           <path class="mid" d={seamPath} pathLength="1" />
           <path class="crk a" d={crackles[0]} />
           <path class="crk b" d={crackles[1]} />
           <path class="core" d={seamPath} pathLength="1" />
         </g>
-        <g class="forks">
+        <g class="forks" clip-path="url(#vs-band)">
           {#each FORKS as d}
             <path class="glow" {d} />
             <path class="core" {d} />
