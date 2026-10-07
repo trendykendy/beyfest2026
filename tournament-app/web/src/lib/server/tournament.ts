@@ -173,7 +173,7 @@ async function persistDelta(
         // round was won (Result recap, awards).
         liveP1: 0,
         liveP2: 0,
-        ...(m.status === "done" ? {} : { liveLog: [] }),
+        ...(m.status === "done" ? {} : { liveLog: [], stadium: "" }),
       });
     }
   }
@@ -429,12 +429,14 @@ async function dropLogIfWrong(
 
 // Remember when this match's result went in (for "Last result"), and whether
 // it was a walkover. A walkover's partial round log (if any) doesn't count.
+// No round is left to play, so there's no current stadium either.
 async function stampResult(pb: PocketBase, loaded: LoadedTournament, code: string, walkover: boolean): Promise<void> {
   const id = loaded.matchIdByCode.get(code);
   if (!id) return;
   await pb.collection("matches").update(id, {
     resultAt: new Date().toISOString(),
     walkover,
+    stadium: "",
     ...(walkover ? { liveLog: [] } : {}),
   });
 }

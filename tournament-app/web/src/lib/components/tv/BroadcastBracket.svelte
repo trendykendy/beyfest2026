@@ -36,14 +36,16 @@
   // nulled once resolved, so the spec is the durable source of the flow).
   const layout = $derived.by(() => {
     const codes = new Set(shown.map((n) => n.code));
-    const edges: { from: string; to: string; type: "winner" | "loser" }[] = [];
+    // `slot` is which side of the target the feed fills (1 = top row, 2 = bottom),
+    // so its line can land on that player's row.
+    const edges: { from: string; to: string; type: "winner" | "loser"; slot: 1 | 2 }[] = [];
     const incoming = new Map<string, string[]>();
     for (const def of structure.matches) {
       if (!codes.has(def.code)) continue;
-      for (const slot of [def.slot1, def.slot2]) {
+      for (const [i, slot] of [def.slot1, def.slot2].entries()) {
         if ((slot.k === "winner" || slot.k === "loser") && codes.has(slot.match)) {
           if (doubleElim && slot.k === "loser") continue;
-          edges.push({ from: slot.match, to: def.code, type: slot.k });
+          edges.push({ from: slot.match, to: def.code, type: slot.k, slot: i === 0 ? 1 : 2 });
           if (!incoming.has(def.code)) incoming.set(def.code, []);
           incoming.get(def.code)!.push(slot.match);
         }
@@ -114,6 +116,24 @@
       const top = n.offsetTop - (h - n.offsetHeight) / 2;
       return { left, right: left + w, top, bottom: top + h, w, h };
     };
+    // Height of a player row (1 = top, 2 = bottom) on a card, in the same
+    // layout space as rect(). Measured as a fraction of the card's on-screen
+    // height, so the fit scale and the Grand Final's zoom don't matter.
+    const rowY = (code: string, row: 1 | 2, r: NonNullable<ReturnType<typeof rect>>) => {
+      const n = nodeEls[code];
+      const side = n?.querySelectorAll<HTMLElement>(".side")[row - 1];
+      if (!n || !side) return r.top + r.h / 2;
+      const nb = n.getBoundingClientRect();
+      const sb = side.getBoundingClientRect();
+      return nb.height > 0 ? r.top + r.h * ((sb.top + sb.height / 2 - nb.top) / nb.height) : r.top + r.h / 2;
+    };
+    // Which row of a played match the line leaves from: the player it carries
+    // on (the winner, or the loser on a drop line). Unplayed: the card's middle.
+    const leaveRow = (m: PBMatch | undefined, type: string): 1 | 2 | null => {
+      if (!m || m.matchStatus !== "done") return null;
+      const who = type === "loser" ? m.loser : m.winner;
+      return who && who === m.p1 ? 1 : who && who === m.p2 ? 2 : null;
+    };
 
     // Column geometry for routing lines that skip columns (see corridorY).
     const colOf = new Map<string, number>();
@@ -170,10 +190,10 @@
       return best;
     }
 
-    const byTarget = new Map<string, { from: string; type: string }[]>();
+    const byTarget = new Map<string, { from: string; type: string; slot: 1 | 2 }[]>();
     for (const e of layout.edges) {
       if (!byTarget.has(e.to)) byTarget.set(e.to, []);
-      byTarget.get(e.to)!.push({ from: e.from, type: e.type });
+      byTarget.get(e.to)!.push({ from: e.from, type: e.type, slot: e.slot });
     }
 
     const out: { d: string; tier: string; type: string }[] = [];
@@ -190,12 +210,14 @@
       const frac = (i: number) => (n === 1 ? 0.5 : 0.28 + 0.44 * (i / (n - 1)));
 
       if (orientation === "horizontal") {
-        srcs.sort((a, b) => a.r.top - b.r.top);
+        // Each line follows its player: out of their row on the card they came
+        // from (once it's played), into the row of the slot they fill here.
         const tx = tr.left;
-        srcs.forEach((s, i) => {
-          const sy = s.r.top + s.r.h / 2;
+        srcs.forEach((s) => {
+          const leave = leaveRow(byCode.get(s.from), s.type);
+          const sy = leave ? rowY(s.from, leave, s.r) : s.r.top + s.r.h / 2;
           const sx = s.r.right;
-          const cy = tr.top + tr.h * frac(i);
+          const cy = rowY(to, s.slot, tr);
           const fromCol = colOf.get(s.from)!;
           const toCol = colOf.get(to)!;
           let d: string;

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import { FINISHES } from "$lib/finishes";
+  import { STADIA, stadiumOf } from "$lib/stadia";
   import type { PBMatch } from "$lib/view";
   import Trophy from "./Trophy.svelte";
 
@@ -11,6 +12,7 @@
     target,
     context,
     tier,
+    stadiaOff,
   }: {
     match: PBMatch;
     p1Name: string;
@@ -18,6 +20,7 @@
     target: number;
     context: string; // "Group 3, match 2 of 6" / "Mid bracket round 2"
     tier: string; // colours the card tops like the TV: group | wb | mb | lb | gf
+    stadiaOff: string[]; // stadia out of the draw (event-wide)
   } = $props();
 
   // Round log — each entry is one round win. Score is derived from it, so
@@ -85,6 +88,30 @@
   }
   const nameOf = (who: 1 | 2) => (who === 1 ? p1Name : p2Name);
   const SIDES = [1, 2] as const;
+
+  // Stadium for the round about to be played. The server draws it (on Start,
+  // and after each round that doesn't win the match) and it arrives with the
+  // live refresh, so until the saved log catches up with a tap it's "drawing".
+  const stadium = $derived(stadiumOf(match.stadium));
+  const drawing = $derived(started && match.liveLog.length !== rounds.length);
+  async function redraw() {
+    await fetch("/admin/stadium", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: match.code, redraw: true }),
+    }).catch(() => {});
+  }
+  // Take a stadium out of the draw (or put it back), for the whole event.
+  // The last one in can't be taken out.
+  async function toggleStadium(key: string) {
+    const off = stadiaOff.includes(key) ? stadiaOff.filter((k) => k !== key) : [...stadiaOff, key];
+    if (off.length >= STADIA.length) return;
+    await fetch("/admin/stadium", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ off }),
+    }).catch(() => {});
+  }
 </script>
 
 <!-- The organiser's scorer, built like the TV's Match centre so what you tap
@@ -101,8 +128,22 @@
 
   {#if !started && rounds.length === 0}
     <button type="button" class="start" onclick={() => setStarted(true)}>
-      Start match <span>Let it rip on the TV</span>
+      Start match <span>Draws the stadium on the TV</span>
     </button>
+  {/if}
+
+  <!-- Where this round is played. Redraw if it can't be used right now. -->
+  {#if !over && (stadium || drawing)}
+    <div class="stadium" data-stadium={drawing ? undefined : stadium?.key}>
+      <span class="st-round">Round {rounds.length + 1}</span>
+      {#if drawing || !stadium}
+        <span class="st-name st-wait">Drawing the stadium…</span>
+      {:else}
+        <span class="st-num"><b>{stadium.num}</b></span>
+        <span class="st-name"><b>{stadium.name}</b></span>
+        <button type="button" class="undo st-redraw" onclick={redraw}>Redraw</button>
+      {/if}
+    </div>
   {/if}
 
   <div class="rs-duel">
@@ -171,6 +212,26 @@
         Undo {last.label} +{last.pts} for {nameOf(last.who)}
       </button>
     {/if}
+    <!-- Event-wide: a stadium that's out (flat motor, say) isn't drawn until
+         it's put back. -->
+    <div class="st-draw">
+      <span class="st-draw-q">Stadia in the draw</span>
+      {#each STADIA as s (s.key)}
+        {@const on = !stadiaOff.includes(s.key)}
+        <button
+          type="button"
+          class="st-toggle"
+          class:off={!on}
+          data-stadium={s.key}
+          aria-pressed={on}
+          disabled={on && stadiaOff.length >= STADIA.length - 1}
+          title={on ? `Take ${s.name} out of the draw` : `Put ${s.name} back in the draw`}
+          onclick={() => toggleStadium(s.key)}
+        >
+          <span class="st-num"><b>{s.num}</b></span>{s.name}
+        </button>
+      {/each}
+    </div>
   </div>
 </div>
 
@@ -431,6 +492,120 @@
   .start:active {
     transform: translate(3px, 3px);
     box-shadow: 2px 2px 0 var(--ink);
+  }
+  /* This round's stadium: a white slab with the numeral in the stadium's
+     colour, like the TV's chip. */
+  .stadium {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 18px;
+    background: var(--paper);
+    color: var(--ink);
+    border: var(--outline) solid var(--ink);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--st, var(--ink));
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .st-round {
+    display: grid;
+    place-items: center;
+    padding: 0 14px;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-text);
+    font-stretch: 75%;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    font-size: 0.95rem;
+  }
+  .st-num {
+    display: grid;
+    place-items: center;
+    min-width: 2.4em;
+    padding: 0 10px;
+    background: var(--st, var(--ink));
+    color: var(--st-ink, var(--paper));
+    border-right: var(--outline) solid var(--ink);
+  }
+  .st-num b,
+  .st-name b {
+    font-weight: inherit;
+    padding-right: 0.12em; /* italic overhang */
+  }
+  .stadium .st-num {
+    font-size: 2rem;
+  }
+  .st-name {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 10px 16px 12px;
+    font-size: 2rem;
+    white-space: nowrap;
+  }
+  .st-wait {
+    font-family: var(--font-text);
+    text-transform: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .stadium .st-redraw {
+    align-self: center;
+    margin: 0 10px;
+    border-color: var(--ink-soft);
+    color: var(--ink);
+  }
+  .stadium .st-redraw:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .st-draw {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .st-draw-q {
+    color: var(--on-field-soft);
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .st-toggle {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 8px;
+    padding: 0 12px 0 0;
+    background: var(--paper);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    font-family: var(--font-text);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .st-toggle .st-num {
+    min-width: 2.2em;
+    padding: 4px 6px;
+    font-family: var(--font-display);
+    border-right-width: 2px;
+  }
+  /* Out of the draw: struck through and dimmed. */
+  .st-toggle.off {
+    background: none;
+    color: var(--on-field-soft);
+    border-color: var(--border-strong);
+    text-decoration: line-through;
+  }
+  .st-toggle.off .st-num {
+    background: none;
+    color: var(--on-field-soft);
+    border-color: var(--border-strong);
+  }
+  .st-toggle:disabled {
+    cursor: not-allowed;
   }
   .wo {
     display: flex;

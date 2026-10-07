@@ -23,7 +23,9 @@
     type PBMatch,
     type Scene,
   } from "$lib/view";
+  import { stadiumOf } from "$lib/stadia";
   import BroadcastBracket from "$lib/components/tv/BroadcastBracket.svelte";
+  import StadiumDraw from "$lib/components/tv/StadiumDraw.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
 
   let { data } = $props();
@@ -95,7 +97,7 @@
   let primed = false;
   $effect(() => {
     const snap = new Map(
-      data.matches.map((m) => [m.code, `${m.matchStatus}|${m.liveP1}-${m.liveP2}|${m.p1Score}-${m.p2Score}|${m.startedAt}`]),
+      data.matches.map((m) => [m.code, `${m.matchStatus}|${m.liveP1}-${m.liveP2}|${m.p1Score}-${m.p2Score}|${m.startedAt}|${m.stadiumAt}`]),
     );
     if (primed) {
       let hit: PBMatch | null = null;
@@ -286,41 +288,67 @@
     };
   }
 
-  // ── Launch countdown ────────────────────────────────────────────────
-  // "Start match" in admin stamps startedAt. The cut above brings Match centre
-  // up on that match; once it's showing, count the launch in:
-  // 3 · 2 · 1 · LET IT RIP! (ゴーシュート). Each beat is its own keyed element
-  // with a CSS transform/opacity animation (Pi-safe).
-  const BEATS = ["3", "2", "1", "rip"] as const;
-  const BEAT_MS = 800;
-  let startSeen = new Map<string, string>();
-  let startPrimed = false;
-  let latestStart = $state<{ code: string; at: number } | null>(null);
+  // ── Stadium draw ────────────────────────────────────────────────────
+  // The server draws a stadium (on Start match, after each round that doesn't
+  // win the match, and on Redraw) and stamps stadiumAt. The cut above brings
+  // Match centre up on that match; once it's showing, play the draw: Start
+  // match gets the launch (draw, then ゴーシュート / LET IT RIP), anything later
+  // the ~3s shuffle. One of three looks, at random, never the same twice running.
+  const LOOKS = ["reel", "spotlight", "spin"] as const;
+  const AFTER_CALLOUT_MS = 1700; // a round's finish call-out lands first
+  type Draw = { code: string; at: number; stadium: string; kind: "launch" | "next"; round: number; afterRound: boolean };
+  let drawSeen = new Map<string, { at: string; rounds: number }>();
+  let drawPrimed = false;
+  let latestDraw = $state<Draw | null>(null);
   $effect(() => {
     for (const m of data.matches) {
-      const before = startSeen.get(m.code);
-      if (startPrimed && m.startedAt && before !== undefined && before !== m.startedAt) {
-        latestStart = { code: m.code, at: Date.now() };
+      const before = drawSeen.get(m.code);
+      const rounds = m.liveLog.length;
+      if (drawPrimed && m.stadiumAt && m.stadium && before && before.at !== m.stadiumAt) {
+        latestDraw = {
+          code: m.code,
+          at: Date.now(),
+          stadium: m.stadium,
+          kind: rounds === 0 ? "launch" : "next",
+          round: rounds + 1,
+          afterRound: rounds > before.rounds,
+        };
       }
-      startSeen.set(m.code, m.startedAt);
+      drawSeen.set(m.code, { at: m.stadiumAt, rounds });
     }
-    startPrimed = true;
+    drawPrimed = true;
   });
 
-  let beat = $state<(typeof BEATS)[number] | null>(null);
-  let beatTimers: ReturnType<typeof setTimeout>[] = [];
-  let launched = "";
+  // The draw on screen, and the match whose stadium chip is held back until
+  // it finishes (so the chip doesn't give the answer away first).
+  let drawShow = $state<(Draw & { id: string; look: (typeof LOOKS)[number] }) | null>(null);
+  let drawHold = $state("");
+  let drawTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastLook = "";
+  let drawn = "";
+  function endDraw() {
+    clearTimeout(drawTimer);
+    drawShow = null;
+    drawHold = "";
+  }
   $effect(() => {
-    const ev = latestStart;
+    const ev = latestDraw;
     if (!ev || scene !== "spotlight" || spotMatch?.code !== ev.code) return;
     const key = `${ev.code}@${ev.at}`;
-    if (key === launched) return;
-    launched = key;
+    if (key === drawn) return;
+    drawn = key;
     if (Date.now() - ev.at > CALLOUT_FRESH_MS) return; // stale by the time it showed
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    beatTimers.forEach(clearTimeout);
-    beatTimers = BEATS.map((b, i) => setTimeout(() => (beat = b), i * BEAT_MS));
-    beatTimers.push(setTimeout(() => (beat = null), BEATS.length * BEAT_MS + 900));
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; // chip only
+    const pool = LOOKS.filter((l) => l !== lastLook);
+    const look = pool[Math.floor(Math.random() * pool.length)];
+    lastLook = look;
+    endDraw();
+    drawHold = ev.code;
+    drawTimer = setTimeout(() => (drawShow = { ...ev, id: key, look }), ev.afterRound ? AFTER_CALLOUT_MS : 0);
+  });
+  // Moving off the match (or off Match centre) drops a draw in progress.
+  $effect(() => {
+    if (drawHold && (scene !== "spotlight" || spotMatch?.code !== drawHold)) endDraw();
   });
 
   // ── Operator control (keyboard / mouse at the TV) ───────────────────
@@ -613,6 +641,17 @@
             {:else}<span class="mc-tag next">Up next</span>{/if}
             <span class="mc-context">{matchContext(spotMatch, data.matches)}</span>
             <span class="mc-ft">First to {t}</span>
+            <!-- This round's stadium, held back while its draw is playing. -->
+            {#if live && !decided && drawHold !== spotMatch.code && stadiumOf(spotMatch.stadium)}
+              {@const st = stadiumOf(spotMatch.stadium)!}
+              {#key spotMatch.stadiumAt}
+                <span class="mc-stadium" data-stadium={st.key}>
+                  <span class="rd"><b>Round {spotMatch.liveLog.length + 1}</b></span>
+                  <span class="num"><b>{st.num}</b></span>
+                  <span><b>{st.name}</b></span>
+                </span>
+              {/key}
+            {/if}
             <!-- The finish call-out hangs above this line (see .fx-wrap). -->
             {#if fx}
               <div class="fx-wrap" aria-hidden="true">
@@ -624,19 +663,16 @@
           </div>
 
 
-          {#if beat}
-            <div class="lir" aria-live="polite">
-              {#key beat}
-                {#if beat === "rip"}
-                  <div class="lir-rip">
-                    <span class="lir-kana" lang="ja">ゴーシュート</span>
-                    <span class="lir-card"><b>Let it rip!</b></span>
-                  </div>
-                {:else}
-                  <div class="lir-num">{beat}</div>
-                {/if}
-              {/key}
-            </div>
+          {#if drawShow}
+            {#key drawShow.id}
+              <StadiumDraw
+                stadium={drawShow.stadium}
+                kind={drawShow.kind}
+                round={drawShow.round}
+                look={drawShow.look}
+                ondone={endDraw}
+              />
+            {/key}
           {/if}
 
           <div class="mc-duel tier-{tierOf(spotMatch.stage)}">
@@ -1666,119 +1702,54 @@
     color: var(--on-field-soft);
     font-size: 1.6rem;
   }
-  /* Launch countdown over Match centre: a black band across the screen with
-     each beat slamming in. Transform/opacity only. */
-  .lir {
-    position: absolute;
-    inset: 0;
-    z-index: 6;
-    display: grid;
-    place-items: center;
-    pointer-events: none;
-  }
-  .lir::before {
-    content: "";
-    position: absolute;
-    left: -5%;
-    right: -5%;
-    top: 50%;
-    height: 420px;
-    margin-top: -210px;
-    background: var(--ink);
-    transform: skewY(-4deg);
-    animation: lir-band 260ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
-  }
-  .lir-num,
-  .lir-rip {
-    position: relative;
-    grid-area: 1 / 1;
-    animation: lir-slam 800ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-  }
-  .lir-num {
-    font-family: var(--font-display);
-    font-size: 24rem;
-    line-height: 0.8;
-    color: var(--gold);
-    -webkit-text-stroke: 6px var(--ink);
-    paint-order: stroke fill;
-  }
-  .lir-rip {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    animation-duration: 1700ms;
-  }
-  .lir-kana {
-    font-family: var(--font-display);
-    font-size: 3.4rem;
-    line-height: 1;
-    color: var(--gold);
-  }
-  .lir-card {
+  /* This round's stadium, in the status line: round tag, numeral block in the
+     stadium's colour, name. Pops in when a draw lands (it's keyed on the draw). */
+  .mc-stadium {
+    display: inline-flex;
+    align-items: stretch;
     font-family: var(--font-display);
     text-transform: uppercase;
-    font-size: 12rem;
+    font-size: 2.2rem;
     line-height: 1;
-    background: var(--red);
-    color: var(--paper);
-    border: 6px solid var(--paper);
-    box-shadow: 16px 16px 0 var(--gold);
-    padding: 6px 60px 16px;
     transform: skewX(-10deg);
+    background: var(--paper);
+    color: var(--ink);
+    border: var(--outline) solid var(--ink);
+    box-shadow: 6px 6px 0 var(--st);
+    animation: chip-pop 320ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
   }
-  .lir-card b {
+  .mc-stadium > span {
+    display: grid;
+    place-items: center;
+    padding: 8px 18px 10px;
+  }
+  .mc-stadium b {
     display: block;
     font-weight: inherit;
     transform: skewX(10deg);
+    padding-right: 0.12em; /* italic overhang */
   }
-  @keyframes lir-band {
+  .mc-stadium .rd {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-text);
+    font-weight: 700;
+    font-stretch: 75%;
+    letter-spacing: 0.12em;
+    font-size: 1.5rem;
+  }
+  .mc-stadium .num {
+    background: var(--st);
+    color: var(--st-ink);
+    border-right: var(--outline) solid var(--ink);
+    min-width: 2.2em;
+  }
+  @keyframes chip-pop {
     from {
-      transform: skewY(-4deg) scaleX(0);
+      transform: skewX(-10deg) scale(1.25);
     }
     to {
-      transform: skewY(-4deg) scaleX(1);
-    }
-  }
-  @keyframes lir-slam {
-    0% {
-      opacity: 0;
-      transform: scale(1.9);
-    }
-    22% {
-      opacity: 1;
-      transform: scale(0.96);
-    }
-    32% {
-      transform: scale(1);
-    }
-    80% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    100% {
-      opacity: 0;
-      transform: scale(0.9);
-    }
-  }
-  .lir-rip {
-    animation-name: lir-slam-hold;
-  }
-  @keyframes lir-slam-hold {
-    0% {
-      opacity: 0;
-      transform: scale(1.9);
-    }
-    14% {
-      opacity: 1;
-      transform: scale(0.96);
-    }
-    20% {
-      transform: scale(1);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
+      transform: skewX(-10deg) scale(1);
     }
   }
 </style>
