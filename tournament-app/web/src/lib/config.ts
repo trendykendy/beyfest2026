@@ -9,7 +9,13 @@ export const PB_URL = env.PUBLIC_PB_URL || "http://127.0.0.1:8090";
 // page. So the TV and phones follow the machine through any network change
 // (venue wifi, the Pi's own hotspot, beyfest.local) with nothing to configure.
 export function browserPbUrl(): string {
-  return env.PUBLIC_PB_URL || `${location.protocol}//${location.hostname}:8090`;
+  return pbUrlFor(location);
+}
+
+// The same, worked out on the server from the page's URL (so server-rendered
+// pages can link PocketBase files without waiting for the browser).
+export function pbUrlFor(page: { protocol: string; hostname: string }): string {
+  return env.PUBLIC_PB_URL || `${page.protocol}//${page.hostname}:8090`;
 }
 
 // Shown on the TV standby screen before the groups are drawn.

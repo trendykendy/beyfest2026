@@ -94,7 +94,8 @@
     {:else}
       <span class="head-name">No tournament yet</span>
     {/if}
-    <form method="POST" action="?/logout" use:enhance class="logout">
+    <a class="btn fighters-link" href="/admin/fighters">Fighters</a>
+    <form method="POST" action="?/logout" use:enhance>
       <button class="btn" type="submit">Log out</button>
     </form>
   </div>
@@ -348,7 +349,7 @@
   .head-count {
     color: var(--on-field-soft);
   }
-  .logout {
+  .fighters-link {
     margin-left: auto;
   }
   /* TV control: a stack of scene buttons, the live one lit gold. */
