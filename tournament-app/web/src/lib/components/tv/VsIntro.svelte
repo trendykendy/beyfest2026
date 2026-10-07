@@ -9,7 +9,9 @@
   // Everything is laid out on a fixed 1920×1080 canvas, scaled to fit, so the
   // seam's coordinates are the same at any screen size. Every duration and
   // delay in the CSS is multiplied by --k (the `slow` prop).
-  type Fighter = { name: string; kana: string; img: string };
+  // img: the cut-out's URL ("" for the silhouette). Cut-outs face left;
+  // mirror flips one that faces the other way.
+  type Fighter = { name: string; kana: string; img: string; mirror?: boolean };
   let {
     p1,
     p2,
@@ -134,18 +136,42 @@
         ></i>
       {/each}
     </div>
+    <!-- p1 (left) is turned to face right; a fighter's mirror flag flips that. -->
     <div class="fighter">
-      <img src={f.img} alt="" />
+      {#if f.img}
+        <img class="art" class:flip={(side === "red") !== !!f.mirror} src={f.img} alt="" />
+      {:else}
+        <div class="art" class:flip={side === "red"}>{@render silhouette()}</div>
+      {/if}
     </div>
     <div class="edge top"></div>
     <div class="edge bot"></div>
   </div>
 {/snippet}
 
+<!-- Stand-in for a fighter with no image: a launching blader in silhouette,
+     facing left like the cut-outs (so it mirrors the same way), with a hard
+     rim light in the banner's colour. -->
+{#snippet silhouette()}
+  <svg class="art silhouette" viewBox="0 0 600 400" aria-hidden="true">
+    <ellipse cx="185" cy="78" rx="58" ry="64" />
+    <polygon points="150,130 250,95 372,150 332,232 198,242" />
+    <polygon points="172,148 218,188 132,282 96,254" />
+    <circle cx="106" cy="276" r="40" />
+    <polygon points="34,304 108,248 136,282 62,336" />
+    <polygon points="298,108 330,136 444,88 432,60" />
+    <circle cx="442" cy="72" r="27" />
+    <polygon points="298,168 362,148 528,222 506,254" />
+    <polygon points="276,214 332,198 478,300 446,324" />
+    <!-- un-mirrored with the figure, so it always reads the right way -->
+    <text class="mystery" x="185" y="112">?</text>
+  </svg>
+{/snippet}
+
 <!-- Name tags sit outside the banners' clip so they can overlap the bottom
      border and the fighters. -->
 {#snippet tag(side: "l" | "r", f: Fighter)}
-  <div class="tag {side}">
+  <div class="nametag {side}">
     {#if f.kana}<div class="kana"><span>{f.kana}</span></div>{/if}
     <div class="name" class:long={f.name.length > 10}><span>{f.name}</span></div>
   </div>
@@ -795,7 +821,7 @@
   /* Telop slabs at the outer bottom corner of each banner: the katakana on a
      black tag, the name on a white slab with a side-colour stripe. Both are
      slanted; the text inside is set upright again. */
-  .tag {
+  .nametag {
     position: absolute;
     bottom: 80px;
     display: flex;
@@ -803,11 +829,11 @@
     gap: 10px;
     max-width: 760px;
   }
-  .tag.l {
+  .nametag.l {
     left: 70px;
     align-items: flex-start;
   }
-  .tag.r {
+  .nametag.r {
     right: 70px;
     align-items: flex-end;
   }
@@ -870,10 +896,10 @@
     animation-delay: calc(1040ms * var(--k));
   }
   /* Leaving: each tag goes with its banner. */
-  .vs:not(.hold) .tag.l {
+  .vs:not(.hold) .nametag.l {
     animation: out-left calc(450ms * var(--k)) cubic-bezier(0.6, 0, 0.9, 0.5) calc(var(--out) * var(--k)) forwards;
   }
-  .vs:not(.hold) .tag.r {
+  .vs:not(.hold) .nametag.r {
     animation: out-right calc(450ms * var(--k)) cubic-bezier(0.6, 0, 0.9, 0.5) calc(var(--out) * var(--k)) forwards;
   }
   @keyframes tag-in {
@@ -911,8 +937,33 @@
       fighter-left calc(650ms * var(--k)) cubic-bezier(0.15, 0.85, 0.3, 1) both,
       push calc(3600ms * var(--k)) linear calc(650ms * var(--k)) forwards;
   }
-  .red .fighter img {
+  .art.flip {
     transform: scaleX(-1);
+  }
+  .silhouette {
+    display: block;
+    width: 100%;
+    fill: #070816;
+    /* a thick round-jointed outline in the same colour softens the shapes */
+    stroke: #070816;
+    stroke-width: 14;
+    stroke-linejoin: round;
+    overflow: visible;
+    /* hard rim light, up and towards the seam */
+    filter: drop-shadow(-7px -6px 0 var(--lite));
+    transform: scale(0.86);
+    transform-origin: 50% 60%;
+  }
+  .mystery {
+    font-family: var(--font-display);
+    font-size: 110px;
+    text-anchor: middle;
+    fill: var(--lite);
+    stroke: none;
+  }
+  .art.flip .mystery {
+    transform: scaleX(-1);
+    transform-origin: 185px 78px;
   }
   .blue .fighter {
     right: -350px;
