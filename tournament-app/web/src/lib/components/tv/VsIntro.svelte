@@ -22,19 +22,24 @@
   const OUT = 4200; // banners split apart
   const END = 4800; // gone; ondone fires
 
-  // The lightning seam, top to bottom, on the 1920×1080 canvas. Both banners
-  // are clipped to it, so they interlock exactly. One diagonal shaped like an
-  // angular S (a ⚡): down and left, a short jog back right, then down and left
-  // again at the same slope.
+  // The banners fill a band across the middle of the screen (BAND_TOP to
+  // BAND_BOT), with a border on its top and bottom edges.
+  const BAND_TOP = 150;
+  const BAND_BOT = 930;
+
+  // The lightning seam, top to bottom of the band. Both banners are clipped to
+  // it, so they interlock exactly. One diagonal shaped like an angular S (a ⚡):
+  // down and left, a long jog back right whose corners stick out past the VS
+  // burst, then down and left again at the same slope.
   const SEAM: [number, number][] = [
-    [1180, 0],
-    [905, 500],
-    [1035, 575],
-    [760, 1080],
+    [1150, BAND_TOP],
+    [675, 470],
+    [1255, 610],
+    [780, BAND_BOT],
   ];
   const pts = SEAM.map(([x, y]) => `${x}px ${y}px`).join(", ");
-  const clipRed = `polygon(0 0, ${pts}, 0 1080px)`;
-  const clipBlue = `polygon(1920px 0, ${pts}, 1920px 1080px)`;
+  const clipRed = `polygon(0 ${BAND_TOP}px, ${pts}, 0 ${BAND_BOT}px)`;
+  const clipBlue = `polygon(1920px ${BAND_TOP}px, ${pts}, 1920px ${BAND_BOT}px)`;
 
   const seamPath = "M" + SEAM.map(([x, y]) => `${x} ${y}`).join(" L");
 
@@ -55,12 +60,13 @@
   }
   const crackles = [crackle(), crackle()];
 
-  // Small forked bolts off the seam, top and bottom, clear of the faces.
+  // Small forked bolts where the seam meets the band's borders, crackling out
+  // over them.
   const FORKS = [
-    "M1128 95 L1190 82 L1204 40 L1264 26 L1296 -4",
-    "M1150 55 L1118 22 L1124 -6",
-    "M812 985 L750 998 L734 1040 L672 1056 L640 1084",
-    "M790 1025 L826 1056 L820 1084",
+    "M1150 150 L1212 132 L1228 92 L1290 80 L1322 46",
+    "M1150 150 L1110 116 L1118 84",
+    "M780 930 L718 948 L702 990 L640 1004 L606 1040",
+    "M780 930 L822 966 L814 1000",
   ];
 
   // Impact burst behind VS: a 16-point star with uneven spikes.
@@ -120,27 +126,35 @@
     <div class="fighter">
       <img src={f.img} alt="" />
     </div>
-    <div class="tag">
-      {#if f.kana}<div class="kana"><span>{f.kana}</span></div>{/if}
-      <div class="name" class:long={f.name.length > 10}><span>{f.name}</span></div>
-    </div>
+    <div class="edge top"></div>
+    <div class="edge bot"></div>
+  </div>
+{/snippet}
+
+<!-- Name tags sit outside the banners' clip so they can overlap the bottom
+     border and the fighters. -->
+{#snippet tag(side: "l" | "r", f: Fighter)}
+  <div class="tag {side}">
+    {#if f.kana}<div class="kana"><span>{f.kana}</span></div>{/if}
+    <div class="name" class:long={f.name.length > 10}><span>{f.name}</span></div>
   </div>
 {/snippet}
 
 <div class="vs" class:hold bind:clientWidth={w} style:--k={slow} style:--out="{OUT}ms">
   <div class="canvas" style:transform="scale({scale})">
+    <div class="backdrop"></div>
     <div class="shake">
       {@render banner("red", p1, redStreaks)}
       {@render banner("blue", p2, blueStreaks)}
 
       <svg class="seam" viewBox="0 0 1920 1080" aria-hidden="true">
         <defs>
-          <linearGradient id="vs-seam-glow" gradientUnits="userSpaceOnUse" x1="820" y1="0" x2="1100" y2="0">
+          <linearGradient id="vs-seam-glow" gradientUnits="userSpaceOnUse" x1="650" y1="0" x2="1280" y2="0">
             <stop offset="0" stop-color="#ff5a4a" />
             <stop offset="0.5" stop-color="#e9d8ff" />
             <stop offset="1" stop-color="#4ab8ff" />
           </linearGradient>
-          <filter id="vs-blur" x="-20%" y="-20%" width="140%" height="140%">
+          <filter id="vs-blur" filterUnits="userSpaceOnUse" x="-100" y="-100" width="2120" height="1280">
             <feGaussianBlur stdDeviation="16" />
           </filter>
         </defs>
@@ -173,6 +187,9 @@
           </span>
         {/each}
       </div>
+
+      {@render tag("l", p1)}
+      {@render tag("r", p2)}
     </div>
     <div class="flash"></div>
   </div>
@@ -191,6 +208,26 @@
     width: 1920px;
     height: 1080px;
     transform-origin: 0 0;
+  }
+
+  /* Behind the band: the dark stage, fading in and out with the intro. */
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(-60deg, rgb(255 255 255 / 0.035) 0 2px, transparent 2px 16px),
+      var(--field-deep);
+    animation: fade-in calc(160ms * var(--k)) linear both;
+  }
+  .vs:not(.hold) .backdrop {
+    animation:
+      fade-in calc(160ms * var(--k)) linear both,
+      fade-out calc(250ms * var(--k)) linear calc(var(--out) * var(--k) + 350ms * var(--k)) forwards;
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
   }
 
   /* ── Banners ─────────────────────────────────────────────── */
@@ -250,6 +287,23 @@
     to {
       transform: translateX(1250px) skewX(-10deg);
     }
+  }
+
+  /* The band's top and bottom borders: an ink line outside, white inside.
+     Each banner carries its half, so they meet under the bolt. */
+  .edge {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+  }
+  .edge.top {
+    top: 150px;
+    background: linear-gradient(var(--ink) 0 7px, var(--paper) 7px 100%);
+  }
+  .edge.bot {
+    top: 910px;
+    background: linear-gradient(var(--paper) 0 13px, var(--ink) 13px 100%);
   }
 
   /* Manga focus lines (集中線) radiating from behind the fighter, flickering
@@ -436,8 +490,8 @@
 
   .ring {
     position: absolute;
-    left: 970px;
-    top: 537px;
+    left: 965px;
+    top: 540px;
     width: 300px;
     height: 300px;
     margin: -150px 0 0 -150px;
@@ -489,16 +543,16 @@
   .mark {
     position: absolute;
     left: 965px;
-    top: 590px;
+    top: 552px;
     width: 0;
     height: 0;
   }
   .burst {
     position: absolute;
-    left: -330px;
-    top: -330px;
-    width: 660px;
-    height: 660px;
+    left: -235px;
+    top: -235px;
+    width: 470px;
+    height: 470px;
     background: radial-gradient(circle, #fff 0 30%, #ffe27a 55%, #ff9d2e 80%);
     transform: scale(0);
     animation:
@@ -543,7 +597,7 @@
     position: absolute;
     font-family: var(--font-display);
     font-stretch: 85%;
-    font-size: 400px;
+    font-size: 300px;
     line-height: 1;
     opacity: 0;
     animation:
@@ -562,20 +616,20 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    -webkit-text-stroke: 14px var(--ink);
+    -webkit-text-stroke: 12px var(--ink);
     paint-order: stroke fill;
   }
   .ch.v {
     --at: calc(620ms * var(--k));
     --from: translate(-260px, -200px) rotate(-22deg) scale(3.4);
-    left: -265px;
-    top: -265px;
+    left: -200px;
+    top: -200px;
   }
   .ch.s {
     --at: calc(740ms * var(--k));
     --from: translate(260px, 200px) rotate(18deg) scale(3.4);
-    left: -15px;
-    top: -170px;
+    left: -12px;
+    top: -128px;
   }
   @keyframes ch-slam {
     0% {
@@ -652,17 +706,17 @@
      slanted; the text inside is set upright again. */
   .tag {
     position: absolute;
-    bottom: 64px;
+    bottom: 80px;
     display: flex;
     flex-direction: column;
     gap: 10px;
     max-width: 760px;
   }
-  .red .tag {
+  .tag.l {
     left: 70px;
     align-items: flex-start;
   }
-  .blue .tag {
+  .tag.r {
     right: 70px;
     align-items: flex-end;
   }
@@ -684,10 +738,10 @@
     letter-spacing: 0.06em;
     animation: tag-in calc(320ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.15) calc(980ms * var(--k)) both;
   }
-  .red .kana {
+  .l .kana {
     color: #ff6b5e;
   }
-  .blue .kana {
+  .r .kana {
     color: #5fc4ff;
   }
   .name {
@@ -708,21 +762,28 @@
     font-stretch: 62%;
     font-size: 110px;
   }
-  .red .name {
+  .l .name {
     border-left: 26px solid var(--red);
   }
-  .blue .name {
+  .r .name {
     border-right: 26px solid #1f6bff;
   }
-  .blue .kana,
-  .blue .name {
+  .r .kana,
+  .r .name {
     animation-name: tag-in-right;
   }
-  .blue .name {
+  .r .name {
     animation-delay: calc(920ms * var(--k));
   }
-  .blue .kana {
+  .r .kana {
     animation-delay: calc(1040ms * var(--k));
+  }
+  /* Leaving: each tag goes with its banner. */
+  .vs:not(.hold) .tag.l {
+    animation: out-left calc(450ms * var(--k)) cubic-bezier(0.6, 0, 0.9, 0.5) calc(var(--out) * var(--k)) forwards;
+  }
+  .vs:not(.hold) .tag.r {
+    animation: out-right calc(450ms * var(--k)) cubic-bezier(0.6, 0, 0.9, 0.5) calc(var(--out) * var(--k)) forwards;
   }
   @keyframes tag-in {
     from {
@@ -742,16 +803,19 @@
      just off the top of the screen; the band below is for the names. */
   .fighter {
     position: absolute;
-    top: -10px;
-    width: 1320px;
+    top: 140px;
+    width: 1200px;
     transform-origin: 50% 100%;
   }
   .fighter img {
     display: block;
     width: 100%;
   }
+  /* The cut-outs are also cropped flat on the fist side, which the seam's jog
+     can expose: fade that inner edge out. */
   .red .fighter {
-    left: -290px;
+    left: -360px;
+    mask-image: linear-gradient(to left, transparent 0, #000 9%);
     animation:
       fighter-left calc(650ms * var(--k)) cubic-bezier(0.15, 0.85, 0.3, 1) both,
       push calc(3600ms * var(--k)) linear calc(650ms * var(--k)) forwards;
@@ -760,7 +824,8 @@
     transform: scaleX(-1);
   }
   .blue .fighter {
-    right: -290px;
+    right: -350px;
+    mask-image: linear-gradient(to right, transparent 0, #000 9%);
     animation:
       fighter-right calc(650ms * var(--k)) cubic-bezier(0.15, 0.85, 0.3, 1) both,
       push calc(3600ms * var(--k)) linear calc(650ms * var(--k)) forwards;
