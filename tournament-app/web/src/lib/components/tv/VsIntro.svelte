@@ -23,16 +23,14 @@
   const END = 4800; // gone; ondone fires
 
   // The lightning seam, top to bottom, on the 1920×1080 canvas. Both banners
-  // are clipped to it, so they interlock exactly. Two big points: one jabs
-  // into the blue side, one into the red side.
+  // are clipped to it, so they interlock exactly. One diagonal shaped like an
+  // angular S (a ⚡): down and left, a short jog back right, then down and left
+  // again at the same slope.
   const SEAM: [number, number][] = [
-    [1030, 0],
-    [985, 330],
-    [1080, 395],
-    [955, 640],
-    [845, 700],
-    [935, 745],
-    [895, 1080],
+    [1180, 0],
+    [905, 500],
+    [1035, 575],
+    [760, 1080],
   ];
   const pts = SEAM.map(([x, y]) => `${x}px ${y}px`).join(", ");
   const clipRed = `polygon(0 0, ${pts}, 0 1080px)`;
@@ -59,10 +57,10 @@
 
   // Small forked bolts off the seam, top and bottom, clear of the faces.
   const FORKS = [
-    "M1012 130 L955 112 L938 66 L880 52 L846 18",
-    "M1018 90 L1064 58 L1058 22",
-    "M918 905 L978 932 L992 984 L1062 1004 L1098 1046",
-    "M912 960 L862 992 L850 1040",
+    "M1128 95 L1190 82 L1204 40 L1264 26 L1296 -4",
+    "M1150 55 L1118 22 L1124 -6",
+    "M812 985 L750 998 L734 1040 L672 1056 L640 1084",
+    "M790 1025 L826 1056 L820 1084",
   ];
 
   // Impact burst behind VS: a 16-point star with uneven spikes.
@@ -438,8 +436,8 @@
 
   .ring {
     position: absolute;
-    left: 1000px;
-    top: 540px;
+    left: 970px;
+    top: 537px;
     width: 300px;
     height: 300px;
     margin: -150px 0 0 -150px;
@@ -490,7 +488,7 @@
      ghost split that snaps together; then the mark breathes with a glow. */
   .mark {
     position: absolute;
-    left: 975px;
+    left: 965px;
     top: 590px;
     width: 0;
     height: 0;
