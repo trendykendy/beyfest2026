@@ -65,6 +65,18 @@
     "M912 960 L862 992 L850 1040",
   ];
 
+  // Impact burst behind VS: a 16-point star with uneven spikes.
+  const burst = (() => {
+    const out: string[] = [];
+    const n = 16;
+    for (let i = 0; i < n * 2; i++) {
+      const a = (i / (n * 2)) * Math.PI * 2;
+      const r = i % 2 ? 22 + (i % 3) * 3 : 46 + ((i * 7) % 5);
+      out.push(`${(50 + Math.cos(a) * r).toFixed(1)}% ${(50 + Math.sin(a) * r).toFixed(1)}%`);
+    }
+    return `polygon(${out.join(", ")})`;
+  })();
+
   // Light streaks racing across each banner towards the seam. Random once per
   // mount; transform-only loops.
   function streaks(n: number) {
@@ -147,6 +159,18 @@
 
       <div class="ring r1"></div>
       <div class="ring r2"></div>
+
+      <div class="mark">
+        <div class="burst" style:clip-path={burst}></div>
+        <div class="burst inner" style:clip-path={burst}></div>
+        {#each ["v", "s"] as c}
+          <span class="ch {c}">
+            <i class="ghost red-g">{c.toUpperCase()}</i>
+            <i class="ghost blue-g">{c.toUpperCase()}</i>
+            <b>{c.toUpperCase()}</b>
+          </span>
+        {/each}
+      </div>
     </div>
     <div class="flash"></div>
   </div>
@@ -457,7 +481,160 @@
     }
   }
 
+  /* ── VS ─────────────────────────────────────────────────── */
+  /* V then S slam down from oversize onto the seam, each with a red/blue
+     ghost split that snaps together; then the mark breathes with a glow. */
+  .mark {
+    position: absolute;
+    left: 975px;
+    top: 590px;
+    width: 0;
+    height: 0;
+  }
+  .burst {
+    position: absolute;
+    left: -330px;
+    top: -330px;
+    width: 660px;
+    height: 660px;
+    background: radial-gradient(circle, #fff 0 30%, #ffe27a 55%, #ff9d2e 80%);
+    transform: scale(0);
+    animation:
+      burst-in calc(300ms * var(--k)) cubic-bezier(0.2, 1.4, 0.4, 1) calc(600ms * var(--k)) forwards,
+      burst-spin calc(9000ms * var(--k)) linear calc(900ms * var(--k)) infinite;
+  }
+  .burst.inner {
+    background: var(--ink);
+    transform: scale(0) rotate(11deg);
+    animation:
+      burst-in-inner calc(300ms * var(--k)) cubic-bezier(0.2, 1.4, 0.4, 1) calc(640ms * var(--k)) forwards,
+      burst-spin-rev calc(12000ms * var(--k)) linear calc(940ms * var(--k)) infinite;
+  }
+  @keyframes burst-in {
+    to {
+      transform: scale(1);
+    }
+  }
+  @keyframes burst-in-inner {
+    to {
+      transform: scale(0.8) rotate(11deg);
+    }
+  }
+  @keyframes burst-spin {
+    from {
+      transform: scale(1) rotate(0deg);
+    }
+    to {
+      transform: scale(1) rotate(360deg);
+    }
+  }
+  @keyframes burst-spin-rev {
+    from {
+      transform: scale(0.8) rotate(11deg);
+    }
+    to {
+      transform: scale(0.8) rotate(-349deg);
+    }
+  }
+
+  .ch {
+    position: absolute;
+    font-family: var(--font-display);
+    font-stretch: 85%;
+    font-size: 400px;
+    line-height: 1;
+    opacity: 0;
+    animation:
+      ch-slam calc(210ms * var(--k)) cubic-bezier(0.55, 0, 1, 0.6) var(--at) forwards,
+      ch-glow calc(1400ms * var(--k)) ease-in-out calc(1200ms * var(--k)) infinite alternate;
+  }
+  .ch i,
+  .ch b {
+    font: inherit;
+  }
+  /* The letter: metallic fill over a heavy ink outline. */
+  .ch b {
+    position: relative;
+    display: block;
+    background: linear-gradient(180deg, #fff 0%, #fff 38%, #ffe27a 58%, #ff8a1f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-stroke: 14px var(--ink);
+    paint-order: stroke fill;
+  }
+  .ch.v {
+    --at: calc(620ms * var(--k));
+    --from: translate(-260px, -200px) rotate(-22deg) scale(3.4);
+    left: -265px;
+    top: -265px;
+  }
+  .ch.s {
+    --at: calc(740ms * var(--k));
+    --from: translate(260px, 200px) rotate(18deg) scale(3.4);
+    left: -15px;
+    top: -170px;
+  }
+  @keyframes ch-slam {
+    0% {
+      opacity: 0;
+      transform: var(--from);
+    }
+    60% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes ch-glow {
+    from {
+      filter: drop-shadow(0 0 10px rgb(255 255 255 / 0.6)) drop-shadow(0 0 24px rgb(255 200 80 / 0.5));
+    }
+    to {
+      filter: drop-shadow(0 0 18px #fff) drop-shadow(0 0 48px rgb(255 200 80 / 0.9));
+    }
+  }
+  /* Ghost split: red and blue copies behind the letter, offset either side,
+     snapping in and fading just after it lands. */
+  .ghost {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-style: normal;
+    opacity: 0;
+    animation: ghost calc(320ms * var(--k)) ease-out calc(var(--at) + 150ms * var(--k)) forwards;
+  }
+  .red-g {
+    color: var(--red);
+    --dx: -46px;
+  }
+  .blue-g {
+    color: #1f8bff;
+    --dx: 46px;
+  }
+  @keyframes ghost {
+    0% {
+      opacity: 0.95;
+      transform: translateX(var(--dx));
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(0);
+    }
+  }
+
   /* Leaving: the bolt and forks go with the banners. */
+  .vs:not(.hold) .mark {
+    animation: mark-out calc(260ms * var(--k)) cubic-bezier(0.6, 0, 0.9, 0.5) calc(var(--out) * var(--k)) forwards;
+  }
+  @keyframes mark-out {
+    to {
+      transform: scale(0);
+      opacity: 0;
+    }
+  }
   .vs:not(.hold) .seam {
     animation: fade-out calc(200ms * var(--k)) linear calc(var(--out) * var(--k)) forwards;
   }
