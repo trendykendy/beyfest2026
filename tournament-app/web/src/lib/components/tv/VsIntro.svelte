@@ -19,6 +19,7 @@
     tier = "group", // bracket tier (view.ts tierOf), colours the title's end caps
     slow = 1, // timing multiplier: 2 = half speed (lab only)
     hold = false, // stay on the held frame instead of leaving (lab only)
+    lite = false, // Pi-safe: no blur or drop-shadow filters, fewer streaks
     ondone,
   }: {
     p1: Fighter;
@@ -27,6 +28,7 @@
     tier?: "wb" | "mb" | "lb" | "gf" | "group";
     slow?: number;
     hold?: boolean;
+    lite?: boolean;
     ondone?: () => void;
   } = $props();
 
@@ -124,7 +126,7 @@
   <div class="banner {side}" style:clip-path={side === "red" ? clipRed : clipBlue}>
     <div class="focus"></div>
     <div class="streaks">
-      {#each list as s}
+      {#each lite ? list.slice(0, list.length / 2) : list as s}
         <i
           class:tint={s.tint}
           style:top="{s.top}px"
@@ -177,7 +179,7 @@
   </div>
 {/snippet}
 
-<div class="vs" class:hold bind:clientWidth={w} style:--k={slow} style:--out="{OUT}ms">
+<div class="vs" class:hold class:lite bind:clientWidth={w} style:--k={slow} style:--out="{OUT}ms">
   <div class="canvas" style:transform="scale({scale})">
     <div class="backdrop"></div>
     <div class="shake">
@@ -814,6 +816,40 @@
   @keyframes title-out {
     to {
       transform: translateY(-160px) skewX(-12deg);
+    }
+  }
+
+  /* ── Lite (Pi-safe) ───────────────────────────────────────── */
+  /* The same intro without the expensive bits: no blur or drop-shadow
+     filters, and nothing that repaints big areas every frame. Wide
+     translucent strokes stand in for the bolt's glow; VS pulses in scale
+     instead of glow. */
+  .lite .bolt .glow,
+  .lite .forks .glow {
+    filter: none;
+    stroke-opacity: 0.35;
+  }
+  .lite .bolt .glow {
+    stroke-width: 56;
+  }
+  .lite .forks .glow {
+    stroke-width: 24;
+  }
+  .lite .focus {
+    animation: none;
+  }
+  .lite .r1 {
+    box-shadow: none;
+  }
+  .lite .ch {
+    animation: ch-slam calc(210ms * var(--k)) cubic-bezier(0.55, 0, 1, 0.6) var(--at) forwards;
+  }
+  .lite .ch b {
+    animation: ch-pulse calc(1400ms * var(--k)) ease-in-out calc(1200ms * var(--k)) infinite alternate;
+  }
+  @keyframes ch-pulse {
+    to {
+      transform: scale(1.04);
     }
   }
 

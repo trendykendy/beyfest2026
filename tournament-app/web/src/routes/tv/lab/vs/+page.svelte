@@ -28,6 +28,8 @@
   let loop = $state(false);
   // ?noimg: show both fighters as silhouettes.
   let noImg = $state(page.url.searchParams.has("noimg"));
+  // ?lite: the Pi-safe version.
+  let lite = $state(page.url.searchParams.has("lite"));
   const shown = (f: typeof p1) => (noImg ? { ...f, img: "" } : f);
   // ?clean hides the controls from the start (for screenshots).
   let showControls = $state(!page.url.searchParams.has("clean"));
@@ -77,7 +79,7 @@
 <div class="page">
   <div class="stage" style:transform="scale({zoom})" style:transform-origin={zoomAt.replace(",", " ")}>
     {#key run}
-      <VsIntro p1={shown(p1)} p2={shown(p2)} {title} {tier} {slow} {hold} ondone={done} />
+      <VsIntro p1={shown(p1)} p2={shown(p2)} {title} {tier} {slow} {hold} {lite} ondone={done} />
     {/key}
   </div>
 
@@ -94,6 +96,7 @@
       <label><input type="checkbox" bind:checked={hold} onchange={replay} /> Hold at end</label>
       <label><input type="checkbox" bind:checked={loop} /> Loop</label>
       <label><input type="checkbox" bind:checked={noImg} onchange={replay} /> No images</label>
+      <label><input type="checkbox" bind:checked={lite} onchange={replay} /> Lite (Pi)</label>
       <span class="group">
         <input class="name" bind:value={p1.name} onchange={replay} />
         <input class="kana" bind:value={p1.kana} onchange={replay} />
