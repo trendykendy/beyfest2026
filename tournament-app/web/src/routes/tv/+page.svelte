@@ -2,7 +2,8 @@
   import { onMount, tick as svelteTick } from "svelte";
   import { invalidateAll } from "$app/navigation";
   import { liveUpdates } from "$lib/pbBrowser";
-  import { EVENT } from "$lib/config";
+  import { EVENT, browserPbUrl } from "$lib/config";
+  import { fighterFor, fighterImageUrl } from "$lib/fighters";
   import { FINISHES } from "$lib/finishes";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
   import {
@@ -26,6 +27,7 @@
   import { stadiumOf } from "$lib/stadia";
   import BroadcastBracket from "$lib/components/tv/BroadcastBracket.svelte";
   import StadiumDraw from "$lib/components/tv/StadiumDraw.svelte";
+  import VsIntro from "$lib/components/tv/VsIntro.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
 
   let { data } = $props();
@@ -321,14 +323,56 @@
 
   // The draw on screen, and the match whose stadium chip is held back until
   // it finishes (so the chip doesn't give the answer away first).
-  let drawShow = $state<(Draw & { id: string; look: (typeof LOOKS)[number] }) | null>(null);
+  type DrawShow = Draw & { id: string; look: (typeof LOOKS)[number] };
+  let drawShow = $state<DrawShow | null>(null);
   let drawHold = $state("");
   let drawTimer: ReturnType<typeof setTimeout> | undefined;
   let lastLook = "";
   let drawn = "";
+
+  // ── VS intro ────────────────────────────────────────────────────────
+  // Start match plays the fighter intro first (VsIntro), then the launch
+  // draw. Each blader's katakana and cut-out come from the fighter library,
+  // matched by name; anyone not in it gets the mystery silhouette.
+  type IntroFighter = { name: string; kana: string; img: string; mirror: boolean };
+  type IntroShow = {
+    id: string;
+    p1: IntroFighter;
+    p2: IntroFighter;
+    title: string;
+    tier: ReturnType<typeof tierOf>;
+    then: DrawShow; // the launch draw that follows
+  };
+  let introShow = $state<IntroShow | null>(null);
+  function introFighter(name: string): IntroFighter {
+    const f = fighterFor(name, data.fighters);
+    return { name, kana: f?.kana ?? "", img: fighterImageUrl(browserPbUrl(), f), mirror: !!f?.mirror };
+  }
+  function endIntro() {
+    const next = introShow?.then ?? null;
+    introShow = null;
+    if (next) drawShow = next;
+  }
+  // Load every fighter's cut-out ahead of time, so an intro never shows a
+  // half-loaded image. (Browsers cache them; the list is at most a few dozen.)
+  $effect(() => {
+    for (const f of data.fighters) {
+      const url = fighterImageUrl(browserPbUrl(), f);
+      if (url) new Image().src = url;
+    }
+  });
+  // The Pi gets the lite intro (no blur or drop-shadow filters): its Chromium
+  // reports an ARM Linux machine. ?fx=full or ?fx=lite on the TV URL overrides.
+  let fxLite = $state(false);
+  onMount(() => {
+    const fx = new URLSearchParams(location.search).get("fx");
+    fxLite = fx ? fx === "lite" : /aarch64|armv7|armv8/i.test(navigator.userAgent);
+  });
+
   function endDraw() {
     clearTimeout(drawTimer);
     drawShow = null;
+    introShow = null;
     drawHold = "";
   }
   $effect(() => {
@@ -344,7 +388,22 @@
     lastLook = look;
     endDraw();
     drawHold = ev.code;
-    drawTimer = setTimeout(() => (drawShow = { ...ev, id: key, look }), ev.afterRound ? AFTER_CALLOUT_MS : 0);
+    const show: DrawShow = { ...ev, id: key, look };
+    const m = spotMatch;
+    drawTimer = setTimeout(
+      () => {
+        if (ev.kind !== "launch") return void (drawShow = show);
+        introShow = {
+          id: key,
+          p1: introFighter(sideName(m, 1)),
+          p2: introFighter(sideName(m, 2)),
+          title: matchContext(m, data.matches),
+          tier: tierOf(m.stage),
+          then: show,
+        };
+      },
+      ev.afterRound ? AFTER_CALLOUT_MS : 0,
+    );
   });
   // Moving off the match (or off Match centre) drops a draw in progress.
   $effect(() => {
@@ -410,7 +469,7 @@
 
   onMount(() => {
     poke();
-    const stopLive = liveUpdates(["tournaments", "groups", "players", "matches", "tv_state"], () => invalidateAll(), {
+    const stopLive = liveUpdates(["tournaments", "groups", "players", "matches", "tv_state", "fighters"], () => invalidateAll(), {
       onStatus: (up) => (online = up),
       everyMs: 30_000,
     });
@@ -753,6 +812,22 @@
     {/if}
   </main>
 
+  <!-- The VS intro covers the whole screen (header and all) before a launch. -->
+  {#if introShow}
+    {#key introShow.id}
+      <div class="intro-layer">
+        <VsIntro
+          p1={introShow.p1}
+          p2={introShow.p2}
+          title={introShow.title}
+          tier={introShow.tier}
+          lite={fxLite}
+          ondone={endIntro}
+        />
+      </div>
+    {/key}
+  {/if}
+
   <!-- Small and in the corner: for the operator, not the room. -->
   {#if !online}<div class="offline" role="status">Reconnecting</div>{/if}
 
@@ -872,6 +947,11 @@
     text-align: right;
   }
 
+  .intro-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+  }
   .stage {
     flex: 1;
     display: flex;
