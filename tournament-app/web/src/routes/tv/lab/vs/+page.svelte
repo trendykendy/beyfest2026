@@ -17,6 +17,9 @@
 
   // ?t=<ms> freezes every animation at that moment (for screenshots).
   const freezeAt = page.url.searchParams.get("t");
+  // ?zoom=<n>&at=<x%>,<y%> magnifies part of the stage (for checking detail).
+  const zoom = Number(page.url.searchParams.get("zoom") ?? 1);
+  const zoomAt = page.url.searchParams.get("at") ?? "50%,50%";
 
   function replay() {
     run++;
@@ -55,7 +58,7 @@
 <svelte:head><title>VS intro · lab</title></svelte:head>
 
 <div class="page">
-  <div class="stage">
+  <div class="stage" style:transform="scale({zoom})" style:transform-origin={zoomAt.replace(",", " ")}>
     {#key run}
       <VsIntro {p1} {p2} {slow} {hold} ondone={done} />
     {/key}
