@@ -13,10 +13,20 @@
   let {
     p1,
     p2,
+    title = "", // where the match sits, e.g. matchContext(): "Group 1, match 4 of 6"
+    tier = "group", // bracket tier (view.ts tierOf), colours the title's end caps
     slow = 1, // timing multiplier: 2 = half speed (lab only)
     hold = false, // stay on the held frame instead of leaving (lab only)
     ondone,
-  }: { p1: Fighter; p2: Fighter; slow?: number; hold?: boolean; ondone?: () => void } = $props();
+  }: {
+    p1: Fighter;
+    p2: Fighter;
+    title?: string;
+    tier?: "wb" | "mb" | "lb" | "gf" | "group";
+    slow?: number;
+    hold?: boolean;
+    ondone?: () => void;
+  } = $props();
 
   // Timeline (ms at normal speed). Keep in step with the CSS delays below.
   const OUT = 4200; // banners split apart
@@ -195,6 +205,10 @@
 
       {@render tag("l", p1)}
       {@render tag("r", p2)}
+
+      {#if title}
+        <div class="title tier-{tier}"><span>{title}</span></div>
+      {/if}
     </div>
     <div class="flash"></div>
   </div>
@@ -707,6 +721,73 @@
   @keyframes fade-out {
     to {
       opacity: 0;
+    }
+  }
+
+  /* ── Match title ────────────────────────────────────────── */
+  /* A slanted telop slab centred in the dark strip above the band. Its end
+     caps take the bracket tier's colour (none for group games); the Grand
+     final is the inverted slab, black with gold, as everywhere on the TV. */
+  .title {
+    position: absolute;
+    left: 50%;
+    top: 34px;
+    translate: -50% 0;
+    transform: skewX(-12deg);
+    background: var(--paper);
+    border: 5px solid var(--ink);
+    box-shadow: 8px 8px 0 var(--ink);
+    padding: 2px 44px 6px;
+    font-family: var(--font-display);
+    font-stretch: 75%;
+    font-size: 58px;
+    line-height: 1.05;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink);
+    white-space: nowrap;
+    animation: title-in calc(380ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.1) calc(1150ms * var(--k)) both;
+  }
+  .title span {
+    display: block;
+    transform: skewX(12deg);
+  }
+  .title.tier-wb,
+  .title.tier-mb,
+  .title.tier-lb {
+    border-left: 22px solid var(--cap);
+    border-right: 22px solid var(--cap);
+  }
+  .tier-wb {
+    --cap: var(--wb);
+  }
+  .tier-mb {
+    --cap: var(--mb);
+  }
+  .tier-lb {
+    --cap: var(--lb);
+  }
+  .title.tier-gf {
+    background: var(--ink);
+    color: var(--gold);
+    border-color: var(--gold);
+    box-shadow: 8px 8px 0 var(--gold);
+  }
+  /* Drops in from above, unfolding sideways. */
+  @keyframes title-in {
+    from {
+      transform: translateY(-150px) skewX(-12deg) scaleX(0.3);
+      opacity: 0;
+    }
+  }
+  .vs:not(.hold) .title {
+    animation:
+      title-in calc(380ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.1) calc(1150ms * var(--k)) both,
+      title-out calc(300ms * var(--k)) cubic-bezier(0.6, 0, 0.9, 0.5) calc(var(--out) * var(--k)) forwards;
+  }
+  @keyframes title-out {
+    to {
+      transform: translateY(-160px) skewX(-12deg);
     }
   }
 

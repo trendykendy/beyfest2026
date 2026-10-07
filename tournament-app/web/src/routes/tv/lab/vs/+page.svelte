@@ -8,6 +8,20 @@
   let p1 = $state({ name: "Rush", kana: "ラッシュ", img: "/lab/p1.png" });
   let p2 = $state({ name: "Storm", kana: "ストーム", img: "/lab/p2.png" });
 
+  // Match titles as the TV words them (view.ts matchContext / roundName),
+  // each with its bracket tier.
+  type Tier = "wb" | "mb" | "lb" | "gf" | "group";
+  const TITLES: [string, Tier][] = [
+    ["Group 1, match 4 of 6", "group"],
+    ["Winners semi-final", "wb"],
+    ["Mid bracket round 2", "mb"],
+    ["Losers semi-final", "lb"],
+    ["Grand final", "gf"],
+  ];
+  // ?title=…&tier=… start on a given title (for screenshots).
+  let title = $state(page.url.searchParams.get("title") ?? TITLES[0][0]);
+  let tier = $state<Tier>((page.url.searchParams.get("tier") as Tier) ?? TITLES[0][1]);
+
   let run = $state(0); // bump to replay
   let slow = $state(1);
   let hold = $state(false);
@@ -60,7 +74,7 @@
 <div class="page">
   <div class="stage" style:transform="scale({zoom})" style:transform-origin={zoomAt.replace(",", " ")}>
     {#key run}
-      <VsIntro {p1} {p2} {slow} {hold} ondone={done} />
+      <VsIntro {p1} {p2} {title} {tier} {slow} {hold} ondone={done} />
     {/key}
   </div>
 
@@ -82,6 +96,12 @@
         vs
         <input class="name" bind:value={p2.name} onchange={replay} />
         <input class="kana" bind:value={p2.kana} onchange={replay} />
+      </span>
+      <span class="group">
+        <input class="title" bind:value={title} onchange={replay} />
+        {#each TITLES as [t, tr]}
+          <button class:on={title === t} onclick={() => ((title = t), (tier = tr), replay())}>{t}</button>
+        {/each}
       </span>
       <span class="hint">R / space replays · H hides this</span>
     </div>
@@ -141,6 +161,9 @@
   }
   input.kana {
     width: 90px;
+  }
+  input.title {
+    width: 220px;
   }
   .hint {
     opacity: 0.6;
