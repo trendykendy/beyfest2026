@@ -1,6 +1,7 @@
 <script lang="ts">
   import VsIntro from "$lib/components/tv/VsIntro.svelte";
   import { page } from "$app/state";
+  import { tick } from "svelte";
 
   // Lab page for the VS intro experiment. Not linked from anywhere. The player
   // images live in static/lab/ and are gitignored (real people, public repo).
@@ -14,9 +15,25 @@
   // ?clean hides the controls from the start (for screenshots).
   let showControls = $state(!page.url.searchParams.has("clean"));
 
+  // ?t=<ms> freezes every animation at that moment (for screenshots).
+  const freezeAt = page.url.searchParams.get("t");
+
   function replay() {
     run++;
   }
+
+  $effect(() => {
+    if (freezeAt === null) return;
+    run; // re-freeze after a replay
+    tick().then(() =>
+      requestAnimationFrame(() => {
+        for (const a of document.getAnimations()) {
+          a.pause();
+          a.currentTime = Number(freezeAt);
+        }
+      }),
+    );
+  });
   function swap() {
     [p1, p2] = [p2, p1];
     replay();
