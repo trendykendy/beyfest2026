@@ -38,6 +38,33 @@
   const clipRed = `polygon(0 0, ${pts}, 0 1080px)`;
   const clipBlue = `polygon(1920px 0, ${pts}, 1920px 1080px)`;
 
+  const seamPath = "M" + SEAM.map(([x, y]) => `${x} ${y}`).join(" L");
+
+  // Crackle: the seam re-drawn with small random kinks. Two variants flicker
+  // against each other so the bolt looks alive.
+  function crackle() {
+    const out: string[] = [];
+    SEAM.forEach(([x, y], i) => {
+      if (i === 0) return void out.push(`M${x} ${y}`);
+      const [px, py] = SEAM[i - 1];
+      for (let k = 1; k <= 4; k++) {
+        const t = k / 4;
+        const j = k === 4 ? 0 : (Math.random() - 0.5) * 34;
+        out.push(`L${(px + (x - px) * t + j).toFixed(1)} ${(py + (y - py) * t).toFixed(1)}`);
+      }
+    });
+    return out.join(" ");
+  }
+  const crackles = [crackle(), crackle()];
+
+  // Small forked bolts off the seam, top and bottom, clear of the faces.
+  const FORKS = [
+    "M1012 130 L955 112 L938 66 L880 52 L846 18",
+    "M1018 90 L1064 58 L1058 22",
+    "M918 905 L978 932 L992 984 L1062 1004 L1098 1046",
+    "M912 960 L862 992 L850 1040",
+  ];
+
   // Light streaks racing across each banner towards the seam. Random once per
   // mount; transform-only loops.
   function streaks(n: number) {
@@ -88,8 +115,40 @@
 
 <div class="vs" class:hold bind:clientWidth={w} style:--k={slow} style:--out="{OUT}ms">
   <div class="canvas" style:transform="scale({scale})">
-    {@render banner("red", p1, redStreaks)}
-    {@render banner("blue", p2, blueStreaks)}
+    <div class="shake">
+      {@render banner("red", p1, redStreaks)}
+      {@render banner("blue", p2, blueStreaks)}
+
+      <svg class="seam" viewBox="0 0 1920 1080" aria-hidden="true">
+        <defs>
+          <linearGradient id="vs-seam-glow" gradientUnits="userSpaceOnUse" x1="820" y1="0" x2="1100" y2="0">
+            <stop offset="0" stop-color="#ff5a4a" />
+            <stop offset="0.5" stop-color="#e9d8ff" />
+            <stop offset="1" stop-color="#4ab8ff" />
+          </linearGradient>
+          <filter id="vs-blur" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="16" />
+          </filter>
+        </defs>
+        <g class="bolt">
+          <path class="glow" d={seamPath} pathLength="1" />
+          <path class="mid" d={seamPath} pathLength="1" />
+          <path class="crk a" d={crackles[0]} />
+          <path class="crk b" d={crackles[1]} />
+          <path class="core" d={seamPath} pathLength="1" />
+        </g>
+        <g class="forks">
+          {#each FORKS as d}
+            <path class="glow" {d} />
+            <path class="core" {d} />
+          {/each}
+        </g>
+      </svg>
+
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+    </div>
+    <div class="flash"></div>
   </div>
 </div>
 
@@ -238,19 +297,190 @@
     }
   }
 
+  /* ── Slam: shake, lightning seam, shockwave, flash ─────────── */
+  /* The banners land at ~430ms; the bolt strikes down the seam and everything
+     hits at 450ms. */
+  .shake {
+    position: absolute;
+    inset: 0;
+    animation: shake calc(220ms * var(--k)) linear calc(450ms * var(--k));
+  }
+  @keyframes shake {
+    0% { transform: translate(0, 0); }
+    15% { transform: translate(-16px, 9px); }
+    30% { transform: translate(14px, -11px); }
+    45% { transform: translate(-10px, -6px); }
+    60% { transform: translate(9px, 8px); }
+    75% { transform: translate(-5px, 3px); }
+    90% { transform: translate(3px, -2px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  .seam {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .seam path {
+    fill: none;
+    stroke-linejoin: miter;
+    stroke-linecap: round;
+  }
+  .bolt .glow,
+  .forks .glow {
+    stroke: url(#vs-seam-glow);
+    stroke-width: 80;
+    filter: url(#vs-blur);
+  }
+  .bolt .mid {
+    stroke: #d8f4ff;
+    stroke-width: 22;
+  }
+  .bolt .core {
+    stroke: #fff;
+    stroke-width: 9;
+  }
+  /* Strike: the bolt draws top to bottom just before the slam. */
+  .bolt .glow,
+  .bolt .mid,
+  .bolt .core {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: strike calc(130ms * var(--k)) cubic-bezier(0.5, 0, 1, 1) calc(330ms * var(--k)) forwards;
+  }
+  @keyframes strike {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  /* Once struck, the bolt flickers for the rest of the intro. */
+  .bolt {
+    animation: bolt-flicker calc(900ms * var(--k)) steps(1) calc(600ms * var(--k)) infinite;
+  }
+  @keyframes bolt-flicker {
+    0% { opacity: 1; }
+    8% { opacity: 0.55; }
+    12% { opacity: 1; }
+    47% { opacity: 0.8; }
+    50% { opacity: 1; }
+    71% { opacity: 0.5; }
+    74% { opacity: 1; }
+  }
+  .crk {
+    stroke: #fff;
+    stroke-width: 3;
+    opacity: 0;
+    animation: crk calc(160ms * var(--k)) steps(1) calc(470ms * var(--k)) infinite;
+  }
+  .crk.b {
+    animation-delay: calc(550ms * var(--k));
+  }
+  @keyframes crk {
+    0% { opacity: 0.9; }
+    50% { opacity: 0; }
+  }
+
+  .forks .core {
+    stroke: #fff;
+    stroke-width: 4;
+  }
+  .forks .glow {
+    stroke-width: 36;
+  }
+  /* Forks flash at the slam, again as VS lands, and once in the hold. */
+  .forks {
+    opacity: 0;
+    animation: forks calc(2400ms * var(--k)) steps(1) calc(450ms * var(--k)) forwards;
+  }
+  @keyframes forks {
+    0% { opacity: 1; }
+    4% { opacity: 0; }
+    6% { opacity: 1; }
+    10% { opacity: 0; }
+    14% { opacity: 1; }
+    17% { opacity: 0; }
+    82% { opacity: 1; }
+    85% { opacity: 0; }
+    87% { opacity: 1; }
+    90%, 100% { opacity: 0; }
+  }
+
+  .ring {
+    position: absolute;
+    left: 1000px;
+    top: 540px;
+    width: 300px;
+    height: 300px;
+    margin: -150px 0 0 -150px;
+    border-radius: 50%;
+    opacity: 0;
+    animation: ring calc(520ms * var(--k)) cubic-bezier(0.1, 0.7, 0.3, 1) calc(450ms * var(--k)) forwards;
+  }
+  .r1 {
+    border: 16px solid #fff;
+    box-shadow:
+      0 0 40px #fff,
+      inset 0 0 30px #fff;
+  }
+  .r2 {
+    border: 8px solid #cfe8ff;
+    animation-delay: calc(540ms * var(--k));
+  }
+  @keyframes ring {
+    0% {
+      transform: scale(0.15);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(4.2);
+      opacity: 0;
+    }
+  }
+
+  .flash {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    animation: flash calc(340ms * var(--k)) ease-out calc(450ms * var(--k)) forwards;
+  }
+  @keyframes flash {
+    0% {
+      opacity: 0.92;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Leaving: the bolt and forks go with the banners. */
+  .vs:not(.hold) .seam {
+    animation: fade-out calc(200ms * var(--k)) linear calc(var(--out) * var(--k)) forwards;
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+
   /* ── Fighters ───────────────────────────────────────────── */
   /* The cut-outs face left, so p1 (left side) is mirrored to face p2. They
      arrive a beat behind their banner (parallax), then push in slowly. */
+  /* The cut-outs are cropped flat at the top, so they sit with that edge
+     just off the top of the screen; the band below is for the names. */
   .fighter {
     position: absolute;
-    bottom: 50px;
+    top: -10px;
     width: 1320px;
+    transform-origin: 50% 100%;
   }
-  /* The cut-outs are cropped flat at the top: fade that edge out. */
   .fighter img {
     display: block;
     width: 100%;
-    mask-image: linear-gradient(to bottom, transparent 0, #000 9%);
   }
   .red .fighter {
     left: -290px;
