@@ -1,10 +1,11 @@
 # Handover: Beyfest tournament app
 
-Rewritten at the end of day 3 (25 September 2026) and updated at the end of day 4 (26 September) and at the checkpoint (7 October). Read this first, then `CLAUDE.md` and `tournament-app/README.md`. The event is **7 November 2026** in Innishannon.
+Rewritten at the end of day 3 (25 September 2026) and updated at the end of day 4 (26 September), at the checkpoint (7 October) and after the VS intro (7 October). Read this first, then `CLAUDE.md` and `tournament-app/README.md`. The event is **7 November 2026** in Innishannon.
 
 ## Where things stand
 
 - **Checkpoint (7 October 2026): everything is merged into `main` and tagged `checkpoint-2026-10-07`.** That includes day 4's stadium draw (`7303d2f`), the bracket-line fix (`2812b43`) and the day 3 and day 4 handovers. The user is happy with this state; it's the known-good version to come back to (`git checkout checkpoint-2026-10-07`) if feature experiments go wrong.
+- **The VS intro is on the branch `experiment/vs-intro`: committed, not merged or pushed.** It adds the fighter intro before the stadium draw on Start match, and the fighter library at `/admin/fighters`. See "VS intro" below. Merging needs the user's go-ahead.
 - Work from `main`, on a new branch per task (experiments on `experiment/<feature>`); don't commit to `main` directly. The old `redesign/tournament-app` branch is finished.
 - **The repo is public:** https://github.com/trendykendy/beyfest2026. Its history was rewritten on day 3 (before the first push) to drop deleted images and `refimages/`. All commit IDs in this file are the new ones.
 - **The app is feature-complete for the event:**
@@ -20,6 +21,7 @@ Rewritten at the end of day 3 (25 September 2026) and updated at the end of day 
 | Design, TV scenes, TV control, admin redesign | Done |
 | Day 2 event-day features (fix a result, resilience, awards, Let it rip, walkovers) | Done |
 | Day 4: stadium draw every round, bracket lines follow players | Done, merged to `main` |
+| VS intro + fighter library | Done, on `experiment/vs-intro`. **Not merged**. Lite mode needs the real-Pi test |
 | Admin page on a phone | **Broken** (found day 4, not started): see "Admin on a phone" |
 | Pi installer, Pi package, wifi + hotspot fallback | Done. **Needs the real-Pi test** |
 | Mac / Windows launchers (backup) | Done. Mac untested on a real Mac |
@@ -43,7 +45,7 @@ Rewritten at the end of day 3 (25 September 2026) and updated at the end of day 
    - Switch the router off (or take the Pi out of range). After about a minute a "Beyfest" wifi should appear.
    - The Mac joins it. `beyfest.local/admin` opens (or `http://10.42.0.1/admin`), and the TV hint changes to "Join wifi Beyfest".
    - `beyfest-wifi auto` goes back to the home wifi.
-5. **Rehearsal:** play a tournament through (by hand, or `scripts/rehearsal.ts` against a **test** database, since it resets whatever it talks to). Watch whether the Pi 3 keeps up with Chromium. Pull the network once to see the TV's "Reconnecting" mark and recovery.
+5. **Rehearsal:** if `experiment/vs-intro` is merged by then, add a fighter or two at `/admin/fighters` first, and check the Pi's TV picks the lite intro by itself and keeps up (`?fx=full` to compare). Play a tournament through (by hand, or `scripts/rehearsal.ts` against a **test** database, since it resets whatever it talks to). Watch whether the Pi 3 keeps up with Chromium. Pull the network once to see the TV's "Reconnecting" mark and recovery.
 6. **If it all passes:** tag it (`git tag v1.0 && git push --tags`) so there's a known-good version for the day.
 
 **Likely snags on the real Pi, and where to look:**
@@ -53,6 +55,40 @@ Rewritten at the end of day 3 (25 September 2026) and updated at the end of day 
 - **A Pi 3 is too slow with Chromium.** Options: a Pi 4, or the Mac runs the app and the Pi is only the TV (`pi-kiosk.sh --install <mac>.local`).
 
 If the Pi isn't available, candidates: the admin page on a phone (the user was offered this as the next job), the public phone view (only if the user asks), or anything the user brings.
+
+## VS intro and fighter library (branch `experiment/vs-intro`)
+
+Start match now plays an anime-style fighter intro, **then** the launch draw and LET IT RIP. The user designed it round by round in a lab page, then asked for it in the real app.
+
+- **The intro** is `web/src/lib/components/tv/VsIntro.svelte`, about 4.8s long, on a fixed 1920×1080 canvas scaled to fit.
+  - Red (p1, left) and blue (p2, right) banners swish in, within a bordered band across the middle.
+  - They slam together on a lightning seam shaped like an angular S (⚡), with a flash, shockwave and shake.
+  - VS slams onto the seam over a burst. The name slabs (with katakana) overlap the bottom border, and the match title (`matchContext`, end caps in the bracket tier's colour) sits above the band.
+- **Fighter library**: the `fighters` collection (migration `1710001100`) holds a name, katakana, an image (with a `0x900` thumb) and a `mirror` flag.
+  - It isn't tied to a tournament, so it survives resets.
+  - Players are matched by name, ignoring case and spaces (`web/src/lib/fighters.ts`, tested in `test/fighters.test.ts`).
+  - It's managed at `/admin/fighters`, linked from the admin header. That page lists current bladers who have no fighter.
+  - Cut-outs are expected to face left. p1 is mirrored to face right, and a fighter's `mirror` flips it.
+- **No image** → a "?" silhouette with a rim light in the banner's colour. **No katakana** → no kana tag.
+- **Lite mode** (`lite` prop): no blur or drop-shadow filters, half the streaks, and a scale pulse instead of a glow pulse.
+  - The TV picks it automatically when the browser is ARM Linux (the Pi's Chromium); `?fx=full` or `?fx=lite` overrides.
+  - The user chose "full look plus a Pi-safe switch". **Untested on a real Pi.**
+- **TV wiring** (`routes/tv/+page.svelte`, "VS intro"): a `launch` draw sets `introShow` first, and its `ondone` hands over to `drawShow`. Later rounds' draws are unchanged.
+  - Fighter images are preloaded.
+  - Leaving the match or Match centre ends both the intro and the draw.
+  - `prefers-reduced-motion` skips both.
+  - The TV listens to `fighters` changes.
+- **Lab page:** `/tv/lab/vs` (unlinked) still works, for tweaks.
+  - Controls: replay, speed, hold, swap, title presets, no images, lite.
+  - URL flags: `?clean` hides the controls, `?t=<ms>` freezes a frame, `?zoom=<n>&at=<x%>,<y%>` magnifies, plus `?title=`, `?tier=`, `?noimg` and `?lite`.
+  - The lab's own images live in `web/static/lab/` and are **gitignored**, like `tournament-app/combatants/`: they show real people and the repo is public.
+- **Kana font:** `zenkaku_kana.woff2` now has the whole katakana block (8.9KB), so any name can be written in katakana.
+- **Checked end to end** against a throwaway database:
+  - The intro shows the right names, image, silhouette, katakana and title, then the draw.
+  - Scoring a round plays only the short draw.
+  - `?fx=lite` works.
+  - Headless Edge was driven over its debugging protocol to press Start match while the TV was open.
+- **Admin-page note:** the header's Fighters link sits next to Log out. The fighters page is single-column, but admin still has no phone layout overall.
 
 ## Day 4: stadium draw and bracket lines (merged to `main`)
 

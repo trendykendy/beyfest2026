@@ -10,9 +10,10 @@
    clamped to 62–85%: elements default to 85%, and can go down to 62% for long
    names.
 
-   Katakana comes from Zen Kaku Gothic New Black, a custom subset holding ONLY
-   the characters listed in theme.css. Add a new Japanese label → re-download
-   the subset (Google Fonts css2 `text=` parameter) or it will fall back. */
+   Katakana comes from Zen Kaku Gothic New Black, a custom subset holding the
+   whole katakana block (U+30A1–30FC) plus the kanji listed in theme.css. A
+   new kanji or hiragana label → re-download the subset (Google Fonts css2
+   `text=` parameter) or it will fall back. */
 
 /* ── Display: Saira Black Italic ─────────────────────────────── */
 @font-face {

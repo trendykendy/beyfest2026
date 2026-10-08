@@ -144,6 +144,16 @@ then:
 
 ### Organiser workflow
 
+0. **Fighters (before the day)**: *Fighters* (top of the admin page) is the library the TV's VS
+   intro uses. It plays on **Start match**, before the stadium draw.
+   - Add each blader with their katakana and a cut-out image. The best images are transparent
+     PNGs, at least 1000px tall, facing left. Tick *Mirror* for one that faces right.
+   - Bladers are matched by name, ignoring capitals and spaces. The library isn't tied to a
+     tournament, so it's set up once and kept through resets.
+   - Anyone without a fighter, or without an image, gets a "?" silhouette. The page lists the
+     current bladers who don't have a fighter yet.
+   - The Pi's TV gets a lighter version of the intro automatically (no blur effects). Add
+     `?fx=full` or `?fx=lite` to the TV address to choose.
 1. **Enter bladers**: type the names (one per line, 8–15), then *Draw groups and build bracket*.
    The app randomly draws the groups and generates every group match.
 2. **Now playing** shows one match at a time.

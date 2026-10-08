@@ -81,11 +81,13 @@ for (;;) {
   const log: { who: 1 | 2; finish: string; stadium: string }[] = [];
   let s1 = 0;
   let s2 = 0;
-  // Start match: the first round's stadium, and the TV's launch.
+  // Start match: the first round's stadium, and the TV's launch (the VS intro,
+  // ~5s, then the draw and LET IT RIP, ~5.5s). Bladers without a fighter in
+  // the library get the silhouette.
   let stadium = drawStadium();
   const startedAt = new Date().toISOString();
   await pb.collection("matches").update(recId, { startedAt, stadium, stadiumAt: startedAt });
-  await sleep(Math.max(pace, 6000)); // let the launch play out
+  await sleep(Math.max(pace, 11000)); // let the intro and launch play out
   // One side is a bit stronger each match, so scores aren't always close.
   const edge = 0.35 + Math.random() * 0.3;
   while (s1 < target && s2 < target) {

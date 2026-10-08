@@ -1,6 +1,7 @@
 import type PocketBase from "pocketbase";
 import type { RecordModel } from "pocketbase";
 import type { PBGroup, PBMatch, PBPlayer, TvState } from "$lib/view";
+import type { PBFighter } from "$lib/fighters";
 
 export interface TournamentView {
   tournament: {
@@ -14,6 +15,7 @@ export interface TournamentView {
   groups: PBGroup[];
   players: PBPlayer[];
   matches: PBMatch[];
+  fighters: PBFighter[]; // the fighter library (not tied to the tournament)
 }
 
 const toGroup = (r: RecordModel): PBGroup => ({
@@ -33,6 +35,25 @@ const toPlayer = (r: RecordModel): PBPlayer => ({
   finalGroupRank: r.finalGroupRank ?? null,
   withdrawn: !!r.withdrawn,
 });
+
+const toFighter = (r: RecordModel): PBFighter => ({
+  id: r.id,
+  name: r.name,
+  kana: r.kana || "",
+  image: r.image || "",
+  mirror: !!r.mirror,
+});
+
+// The fighter library. Never breaks the page: an empty list just means
+// everyone gets the silhouette.
+export async function loadFighters(pb: PocketBase): Promise<PBFighter[]> {
+  try {
+    const list = await pb.collection("fighters").getFullList({ sort: "name" });
+    return list.map(toFighter);
+  } catch {
+    return [];
+  }
+}
 
 const toMatch = (r: RecordModel): PBMatch => {
   // Scores are only meaningful once the match is done (PB number fields default
@@ -70,13 +91,14 @@ const toMatch = (r: RecordModel): PBMatch => {
 export async function loadTournamentView(pb: PocketBase): Promise<TournamentView> {
   const tournaments = await pb.collection("tournaments").getFullList({ sort: "-createdAt" });
   const t = tournaments[0];
-  if (!t) return { tournament: null, groups: [], players: [], matches: [] };
+  if (!t) return { tournament: null, groups: [], players: [], matches: [], fighters: await loadFighters(pb) };
 
   const filter = pb.filter("tournament = {:id}", { id: t.id });
-  const [groups, players, matches] = await Promise.all([
+  const [groups, players, matches, fighters] = await Promise.all([
     pb.collection("groups").getFullList({ filter, sort: "index" }),
     pb.collection("players").getFullList({ filter }),
     pb.collection("matches").getFullList({ filter, sort: "orderIndex" }),
+    loadFighters(pb),
   ]);
 
   return {
@@ -91,6 +113,7 @@ export async function loadTournamentView(pb: PocketBase): Promise<TournamentView
     groups: groups.map(toGroup),
     players: players.map(toPlayer),
     matches: matches.map(toMatch),
+    fighters,
   };
 }
 
