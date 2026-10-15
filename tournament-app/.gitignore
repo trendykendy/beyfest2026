@@ -10,6 +10,9 @@ pb/pocketbase.log
 refimages/
 dist/
 
-# Player cut-outs (real people; public repo): keep out of git
+# Raw source files. The app uses trimmed/renamed copies in web/static/sounds
+# and web/static/starter-fighters, which are committed.
+audio/
+music/
 combatants/
 web/static/lab/
