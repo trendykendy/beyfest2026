@@ -39,8 +39,10 @@ const toPlayer = (r: RecordModel): PBPlayer => ({
 const toFighter = (r: RecordModel): PBFighter => ({
   id: r.id,
   name: r.name,
+  player: r.player || "",
   kana: r.kana || "",
   image: r.image || "",
+  voice: r.voice || "",
   mirror: !!r.mirror,
 });
 

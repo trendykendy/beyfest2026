@@ -346,7 +346,8 @@
   let introShow = $state<IntroShow | null>(null);
   function introFighter(name: string): IntroFighter {
     const f = fighterFor(name, data.fighters);
-    return { name, kana: f?.kana ?? "", img: fighterImageUrl(browserPbUrl(), f), mirror: !!f?.mirror };
+    // The intro shows the combat name; players without a fighter keep their own.
+    return { name: f?.name || name, kana: f?.kana ?? "", img: fighterImageUrl(browserPbUrl(), f), mirror: !!f?.mirror };
   }
   function endIntro() {
     const next = introShow?.then ?? null;
