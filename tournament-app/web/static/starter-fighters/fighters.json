@@ -1,0 +1,12 @@
+[
+  { "name": "The Beyby", "player": "Eamon", "kana": "ザ・ベイビー", "voice": "the-baby.mp3" },
+  { "name": "The Breycist", "player": "Conor", "kana": "ザ・ブレイシスト", "image": "breycist.png", "voice": "the-breycist.mp3" },
+  { "name": "The Buzzsaw", "player": "Sean", "kana": "ザ・バズソー", "image": "buzzsaw.png", "voice": "the-buzzsaw.mp3" },
+  { "name": "The Cheatseeker", "player": "Tadhg", "kana": "ザ・チートシーカー", "voice": "the-cheatseeker.mp3" },
+  { "name": "The Fairy Dancer", "player": "Steve", "kana": "ザ・フェアリーダンサー", "voice": "the-fairy-dancer.mp3" },
+  { "name": "The Joyzerker", "player": "Vhar", "kana": "ザ・ジョイザーカー", "voice": "the-joyzerker.mp3" },
+  { "name": "The Modsmith", "player": "Cuffe", "kana": "ザ・モッドスミス", "voice": "the-modsmith.mp3" },
+  { "name": "The Pugilist", "player": "Shane", "kana": "ザ・ピュージリスト", "voice": "the-pugilist.mp3" },
+  { "name": "The Stancemancer", "player": "McHale", "kana": "ザ・スタンスマンサー", "image": "stancemancer.png", "voice": "the-stancemancer.mp3" },
+  { "name": "The Torque Warden", "player": "Moss", "kana": "ザ・トルクウォーデン", "voice": "the-torque-warden.mp3" }
+]

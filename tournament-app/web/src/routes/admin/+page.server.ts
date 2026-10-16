@@ -1,7 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 import { loadTournamentView, loadTvState } from "$lib/server/load";
-import { SCENE_TITLE, type Scene } from "$lib/view";
+import { MUSIC_LEVELS, SCENE_TITLE, type Scene } from "$lib/view";
 import {
   createTournament,
   correctScore,
@@ -161,6 +161,24 @@ export const actions: Actions = {
     }
     await locals.pb.collection("tv_state").update(tv.id, auto ? { mode: "auto" } : { mode: "locked", scene });
     return { tv: true };
+  },
+
+  // The TV's sound: on/off, and how loud the match music is.
+  sound: async ({ request, locals }) => {
+    const data = await request.formData();
+    const tv = await loadTvState(locals.pb);
+    if (!tv.id) {
+      return fail(500, { error: "TV settings are missing. Restart PocketBase so its migrations run." });
+    }
+    const change: { soundOff?: boolean; musicLevel?: number } = {};
+    if (data.has("soundOff")) change.soundOff = data.get("soundOff") === "true";
+    if (data.has("musicLevel")) {
+      const level = Number(data.get("musicLevel"));
+      if (!MUSIC_LEVELS.some((l) => l.value === level)) return fail(400, { error: "Unknown music level." });
+      change.musicLevel = level;
+    }
+    await locals.pb.collection("tv_state").update(tv.id, change);
+    return { sound: true };
   },
 
   // "Score this": remember the organiser's pick, so the TV's "Up next" shows

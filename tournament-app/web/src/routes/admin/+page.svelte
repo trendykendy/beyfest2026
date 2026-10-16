@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
   import { liveUpdates } from "$lib/pbBrowser";
   import { STRUCTURES, pickStructure, pointsToWin, miniRRAdvancers } from "@beyfest/engine";
-  import { nameMap, slotLabel, hasStage, availableScenes, SCENE_TITLE, isLive, matchContext, tierOf, groupsInWords } from "$lib/view";
+  import { nameMap, slotLabel, hasStage, availableScenes, SCENE_TITLE, MUSIC_LEVELS, isLive, matchContext, tierOf, groupsInWords } from "$lib/view";
   import type { PBMatch } from "$lib/view";
   import GroupCard from "$lib/components/GroupCard.svelte";
   import BroadcastBracket from "$lib/components/tv/BroadcastBracket.svelte";
@@ -203,6 +203,25 @@
               Locked on {SCENE_TITLE[data.tv.scene]}. Press Auto to rotate again.
             {/if}
           </p>
+
+          <!-- The announcer and match music, which play from Start match. -->
+          <h3 class="tv-sub">Sound</h3>
+          <form method="POST" action="?/sound" use:enhance class="tv-buttons">
+            <button class="tv-btn" class:on={!data.tv.soundOff} name="soundOff" value="false">On</button>
+            <button class="tv-btn" class:on={data.tv.soundOff} name="soundOff" value="true">Off</button>
+          </form>
+          <h3 class="tv-sub">Music</h3>
+          <form method="POST" action="?/sound" use:enhance class="tv-buttons four">
+            {#each MUSIC_LEVELS as l (l.value)}
+              <button
+                class="tv-btn"
+                class:on={data.tv.musicLevel === l.value}
+                disabled={data.tv.soundOff}
+                name="musicLevel"
+                value={l.value}>{l.label}</button
+              >
+            {/each}
+          </form>
         </section>
 
         {#if !champion}
@@ -361,6 +380,25 @@
     grid-template-columns: 1fr 1fr;
     gap: 6px;
   }
+  .tv-buttons.four {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .tv-buttons.four .tv-btn {
+    text-align: center;
+    padding-inline: 4px;
+  }
+  .tv-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .tv-sub {
+    font-family: var(--font-text);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 14px 0 6px;
+  }
   .tv-btn {
     font-family: var(--font-text);
     font-weight: 700;
@@ -372,7 +410,7 @@
     border: 2px solid var(--field-line);
     cursor: pointer;
   }
-  .tv-btn:hover {
+  .tv-btn:hover:not(:disabled) {
     border-color: var(--paper);
   }
   .tv-btn.on {

@@ -20,6 +20,7 @@
     slow = 1, // timing multiplier: 2 = half speed (lab only)
     hold = false, // stay on the held frame instead of leaving (lab only)
     lite = false, // Pi-safe: no blur or drop-shadow filters, fewer streaks
+    out = 4200, // ms: when the banners split apart (later while the announcer talks)
     ondone,
   }: {
     p1: Fighter;
@@ -29,12 +30,15 @@
     slow?: number;
     hold?: boolean;
     lite?: boolean;
+    out?: number;
     ondone?: () => void;
   } = $props();
 
   // Timeline (ms at normal speed). Keep in step with the CSS delays below.
-  const OUT = 4200; // banners split apart
-  const END = 4800; // gone; ondone fires
+  // Fixed for the intro's life: it's timed once, when it starts.
+  // svelte-ignore state_referenced_locally
+  const OUT = out; // banners split apart
+  const END = OUT + 600; // gone; ondone fires
 
   // The banners fill a band across the middle of the screen (BAND_TOP to
   // BAND_BOT), with a border on its top and bottom edges.

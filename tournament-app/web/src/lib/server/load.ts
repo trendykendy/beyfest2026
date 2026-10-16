@@ -39,8 +39,10 @@ const toPlayer = (r: RecordModel): PBPlayer => ({
 const toFighter = (r: RecordModel): PBFighter => ({
   id: r.id,
   name: r.name,
+  player: r.player || "",
   kana: r.kana || "",
   image: r.image || "",
+  voice: r.voice || "",
   mirror: !!r.mirror,
 });
 
@@ -122,8 +124,15 @@ export async function loadTournamentView(pb: PocketBase): Promise<TournamentView
 export async function loadTvState(pb: PocketBase): Promise<TvState> {
   try {
     const r = await pb.collection("tv_state").getFirstListItem("");
-    return { id: r.id, mode: r.mode === "locked" ? "locked" : "auto", scene: r.scene || "groups", next: r.next || "" };
+    return {
+      id: r.id,
+      mode: r.mode === "locked" ? "locked" : "auto",
+      scene: r.scene || "groups",
+      next: r.next || "",
+      soundOff: !!r.soundOff,
+      musicLevel: typeof r.musicLevel === "number" ? r.musicLevel : 60,
+    };
   } catch {
-    return { id: "", mode: "auto", scene: "groups", next: "" };
+    return { id: "", mode: "auto", scene: "groups", next: "", soundOff: false, musicLevel: 60 };
   }
 }

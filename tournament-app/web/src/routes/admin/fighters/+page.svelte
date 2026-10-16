@@ -1,17 +1,29 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import { fighterFor, fighterImageUrl, type PBFighter } from "$lib/fighters";
+  import { fighterFor, fighterImageUrl, fighterVoiceUrl, type PBFighter } from "$lib/fighters";
 
   let { data, form } = $props();
 
-  // Images are served by PocketBase, which the browser reaches on port 8090
-  // of whichever address served this page.
+  // Images and voices are served by PocketBase, which the browser reaches on
+  // port 8090 of whichever address served this page.
   const img = (f: PBFighter) => fighterImageUrl(data.pbUrl, f);
+
+  // One clip at a time: a new Play stops the last one.
+  let playing: HTMLAudioElement | null = null;
+  function play(f: PBFighter) {
+    playing?.pause();
+    playing = new Audio(fighterVoiceUrl(data.pbUrl, f));
+    playing.play().catch(() => {});
+  }
 
   // Bladers in the current tournament who'll get the silhouette.
   const unmatched = $derived(data.players.filter((n) => !fighterFor(n, data.fighters)));
 
   const editing = $derived(form && "editing" in form ? String(form.editing) : "");
+  // What "Add starting fighters" did, once pressed.
+  const loaded = $derived(
+    form && "starters" in form ? (form.starters as { added: number; filled: number }) : null,
+  );
 </script>
 
 <svelte:head><title>Fighters · Beyfest admin</title></svelte:head>
@@ -23,18 +35,39 @@
   </div>
 
   <p class="intro">
-    The TV's VS intro shows each blader's cut-out and katakana before a match. A blader is matched to a
-    fighter by name (capitals and spaces don't matter), so a fighter set up here works in every
-    tournament. Anyone without a fighter, or without an image, gets a silhouette.
+    The TV's VS intro shows each blader's combat name, cut-out and katakana before a match, and the
+    announcer calls out their voice clip. A blader is matched to a fighter by <b>player name</b>, the
+    name typed in for the tournament (capitals and spaces don't matter), so a fighter set up here
+    works in every tournament. Anyone without a fighter, or without an image, gets a silhouette.
   </p>
   <p class="intro hint">
     Best images: a transparent PNG cut-out at least 1000px tall, with the blader facing left. Tick
-    <b>Mirror</b> if one faces the other way. The previews show how each side will look.
+    <b>Mirror</b> if one faces the other way. The previews show how each side will look. Voice clips:
+    an MP3 of the combat name, with no silence at the start.
   </p>
 
   {#if form?.error && !editing}
     <div class="banner err">{form.error}</div>
   {/if}
+
+  {#if loaded}
+    <div class="banner ok">
+      Starting fighters:
+      {#if loaded.added || loaded.filled}
+        {loaded.added} added{loaded.filled ? `, ${loaded.filled} filled in` : ""}.
+      {:else}
+        all already here.
+      {/if}
+    </div>
+  {/if}
+
+  <form method="POST" action="?/starters" use:enhance class="starters">
+    <button class="btn" type="submit">Add starting fighters</button>
+    <span class="hint">
+      Adds the fighters that come with the app. Ones already here only get missing details filled in,
+      so nothing you've changed is overwritten.
+    </span>
+  </form>
 
   {#if unmatched.length}
     <div class="banner warn">
@@ -46,9 +79,11 @@
   <section class="card add">
     <h2 class="kicker">Add a fighter</h2>
     <form method="POST" action="?/add" enctype="multipart/form-data" use:enhance class="fields">
-      <label>Name <input type="text" name="name" required placeholder="As entered for the tournament" /></label>
+      <label>Combat name <input type="text" name="name" required placeholder="e.g. The Breycist" /></label>
+      <label>Player name <input type="text" name="player" placeholder="As entered for the tournament" /></label>
       <label>Katakana <input type="text" name="kana" placeholder="Optional, e.g. ラッシュ" /></label>
       <label>Image <input type="file" name="image" accept="image/png,image/webp,image/jpeg" /></label>
+      <label>Voice <input type="file" name="voice" accept="audio/*" /></label>
       <label class="check"><input type="checkbox" name="mirror" /> Mirror</label>
       <button class="btn primary" type="submit">Add fighter</button>
     </form>
@@ -80,13 +115,21 @@
 
         <form method="POST" action="?/update" enctype="multipart/form-data" use:enhance class="fields">
           <input type="hidden" name="id" value={f.id} />
-          <label>Name <input type="text" name="name" value={f.name} required /></label>
+          <label>Combat name <input type="text" name="name" value={f.name} required /></label>
+          <label>Player name <input type="text" name="player" value={f.player} /></label>
           <label>Katakana <input type="text" name="kana" value={f.kana} /></label>
           <label>{f.image ? "Replace image" : "Image"} <input type="file" name="image" accept="image/png,image/webp,image/jpeg" /></label>
+          <label>{f.voice ? "Replace voice" : "Voice"} <input type="file" name="voice" accept="audio/*" /></label>
           <div class="checks">
+            {#if f.voice}
+              <button class="btn" type="button" onclick={() => play(f)}>▶ Play voice</button>
+            {/if}
             <label class="check"><input type="checkbox" name="mirror" checked={f.mirror} /> Mirror</label>
             {#if f.image}
               <label class="check"><input type="checkbox" name="removeImage" /> Remove image</label>
+            {/if}
+            {#if f.voice}
+              <label class="check"><input type="checkbox" name="removeVoice" /> Remove voice</label>
             {/if}
           </div>
           <button class="btn" type="submit">Save</button>
@@ -144,6 +187,23 @@
     background: var(--mb-soft);
     border: 1px solid var(--gold);
   }
+  .banner.ok {
+    background: var(--surface);
+    border: 1px solid var(--green);
+  }
+  .starters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-bottom: 16px;
+  }
+  .starters .hint {
+    flex: 1;
+    min-width: 240px;
+    font-size: 0.9rem;
+    margin: 0;
+  }
   .banner.inline {
     margin: 0;
     flex-basis: 100%;
@@ -183,6 +243,8 @@
   }
   .checks {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 16px;
   }
   input[type="file"] {
