@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import FighterSilhouette from "./FighterSilhouette.svelte";
 
   // The fighter intro before a match: two half-banners (red p1, blue p2) slam
   // together on a lightning seam and VS lands on the join. EXPERIMENT: only the
@@ -147,31 +148,12 @@
       {#if f.img}
         <img class="art" class:flip={(side === "red") !== !!f.mirror} src={f.img} alt="" />
       {:else}
-        <div class="art" class:flip={side === "red"}>{@render silhouette()}</div>
+        <div class="art"><FighterSilhouette flip={side === "red"} /></div>
       {/if}
     </div>
     <div class="edge top"></div>
     <div class="edge bot"></div>
   </div>
-{/snippet}
-
-<!-- Stand-in for a fighter with no image: a launching blader in silhouette,
-     facing left like the cut-outs (so it mirrors the same way), with a hard
-     rim light in the banner's colour. -->
-{#snippet silhouette()}
-  <svg class="art silhouette" viewBox="0 0 600 400" aria-hidden="true">
-    <ellipse cx="185" cy="78" rx="58" ry="64" />
-    <polygon points="150,130 250,95 372,150 332,232 198,242" />
-    <polygon points="172,148 218,188 132,282 96,254" />
-    <circle cx="106" cy="276" r="40" />
-    <polygon points="34,304 108,248 136,282 62,336" />
-    <polygon points="298,108 330,136 444,88 432,60" />
-    <circle cx="442" cy="72" r="27" />
-    <polygon points="298,168 362,148 528,222 506,254" />
-    <polygon points="276,214 332,198 478,300 446,324" />
-    <!-- un-mirrored with the figure, so it always reads the right way -->
-    <text class="mystery" x="185" y="112">?</text>
-  </svg>
 {/snippet}
 
 <!-- Name tags sit outside the banners' clip so they can overlap the bottom
@@ -979,31 +961,6 @@
   }
   .art.flip {
     transform: scaleX(-1);
-  }
-  .silhouette {
-    display: block;
-    width: 100%;
-    fill: #070816;
-    /* a thick round-jointed outline in the same colour softens the shapes */
-    stroke: #070816;
-    stroke-width: 14;
-    stroke-linejoin: round;
-    overflow: visible;
-    /* hard rim light, up and towards the seam */
-    filter: drop-shadow(-7px -6px 0 var(--lite));
-    transform: scale(0.86);
-    transform-origin: 50% 60%;
-  }
-  .mystery {
-    font-family: var(--font-display);
-    font-size: 110px;
-    text-anchor: middle;
-    fill: var(--lite);
-    stroke: none;
-  }
-  .art.flip .mystery {
-    transform: scaleX(-1);
-    transform-origin: 185px 78px;
   }
   .blue .fighter {
     right: -350px;
