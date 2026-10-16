@@ -3,9 +3,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { loadFighters, loadTournamentView } from "$lib/server/load";
 import { pbUrlFor } from "$lib/config";
 import { planStarters, type Starter } from "$lib/starters";
-
-// Where the starting fighters' list and files are served (static/starter-fighters).
-const STARTERS = "/starter-fighters";
+import { readStarters } from "$lib/server/starterFiles";
 
 // The fighter library: who the TV's VS intro shows, with their katakana,
 // cut-out and announcer voice. Not tied to a tournament (see migrations
@@ -88,22 +86,15 @@ export const actions: Actions = {
     return { saved: name };
   },
 
-  // Load the starting fighters shipped with the app (lib/starters.ts). Their
-  // list and files are static files, fetched through the app itself.
-  starters: async ({ locals, fetch }) => {
+  // Load the starting fighters shipped with the app (lib/starters.ts).
+  starters: async ({ locals }) => {
     let starters: Starter[];
+    let file: (name: string) => Promise<File>;
     try {
-      const res = await fetch(`${STARTERS}/fighters.json`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      starters = await res.json();
+      ({ starters, file } = await readStarters());
     } catch (e) {
       return fail(500, { error: `Couldn't read the starting fighters: ${(e as Error).message}` });
     }
-    const file = async (name: string) => {
-      const res = await fetch(`${STARTERS}/${encodeURIComponent(name)}`);
-      if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
-      return new File([await res.blob()], name, { type: res.headers.get("content-type") || "" });
-    };
 
     let added = 0;
     let filled = 0;
