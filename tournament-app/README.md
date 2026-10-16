@@ -146,10 +146,21 @@ then:
 
 0. **Fighters (before the day)**: *Fighters* (top of the admin page) is the library the TV's VS
    intro uses. It plays on **Start match**, before the stadium draw.
-   - Add each blader with their katakana and a cut-out image. The best images are transparent
-     PNGs, at least 1000px tall, facing left. Tick *Mirror* for one that faces right.
-   - Bladers are matched by name, ignoring capitals and spaces. The library isn't tied to a
-     tournament, so it's set up once and kept through resets.
+   - **Add starting fighters** loads the fighters that come with the app (combat names, player
+     names, katakana, images and voice clips, from `web/static/starter-fighters/`). It only adds
+     who's missing and fills in gaps, so it never overwrites changes made here, and it's safe to
+     press again after an update.
+   - Each fighter has a **combat name** (shown and announced, e.g. *The Breycist*) and a
+     **player name** (as typed in for the tournament, e.g. *Conor*), plus katakana, a cut-out
+     image and a voice clip of the combat name. The best images are transparent PNGs, at least
+     1000px tall, facing left. Tick *Mirror* for one that faces right.
+   - Bladers are matched by player name (or, failing that, combat name), ignoring capitals and
+     spaces. The library isn't tied to a tournament, so it's set up once and kept through resets.
+   - **Sound:** on Start match the announcer calls *name, versus, name, match title* over the
+     match music. The intro holds until the calls finish; the music dips under the voice and
+     fades out when the result is recorded. The admin page's TV panel has **Sound** on/off and a
+     **Music** level. A browser other than the Pi's kiosk may block sound until someone clicks
+     the TV page; it says so in the corner.
    - Anyone without a fighter, or without an image, gets a "?" silhouette. The page lists the
      current bladers who don't have a fighter yet.
    - The Pi's TV gets a lighter version of the intro automatically (no blur effects). Add
