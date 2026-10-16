@@ -12,7 +12,7 @@ dist/
 
 # Raw source files. The app uses trimmed/renamed copies in web/static/sounds
 # and web/static/starter-fighters, which are committed.
-audio/
-music/
-combatants/
+/audio/
+/music/
+/combatants/
 web/static/lab/
