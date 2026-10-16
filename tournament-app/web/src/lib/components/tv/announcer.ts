@@ -80,12 +80,16 @@ export class Announcer {
     });
   }
 
+  // Both are called on every data reload; only a real change does anything.
   setLevel(level: number) {
-    this.level = Math.min(1, Math.max(0, level));
+    level = Math.min(1, Math.max(0, level));
+    if (level === this.level) return;
+    this.level = level;
     if (this.music && this.wantMusic) this.fadeTo(this.target(), DUCK_MS);
   }
 
   setEnabled(on: boolean) {
+    if (on === this.enabled) return;
     this.enabled = on;
     if (!on) {
       this.stopMusic();

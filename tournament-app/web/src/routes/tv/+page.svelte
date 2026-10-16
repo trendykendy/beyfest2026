@@ -383,6 +383,11 @@
   // Load every clip the next intros could need, so each one's length is known
   // when an intro is timed and it plays on cue.
   onMount(() => VERSUS.forEach((u) => announcer.preload(u)));
+  // The admin page's TV panel sets these, live.
+  $effect(() => {
+    announcer.setEnabled(!data.tv.soundOff);
+    announcer.setLevel(data.tv.musicLevel / 100);
+  });
   $effect(() => {
     for (const f of data.fighters) announcer.preload(fighterVoiceUrl(browserPbUrl(), f));
     for (const m of data.matches) announcer.preload(titleClip(m));

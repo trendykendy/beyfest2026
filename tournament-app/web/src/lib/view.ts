@@ -236,7 +236,17 @@ export interface TvState {
   mode: "auto" | "locked";
   scene: Scene;
   next: string; // code of the match picked with "Score this" ("" if none)
+  soundOff: boolean; // no music or announcer on the TV
+  musicLevel: number; // match music volume, 0–100
 }
+
+// The TV panel's music levels (tv_state.musicLevel).
+export const MUSIC_LEVELS = [
+  { label: "Off", value: 0 },
+  { label: "Low", value: 30 },
+  { label: "Medium", value: 60 },
+  { label: "High", value: 100 },
+];
 
 // Scenes that have something to show right now, in rotation order.
 export function availableScenes(hasTournament: boolean, matches: PBMatch[]): Scene[] {
