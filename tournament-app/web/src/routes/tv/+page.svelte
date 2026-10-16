@@ -3,7 +3,9 @@
   import { invalidateAll } from "$app/navigation";
   import { liveUpdates } from "$lib/pbBrowser";
   import { EVENT, browserPbUrl } from "$lib/config";
-  import { fighterFor, fighterImageUrl } from "$lib/fighters";
+  import { fighterFor, fighterImageUrl, fighterVoiceUrl } from "$lib/fighters";
+  import { VERSUS, titleClip } from "$lib/sounds";
+  import { Announcer } from "$lib/components/tv/announcer";
   import { FINISHES } from "$lib/finishes";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
   import {
@@ -341,6 +343,7 @@
     p2: IntroFighter;
     title: string;
     tier: ReturnType<typeof tierOf>;
+    out: number; // when the banners split apart: after the announcer's last call
     then: DrawShow; // the launch draw that follows
   };
   let introShow = $state<IntroShow | null>(null);
@@ -362,6 +365,37 @@
       if (url) new Image().src = url;
     }
   });
+
+  // ── Sound ───────────────────────────────────────────────────────────
+  // The intro's announcer (name, versus, name, match title) over the match
+  // music, which plays from Start match until the result is in.
+  const announcer = new Announcer();
+  // The match code the music is playing for. State, so the effect below that
+  // fades it out on the result re-runs once it's set.
+  let musicFor = $state("");
+  let soundBlocked = $state(false); // the browser wants a click first
+  announcer.onblocked = () => (soundBlocked = true);
+  function unlockSound() {
+    if (!soundBlocked) return;
+    soundBlocked = false;
+    announcer.unlock();
+  }
+  // Load every clip the next intros could need, so each one's length is known
+  // when an intro is timed and it plays on cue.
+  onMount(() => VERSUS.forEach((u) => announcer.preload(u)));
+  $effect(() => {
+    for (const f of data.fighters) announcer.preload(fighterVoiceUrl(browserPbUrl(), f));
+    for (const m of data.matches) announcer.preload(titleClip(m));
+  });
+  $effect(() => {
+    if (!musicFor) return;
+    const m = data.matches.find((x) => x.code === musicFor);
+    if (!m || m.matchStatus === "done") {
+      musicFor = "";
+      announcer.stopMusic();
+    }
+  });
+
   // The Pi gets the lite intro (no blur or drop-shadow filters): its Chromium
   // reports an ARM Linux machine. ?fx=full or ?fx=lite on the TV URL overrides.
   let fxLite = $state(false);
@@ -394,12 +428,16 @@
     drawTimer = setTimeout(
       () => {
         if (ev.kind !== "launch") return void (drawShow = show);
+        const voice = (side: 1 | 2) => fighterVoiceUrl(browserPbUrl(), fighterFor(sideName(m, side), data.fighters));
+        const out = announcer.intro([voice(1), announcer.nextVersus(), voice(2), titleClip(m)]);
+        musicFor = m.code;
         introShow = {
           id: key,
           p1: introFighter(sideName(m, 1)),
           p2: introFighter(sideName(m, 2)),
           title: matchContext(m, data.matches),
           tier: tierOf(m.stage),
+          out,
           then: show,
         };
       },
@@ -477,11 +515,17 @@
     const clock = setInterval(tick, 1000);
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousemove", poke);
+    // Any click or key press at the TV counts as allowing sound.
+    window.addEventListener("pointerdown", unlockSound);
+    window.addEventListener("keydown", unlockSound);
     return () => {
       stopLive();
       clearInterval(clock);
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mousemove", poke);
+      window.removeEventListener("pointerdown", unlockSound);
+      window.removeEventListener("keydown", unlockSound);
+      announcer.setEnabled(false);
       clearTimeout(hideTimer);
     };
   });
@@ -822,6 +866,7 @@
           p2={introShow.p2}
           title={introShow.title}
           tier={introShow.tier}
+          out={introShow.out}
           lite={fxLite}
           ondone={endIntro}
         />
@@ -831,6 +876,9 @@
 
   <!-- Small and in the corner: for the operator, not the room. -->
   {#if !online}<div class="offline" role="status">Reconnecting</div>{/if}
+  {#if soundBlocked}
+    <button class="offline sound" onclick={unlockSound}>Sound is blocked: click to allow</button>
+  {/if}
 
   <nav class="opbar" class:hidden={!barVisible}>
     <span class="op-mode">{modeLabel}</span>
@@ -1723,6 +1771,15 @@
     width: 10px;
     height: 10px;
     background: var(--red);
+  }
+  .offline.sound {
+    left: auto;
+    right: 14px;
+    border: 0;
+    cursor: pointer;
+  }
+  .offline.sound::before {
+    background: var(--gold);
   }
   /* Awards: four gold telop slabs, black title bar on each. */
   .aw {
