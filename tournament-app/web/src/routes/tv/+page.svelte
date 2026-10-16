@@ -328,6 +328,9 @@
   type DrawShow = Draw & { id: string; look: (typeof LOOKS)[number] };
   let drawShow = $state<DrawShow | null>(null);
   let drawHold = $state("");
+  // Start match's build-up (intro, draw, LET IT RIP) plays on a blank page:
+  // the header and Match centre's own parts stay hidden until it's over.
+  let blank = $state(false);
   let drawTimer: ReturnType<typeof setTimeout> | undefined;
   let lastLook = "";
   let drawn = "";
@@ -414,6 +417,7 @@
     drawShow = null;
     introShow = null;
     drawHold = "";
+    blank = false;
   }
   $effect(() => {
     const ev = latestDraw;
@@ -428,6 +432,7 @@
     lastLook = look;
     endDraw();
     drawHold = ev.code;
+    blank = ev.kind === "launch";
     const show: DrawShow = { ...ev, id: key, look };
     const m = spotMatch;
     drawTimer = setTimeout(
@@ -536,7 +541,7 @@
   });
 </script>
 
-<div class="tv" class:cursor-hide={!barVisible} class:bar-open={barVisible}>
+<div class="tv" class:cursor-hide={!barVisible} class:bar-open={barVisible} class:blank>
   <header class="strip">
     <div class="brand">
       <span class="bmain">Beyfest</span>
@@ -1005,6 +1010,22 @@
     position: absolute;
     inset: 0;
     z-index: 40;
+  }
+  /* Blank page for Start match's build-up. Hidden by opacity, so the layout
+     (and the draw's place in it) doesn't move; gone at once, back with a fade
+     once LET IT RIP has folded away. */
+  .strip,
+  .mc-status,
+  .mc-duel,
+  .onnow {
+    transition: opacity 0.3s ease-out;
+  }
+  .tv.blank .strip,
+  .tv.blank .mc-status,
+  .tv.blank .mc-duel,
+  .tv.blank .onnow {
+    opacity: 0;
+    transition: none;
   }
   .stage {
     flex: 1;
