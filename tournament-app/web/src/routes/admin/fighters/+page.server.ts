@@ -2,6 +2,10 @@ import { fail } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 import { loadFighters, loadTournamentView } from "$lib/server/load";
 import { pbUrlFor } from "$lib/config";
+import { planStarters, type Starter } from "$lib/starters";
+
+// Where the starting fighters' list and files are served (static/starter-fighters).
+const STARTERS = "/starter-fighters";
 
 // The fighter library: who the TV's VS intro shows, with their katakana,
 // cut-out and announcer voice. Not tied to a tournament (see migrations
@@ -82,6 +86,53 @@ export const actions: Actions = {
       return fail(400, { error: `Couldn't save ${name}: ${(e as Error).message}`, editing: id });
     }
     return { saved: name };
+  },
+
+  // Load the starting fighters shipped with the app (lib/starters.ts). Their
+  // list and files are static files, fetched through the app itself.
+  starters: async ({ locals, fetch }) => {
+    let starters: Starter[];
+    try {
+      const res = await fetch(`${STARTERS}/fighters.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      starters = await res.json();
+    } catch (e) {
+      return fail(500, { error: `Couldn't read the starting fighters: ${(e as Error).message}` });
+    }
+    const file = async (name: string) => {
+      const res = await fetch(`${STARTERS}/${encodeURIComponent(name)}`);
+      if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
+      return new File([await res.blob()], name, { type: res.headers.get("content-type") || "" });
+    };
+
+    let added = 0;
+    let filled = 0;
+    const problems: string[] = [];
+    for (const step of planStarters(starters, await loadFighters(locals.pb))) {
+      const s = step.starter;
+      try {
+        if (step.kind === "add") {
+          await locals.pb.collection("fighters").create({
+            name: s.name,
+            player: s.player ?? "",
+            kana: s.kana ?? "",
+            mirror: !!s.mirror,
+            ...(s.image ? { image: await file(s.image) } : {}),
+            ...(s.voice ? { voice: await file(s.voice) } : {}),
+          });
+          added++;
+        } else {
+          const files: Record<string, File> = {};
+          for (const k of step.files) files[k] = await file(s[k]!);
+          await locals.pb.collection("fighters").update(step.id, { ...step.fields, ...files });
+          filled++;
+        }
+      } catch (e) {
+        problems.push(`${s.name}: ${(e as Error).message}`);
+      }
+    }
+    if (problems.length) return fail(500, { error: `Some starting fighters didn't load. ${problems.join("; ")}` });
+    return { starters: { added, filled } };
   },
 
   remove: async ({ request, locals }) => {

@@ -20,6 +20,10 @@
   const unmatched = $derived(data.players.filter((n) => !fighterFor(n, data.fighters)));
 
   const editing = $derived(form && "editing" in form ? String(form.editing) : "");
+  // What "Add starting fighters" did, once pressed.
+  const loaded = $derived(
+    form && "starters" in form ? (form.starters as { added: number; filled: number }) : null,
+  );
 </script>
 
 <svelte:head><title>Fighters · Beyfest admin</title></svelte:head>
@@ -45,6 +49,25 @@
   {#if form?.error && !editing}
     <div class="banner err">{form.error}</div>
   {/if}
+
+  {#if loaded}
+    <div class="banner ok">
+      Starting fighters:
+      {#if loaded.added || loaded.filled}
+        {loaded.added} added{loaded.filled ? `, ${loaded.filled} filled in` : ""}.
+      {:else}
+        all already here.
+      {/if}
+    </div>
+  {/if}
+
+  <form method="POST" action="?/starters" use:enhance class="starters">
+    <button class="btn" type="submit">Add starting fighters</button>
+    <span class="hint">
+      Adds the fighters that come with the app. Ones already here only get missing details filled in,
+      so nothing you've changed is overwritten.
+    </span>
+  </form>
 
   {#if unmatched.length}
     <div class="banner warn">
@@ -163,6 +186,23 @@
   .banner.warn {
     background: var(--mb-soft);
     border: 1px solid var(--gold);
+  }
+  .banner.ok {
+    background: var(--surface);
+    border: 1px solid var(--green);
+  }
+  .starters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-bottom: 16px;
+  }
+  .starters .hint {
+    flex: 1;
+    min-width: 240px;
+    font-size: 0.9rem;
+    margin: 0;
   }
   .banner.inline {
     margin: 0;
