@@ -22,6 +22,7 @@
     isLive,
     matchContext,
     computeAwards,
+    championRun,
     SCENE_TITLE,
     type PBMatch,
     type Scene,
@@ -30,6 +31,7 @@
   import BroadcastBracket from "$lib/components/tv/BroadcastBracket.svelte";
   import StadiumDraw from "$lib/components/tv/StadiumDraw.svelte";
   import VsIntro from "$lib/components/tv/VsIntro.svelte";
+  import ChampionScene from "$lib/components/tv/ChampionScene.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
 
   let { data } = $props();
@@ -360,6 +362,13 @@
     introShow = null;
     if (next) drawShow = next;
   }
+  // The Champion scene's fighters: the intro's combat name, katakana and
+  // picture, plus the name they played under.
+  function sceneFighter(id: string) {
+    const player = names.get(id) ?? "";
+    return { ...introFighter(player), player };
+  }
+  const champRun = $derived(champ ? championRun(data.matches, champ) : null);
   // Load every fighter's cut-out ahead of time, so an intro never shows a
   // half-loaded image. (Browsers cache them; the list is at most a few dozen.)
   $effect(() => {
@@ -407,9 +416,11 @@
   // The Pi gets the lite intro (no blur or drop-shadow filters): its Chromium
   // reports an ARM Linux machine. ?fx=full or ?fx=lite on the TV URL overrides.
   let fxLite = $state(false);
+  let mounted = $state(false); // running in the browser
   onMount(() => {
     const fx = new URLSearchParams(location.search).get("fx");
     fxLite = fx ? fx === "lite" : /aarch64|armv7|armv8/i.test(navigator.userAgent);
+    mounted = true;
   });
 
   function endDraw() {
@@ -844,26 +855,16 @@
       </div>
 
     {:else if scene === "champion"}
-      {@const gf = data.matches.find((m) => m.stage === "gf")}
-      <div class="finale">
-        <div class="finale-kana" lang="ja">チャンピオン</div>
-        <div class="champ-row">
-          <Trophy size="15rem" label="Trophy" />
-          <div class="big-slab"><span>{names.get(champ)}</span></div>
-        </div>
-        <div class="finale-title">Beyfest 2026 champion</div>
-        {#if gf}
-          <div class="finale-sub">
-            {#if gf.walkover}
-              Won the grand final by walkover
-            {:else}
-              Beat {names.get(gf.winner === gf.p1 ? gf.p2 : gf.p1)}
-              {Math.max(gf.p1Score ?? 0, gf.p2Score ?? 0)}–{Math.min(gf.p1Score ?? 0, gf.p2Score ?? 0)}
-              in the grand final
-            {/if}
-          </div>
-        {/if}
-      </div>
+      <!-- Browser only: the picture's address and the Pi's lite mode are
+           worked out from the browser, and the reveal plays on mount anyway. -->
+      {#if champ && champRun && mounted}
+        <ChampionScene
+          champion={sceneFighter(champ)}
+          runnerUp={champRun.final ? sceneFighter(champRun.final.opponent) : null}
+          run={champRun}
+          lite={fxLite}
+        />
+      {/if}
     {/if}
   </main>
 
@@ -1656,11 +1657,6 @@
     /* The italic last letter leans past its box; pad both sides so it isn't
        clipped and the name stays centred. */
     padding-inline: 0.1em;
-  }
-  .champ-row {
-    display: flex;
-    align-items: center;
-    gap: 40px;
   }
   .finale-title {
     font-family: var(--font-display);

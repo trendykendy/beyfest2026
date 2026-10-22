@@ -357,3 +357,50 @@ export function computeAwards(matches: PBMatch[]): Award[] {
   // A big tie isn't much of an award on the big screen: two names at most.
   return awards.filter((a) => a.winners.length <= 2);
 }
+
+// The champion's tournament, for the Champion scene.
+export interface ChampionRun {
+  wins: number;
+  losses: number;
+  pointDiff: number; // walkovers don't count, as in the tables
+  roundsWon: number; // from round-by-round results only; 0 if none were logged
+  topFinish: { key: string; count: number } | null; // their most used finish (a FINISHES key)
+  final: { opponent: string; score: [number, number]; walkover: boolean } | null; // champion's score first
+}
+
+export function championRun(matches: PBMatch[], id: string): ChampionRun {
+  const mine = matches.filter((m) => m.matchStatus === "done" && (m.p1 === id || m.p2 === id));
+  const sideOf = (m: PBMatch): 1 | 2 => (m.p1 === id ? 1 : 2);
+  const scores = (m: PBMatch): [number, number] => {
+    const s: [number, number] = [m.p1Score ?? 0, m.p2Score ?? 0];
+    return sideOf(m) === 1 ? s : [s[1], s[0]];
+  };
+
+  let pointDiff = 0;
+  for (const m of mine.filter((x) => !x.walkover)) {
+    const [a, b] = scores(m);
+    pointDiff += a - b;
+  }
+
+  // Rounds won, by finish. A tie on count goes to the bigger finish.
+  const byFinish = new Map<string, number>();
+  for (const m of loggedResults(mine)) {
+    for (const r of m.liveLog) if (r.who === sideOf(m)) byFinish.set(r.finish, (byFinish.get(r.finish) ?? 0) + 1);
+  }
+  let topFinish: ChampionRun["topFinish"] = null;
+  for (const [key, count] of byFinish) {
+    const better = !topFinish || count > topFinish.count ||
+      (count === topFinish.count && (FINISH_POINTS[key] ?? 0) > (FINISH_POINTS[topFinish.key] ?? 0));
+    if (better) topFinish = { key, count };
+  }
+
+  const gf = mine.find((m) => m.stage === "gf");
+  return {
+    wins: mine.filter((m) => m.winner === id).length,
+    losses: mine.filter((m) => m.winner !== id).length,
+    pointDiff,
+    roundsWon: [...byFinish.values()].reduce((a, n) => a + n, 0),
+    topFinish,
+    final: gf ? { opponent: sideOf(gf) === 1 ? gf.p2 : gf.p1, score: scores(gf), walkover: gf.walkover } : null,
+  };
+}

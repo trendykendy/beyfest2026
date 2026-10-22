@@ -119,10 +119,17 @@
             <span class="field">Tournament name</span>
             <input type="text" name="name" value={form?.name ?? "Beyfest 2026 — Triple Threat"} />
           </label>
-          <label>
-            <span class="field">Bladers <b>{enteredCount}</b></span>
-            <textarea name="players" rows="12" bind:value={playersText} placeholder={"Blader One\nBlader Two\nBlader Three\n…"}></textarea>
-          </label>
+          <div class="bladers">
+            <div class="bladers-head">
+              <label class="field" for="players">Bladers <b>{enteredCount}</b></label>
+              {#if data.starterPlayers.length}
+                <button class="btn" type="button" onclick={() => (playersText = data.starterPlayers.join("\n"))}>
+                  Use the starting fighters
+                </button>
+              {/if}
+            </div>
+            <textarea id="players" name="players" rows="12" bind:value={playersText} placeholder={"Blader One\nBlader Two\nBlader Three\n…"}></textarea>
+          </div>
 
           <p class="preview">
             {#if enteredCount < 8}
@@ -462,6 +469,21 @@
   }
   .field {
     font-weight: 700;
+  }
+  .bladers {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .bladers-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .bladers-head label {
+    display: block;
   }
   .field b {
     display: inline-block;
