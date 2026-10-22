@@ -765,7 +765,6 @@
             {:else if live}<span class="mc-tag live">Live</span>
             {:else}<span class="mc-tag next">Up next</span>{/if}
             <span class="mc-context">{matchContext(spotMatch, data.matches)}</span>
-            <span class="mc-ft">First to {t}</span>
             <!-- This round's stadium, held back while its draw is playing. -->
             {#if live && !decided && drawHold !== spotMatch.code && stadiumOf(spotMatch.stadium)}
               {@const st = stadiumOf(spotMatch.stadium)!}
@@ -808,7 +807,11 @@
               </div>
               {@render sideFoot(1, wonA, true)}
             </div>
-            <div class="mc-vs" aria-label="versus">VS</div>
+            <div class="mc-mid">
+              <div class="mc-vs" aria-label="versus">VS</div>
+              <!-- The target, between the two scores it's read against. -->
+              <div class="mc-ft">First to <b>{t}</b></div>
+            </div>
             <div class="mc-side right" class:won={wonB} class:lost={wonA}>
               <div class="mc-slab">
                 <div class="mc-score">{showScore ? bv : "–"}</div>
@@ -1401,9 +1404,6 @@
   .mc-context {
     color: var(--paper);
   }
-  .mc-ft {
-    color: var(--on-field-soft);
-  }
 
   .mc-duel {
     --tier: var(--gold);
@@ -1614,6 +1614,28 @@
     color: var(--gold);
     -webkit-text-stroke: 4px var(--ink);
     paint-order: stroke fill;
+  }
+  .mc-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  /* Black telop slab under the VS: "FIRST TO" in white, the number in gold. */
+  .mc-ft {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: 1.7rem;
+    line-height: 1;
+    white-space: nowrap;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 8px 14px 10px;
+  }
+  .mc-ft b {
+    color: var(--gold);
+    font-size: 2.3rem;
+    margin-left: 4px;
   }
   .empty-scene {
     color: var(--on-field-soft);

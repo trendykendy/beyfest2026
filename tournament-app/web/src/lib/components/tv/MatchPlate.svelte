@@ -1,7 +1,8 @@
 <script lang="ts">
   // One knockout match on the TV bracket: a small white telop slab. The header
   // band carries the tier colour (green Winners, gold Mid, red Losers, black
-  // Grand Final) and turns red while the match is being played.
+  // Grand Final). A live match keeps its tier colour (red would read as Losers)
+  // and gets a "● LIVE" pill plus a white ring round the plate instead.
   import type { PBMatch } from "$lib/view";
   import { slotLabel, tierOf, isLive } from "$lib/view";
   import { pointsToWin } from "@beyfest/engine";
@@ -38,7 +39,11 @@
 <div class="plate tier-{tier}" class:pending={match.matchStatus === "pending"} class:live>
   <div class="phead">
     <span class="pcode">{match.code}</span>
-    <span class="pft">{walkover ? "Walkover" : live ? "Live" : `First to ${target}`}</span>
+    {#if live}
+      <span class="plive"><span class="dot"></span>Live</span>
+    {:else}
+      <span class="pft">{walkover ? "Walkover" : `First to ${target}`}</span>
+    {/if}
   </div>
   <div class="side" class:won={won1} class:lost={won2} class:tbd={a.tbd}>
     <span class="nm">{a.name}</span>
@@ -74,9 +79,11 @@
     --tier: var(--ink);
     --tier-ink: var(--gold);
   }
+  /* Being played: a white ring outside the black outline, so it stands out on
+     the field without touching the tier colour. Outline, so no layout shift. */
   .plate.live {
-    --tier: var(--red);
-    --tier-ink: var(--paper);
+    outline: 4px solid var(--paper);
+    outline-offset: 0;
   }
   /* Waiting on earlier results: present but quiet. */
   .plate.pending {
@@ -101,6 +108,38 @@
   }
   .pcode {
     font-weight: 800;
+  }
+  .plive {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: center;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 1px 10px 2px 8px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  /* The Grand Final band is already black: flip the pill to white. */
+  .tier-gf .plive {
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--red);
+    /* Opacity only: cheap on the Pi. Reduced motion is handled in theme.css. */
+    animation: live-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes live-pulse {
+    50% {
+      opacity: 0.25;
+    }
   }
 
   .side {
