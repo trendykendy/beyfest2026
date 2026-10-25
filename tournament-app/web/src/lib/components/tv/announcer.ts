@@ -124,12 +124,17 @@ export class Announcer {
   // The match's result is in: call the winner (after any call still going),
   // then, if this match's music is playing, cut it and hit the stinger. The
   // music stays ducked under the calls right up to the cut.
-  endMatch(calls: string[], withMusic: boolean) {
-    if (!this.enabled) return;
-    const talking = this.queue(calls);
-    if (!withMusic) return;
+  // `from`: don't start the call before this (ms from now), so it can land
+  // with the winner screen's slam. Returns when it goes quiet and when the
+  // stinger starts (null if it doesn't play), in ms from now.
+  endMatch(calls: string[], withMusic: boolean, from = 0): { quietAt: number; stingerAt: number | null } {
+    if (!this.enabled) return { quietAt: 0, stingerAt: null };
+    const talking = this.queue(calls, from);
+    if (!withMusic) return { quietAt: talking, stingerAt: null };
     clearTimeout(this.unduck);
-    this.timers.push(setTimeout(() => this.hitStinger(), stingerDelay(talking)));
+    const stingerAt = stingerDelay(talking);
+    this.timers.push(setTimeout(() => this.hitStinger(), stingerAt));
+    return { quietAt: talking, stingerAt };
   }
 
   // Hand the room over to something else (the Champion scene): drop any match
@@ -207,7 +212,8 @@ export class Announcer {
 
   // Queue match calls after anything the announcer is still saying, with the
   // music ducked until they're done. Returns how long until it's quiet, in ms.
-  private queue(calls: string[]): number {
+  // `from`: the earliest they may start, in ms from now.
+  private queue(calls: string[], from = 0): number {
     const list = calls.filter(Boolean);
     list.forEach((u) => this.preload(u));
     const now = Date.now();
@@ -215,7 +221,7 @@ export class Announcer {
     if (!list.length) return busy;
     const { starts, end } = callSequence(
       list.map((u) => this.lengthOf(u)),
-      busy ? busy + CALLS_GAP : 0,
+      Math.max(from, busy ? busy + CALLS_GAP : 0),
     );
     this.setDucked(true);
     list.forEach((u, i) => this.timers.push(setTimeout(() => this.play(u), starts[i])));
