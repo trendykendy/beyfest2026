@@ -125,7 +125,15 @@
             nextCode={data.next}
           />
         {:else if shownTab === "bracket"}
-          <BracketTab matches={data.matches} {names} {groupCount} {structure} {followId} nextCode={data.next} />
+          <BracketTab
+            matches={data.matches}
+            players={data.players}
+            {names}
+            {groupCount}
+            {structure}
+            {followId}
+            nextCode={data.next}
+          />
         {:else}
           <FollowPicker players={data.players} fighters={data.fighters} {followId} onpick={setFollow} />
         {/if}

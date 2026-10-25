@@ -510,20 +510,26 @@ export function openingGroup(
   return busy?.groupIndex ?? groups[0]?.index ?? null;
 }
 
-// Which tier the phone's Bracket tab opens on: where the followed blader's
-// next match is, else where a match is being played, else where the next one
-// is, else the last tier (the final, once it's all over).
+// The knockout match the phone's Bracket tab opens on: the followed blader's
+// next match, else one being played, else the next one; none once it's over.
+export function openingMatch(matches: PBMatch[], followId = "", preferCode = ""): PBMatch | undefined {
+  const ko = matches.filter((m) => m.stage !== "group");
+  return (
+    (followId ? nextMatchFor(followId, ko, preferCode)?.match : undefined) ??
+    liveMatches(ko)[0] ??
+    upNext(ko, preferCode)[0]
+  );
+}
+
+// Which tier holds the opening match, else the last tier (the final, once
+// it's all over).
 export function openingTier(
   tiers: KnockoutTier[],
   matches: PBMatch[],
   followId = "",
   preferCode = "",
 ): KnockoutTier["tier"] | null {
-  const ko = matches.filter((m) => m.stage !== "group");
-  const pick =
-    (followId ? nextMatchFor(followId, ko, preferCode)?.match : undefined) ??
-    liveMatches(ko)[0] ??
-    upNext(ko, preferCode)[0];
+  const pick = openingMatch(matches, followId, preferCode);
   const t = pick ? tierOf(pick.stage) : null;
   if (t && t !== "group" && tiers.some((x) => x.tier === t)) return t;
   return tiers[tiers.length - 1]?.tier ?? null;

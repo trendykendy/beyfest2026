@@ -11,12 +11,21 @@
     structure,
     groupCount,
     orientation = "horizontal",
+    fit = "screen",
+    followId = "",
+    pages = $bindable([]),
   }: {
     matches: PBMatch[];
     players: PBPlayer[];
     structure: StructureSpec;
     groupCount: number;
     orientation?: "horizontal" | "vertical";
+    // "screen" scales the whole bracket to fit its box (the TV). "swipe" draws
+    // it at full size for a sideways-scrolling parent (the phone): each column
+    // is a scroll-snap point marked data-page, listed in `pages` in order.
+    fit?: "screen" | "swipe";
+    followId?: string;
+    pages?: { names: string[]; codes: string[] }[];
   } = $props();
 
   const names = $derived(nameMap(players));
@@ -76,6 +85,18 @@
       : null;
     return { cols, edges, rows };
   });
+
+  // One page per column. In double elimination a column can hold an upper and
+  // a lower round, so a page has one or two names.
+  $effect(() => {
+    pages = layout.cols.map((col) => ({
+      names: [...new Set(col.map((m) => roundName(m.roundLabel)))],
+      codes: col.map((m) => m.code),
+    }));
+  });
+  // The double-elimination column heading that carries the page marker: the
+  // upper row's, or the lower row's when the column has no upper round.
+  const pageRow = (ci: number) => (layout.rows && layout.rows.upper[ci].length ? 0 : 1);
 
 
   // ── Connectors (measured in unscaled layout space via offset*) + fit ──
@@ -260,9 +281,10 @@
     connectors = out;
 
     // Fit the whole bracket into the available box (fills space; never scrolls).
+    // Swiped brackets stay full size: the parent scrolls them.
     const availW = box.clientWidth;
     const availH = box.clientHeight;
-    if (natW > 0 && natH > 0 && availW > 0 && availH > 0) {
+    if (fit === "screen" && natW > 0 && natH > 0 && availW > 0 && availH > 0) {
       scale = Math.min(availW / natW, availH / natH, MAX_SCALE);
     }
   }
@@ -286,8 +308,8 @@
   });
 </script>
 
-<div class="bb {orientation}" bind:this={boxEl}>
-  <div class="bb-scale" style="transform: scale({scale})">
+<div class="bb {orientation}" class:swipe={fit === "swipe"} bind:this={boxEl}>
+  <div class="bb-scale" style={fit === "screen" ? `transform: scale(${scale})` : undefined}>
     <div class="bb-content" bind:this={contentEl}>
       <svg class="bb-links" width={dims.w} height={dims.h} viewBox="0 0 {dims.w} {dims.h}">
         {#each connectors as c, i (i)}
@@ -300,13 +322,17 @@
           {#each [rows.upper, rows.lower] as row, ri (ri)}
             {#each row as col, ci (ci)}
               {#if col.length}
-                <div class="bb-col-head" style="grid-row: {ri * 2 + 1}; grid-column: {ci + 1}">
+                <div
+                  class="bb-col-head"
+                  data-page={ri === pageRow(ci) ? ci : undefined}
+                  style="grid-row: {ri * 2 + 1}; grid-column: {ci + 1}"
+                >
                   {roundName(col[0].roundLabel)}
                 </div>
                 <div class="bb-col-body" class:de-upper={ri === 0} style="grid-row: {ri * 2 + 2}; grid-column: {ci + 1}">
                   {#each col as m (m.code)}
-                    <div class="bb-node" bind:this={nodeEls[m.code]}>
-                      <MatchPlate match={m} {names} {groupCount} />
+                    <div class="bb-node" data-code={m.code} bind:this={nodeEls[m.code]}>
+                      <MatchPlate match={m} {names} {groupCount} {followId} />
                     </div>
                   {/each}
                 </div>
@@ -314,12 +340,13 @@
             {/each}
           {/each}
           {#if rows.gf.length}
-            <div class="de-gf" style="grid-column: {layout.cols.length}">
+            <!-- The Grand Final is the last column on its own, so it marks that page. -->
+            <div class="de-gf" data-page={layout.cols.length - 1} style="grid-column: {layout.cols.length}">
               <div class="bb-col-head">{roundName(rows.gf[0].roundLabel)}</div>
               {#each rows.gf as m (m.code)}
-                <div class="bb-node is-gf" bind:this={nodeEls[m.code]}>
+                <div class="bb-node is-gf" data-code={m.code} bind:this={nodeEls[m.code]}>
                   <div class="gf-crown"><Trophy /></div>
-                  <MatchPlate match={m} {names} {groupCount} />
+                  <MatchPlate match={m} {names} {groupCount} {followId} />
                 </div>
               {/each}
             </div>
@@ -328,15 +355,15 @@
       {:else}
       <div class="bb-cols">
         {#each layout.cols as col, ci (ci)}
-          <div class="bb-col">
+          <div class="bb-col" data-page={ci}>
             {#if col.length}
               <div class="bb-col-head">{roundName(col[0].roundLabel)}</div>
             {/if}
             <div class="bb-col-body">
               {#each col as m (m.code)}
-                <div class="bb-node" class:is-gf={m.stage === "gf"} bind:this={nodeEls[m.code]}>
+                <div class="bb-node" class:is-gf={m.stage === "gf"} data-code={m.code} bind:this={nodeEls[m.code]}>
                   {#if m.stage === "gf"}<div class="gf-crown"><Trophy /></div>{/if}
-                  <MatchPlate match={m} {names} {groupCount} />
+                  <MatchPlate match={m} {names} {groupCount} {followId} />
                 </div>
               {/each}
             </div>
@@ -361,6 +388,17 @@
   }
   .bb-scale {
     transform-origin: center center;
+  }
+  /* Phone: as big as its content, scrolled sideways by the parent. */
+  .bb.swipe {
+    width: max-content;
+    height: auto;
+    flex: none;
+    display: block;
+    overflow: visible;
+  }
+  .bb.swipe [data-page] {
+    scroll-snap-align: start;
   }
   .bb-content {
     position: relative;

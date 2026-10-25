@@ -11,10 +11,12 @@
     match,
     names,
     groupCount,
+    followId = "",
   }: {
     match: PBMatch;
     names: Map<string, string>;
     groupCount: number;
+    followId?: string; // the phone's followed blader, washed gold
   } = $props();
 
   const tier = $derived(tierOf(match.stage));
@@ -45,11 +47,11 @@
       <span class="pft">{walkover ? "Walkover" : `First to ${target}`}</span>
     {/if}
   </div>
-  <div class="side" class:won={won1} class:lost={won2} class:tbd={a.tbd}>
+  <div class="side" class:won={won1} class:lost={won2} class:tbd={a.tbd} class:me={!!followId && match.p1 === followId}>
     <span class="nm">{a.name}</span>
     {#if s1 !== null}<span class="sc">{s1}</span>{/if}
   </div>
-  <div class="side" class:won={won2} class:lost={won1} class:tbd={b.tbd}>
+  <div class="side" class:won={won2} class:lost={won1} class:tbd={b.tbd} class:me={!!followId && match.p2 === followId}>
     <span class="nm">{b.name}</span>
     {#if s2 !== null}<span class="sc">{s2}</span>{/if}
   </div>
@@ -189,5 +191,14 @@
   }
   .side.lost {
     color: var(--ink-soft);
+  }
+  /* The followed blader (phone only): a gold wash, name underlined, as on the
+     phone's match rows. */
+  .side.me {
+    background: color-mix(in srgb, var(--gold) 26%, var(--paper));
+  }
+  .side.me .nm {
+    text-decoration: underline 3px var(--ink);
+    text-underline-offset: 3px;
   }
 </style>
