@@ -38,7 +38,8 @@ async function join(pb: PocketBase, body: { name?: unknown }) {
   const view = await loadTournamentView(pb);
   if (!view.tournament) error(409, "Betting opens once the groups are drawn.");
   const { bettors } = await loadBetting(pb, view.tournament.id);
-  if (bettors.some((b) => sameName(b.name, name))) error(409, `Someone is already betting as ${name}. Try another name.`);
+  const taken = bettors.find((b) => sameName(b.name, name));
+  if (taken) error(409, `Someone is already betting as ${taken.name}. Try another name.`);
   const token = randomBytes(16).toString("hex");
   const rec = await pb.collection("bettors").create({ tournament: view.tournament.id, name, token });
   return json({ id: rec.id, name, token });

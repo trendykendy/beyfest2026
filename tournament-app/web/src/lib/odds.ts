@@ -14,10 +14,12 @@ import type { PBMatch } from "./view";
 // ── Tuning ────────────────────────────────────────────────────────────
 export const START_BALANCE = 10_000;
 const WIN_WEIGHT = 1.0; // rating per match won
-const DIFF_WEIGHT = 0.15; // rating per point of points diff
-const SPREAD = 0.6; // how strongly a rating gap tilts each point
-const POINT_MIN = 0.2; // a single point is never surer than 80/20
-const POINT_MAX = 0.8;
+const DIFF_WEIGHT = 0.1; // rating per point of points diff
+// Gentle on purpose: a race to 5 magnifies any edge per point, so one 5–0
+// win already makes a clear favourite (about ×1.22 against ×4.30).
+const SPREAD = 0.25; // how strongly a rating gap tilts each point
+const POINT_MIN = 0.3; // a single point is never surer than 70/30 (the
+const POINT_MAX = 0.7; // longest odds before a match are then about ×9.5)
 const HOUSE_EDGE = 0.05; // odds are trimmed 5%, so the bank wins slowly
 const ODDS_MIN = 1.05;
 const ODDS_MAX = 20;
