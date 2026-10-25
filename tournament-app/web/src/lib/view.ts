@@ -478,3 +478,53 @@ export function rrFate(stage: "wb_rr" | "lb_rr", rank: number, advancers: number
     return rank === 1 ? { text: "Grand final", tier: "gf" } : { text: "Mid bracket", tier: "mb" };
   return rank <= advancers ? { text: "Mid bracket", tier: "mb" } : { text: "Out", tier: "out" };
 }
+
+// One side of a match in words: the player's name once they're in the slot,
+// until then where they'll come from ("Group 1 winner", "Winner of MB1").
+export function sideName(m: PBMatch, which: 1 | 2, names: Map<string, string>, groupCount: number): string {
+  const pid = which === 1 ? m.p1 : m.p2;
+  if (pid) return names.get(pid) ?? "—";
+  return slotLabel(which === 1 ? m.slot1 : m.slot2, groupCount);
+}
+
+// A blader's wins and losses so far, every stage counted (walkovers too).
+export function playerRecord(playerId: string, matches: PBMatch[]): { wins: number; losses: number } {
+  const done = matches.filter((m) => m.matchStatus === "done" && (m.p1 === playerId || m.p2 === playerId));
+  const wins = done.filter((m) => m.winner === playerId).length;
+  return { wins, losses: done.length - wins };
+}
+
+// Which group the phone's Groups tab opens on: the followed blader's, else
+// one with a match being played, else the one playing next, else the first.
+export function openingGroup(
+  groups: PBGroup[],
+  players: PBPlayer[],
+  matches: PBMatch[],
+  followId = "",
+  preferCode = "",
+): number | null {
+  const mine = players.find((p) => p.id === followId)?.groupIndex;
+  if (mine != null) return mine;
+  const groupMatches = matches.filter((m) => m.stage === "group");
+  const busy = liveMatches(groupMatches)[0] ?? upNext(groupMatches, preferCode)[0];
+  return busy?.groupIndex ?? groups[0]?.index ?? null;
+}
+
+// Which tier the phone's Bracket tab opens on: where the followed blader's
+// next match is, else where a match is being played, else where the next one
+// is, else the last tier (the final, once it's all over).
+export function openingTier(
+  tiers: KnockoutTier[],
+  matches: PBMatch[],
+  followId = "",
+  preferCode = "",
+): KnockoutTier["tier"] | null {
+  const ko = matches.filter((m) => m.stage !== "group");
+  const pick =
+    (followId ? nextMatchFor(followId, ko, preferCode)?.match : undefined) ??
+    liveMatches(ko)[0] ??
+    upNext(ko, preferCode)[0];
+  const t = pick ? tierOf(pick.stage) : null;
+  if (t && t !== "group" && tiers.some((x) => x.tier === t)) return t;
+  return tiers[tiers.length - 1]?.tier ?? null;
+}
