@@ -2,6 +2,7 @@ import type PocketBase from "pocketbase";
 import type { RecordModel } from "pocketbase";
 import type { PBGroup, PBMatch, PBPlayer, TvState } from "$lib/view";
 import type { PBFighter } from "$lib/fighters";
+import type { PBBet, PBBettor } from "$lib/betting";
 
 export interface TournamentView {
   tournament: {
@@ -118,6 +119,32 @@ export async function loadTournamentView(pb: PocketBase): Promise<TournamentView
     matches: matches.map(toMatch),
     fighters,
   };
+}
+
+// The phone page's betting for a tournament (see migration 1710001500_betting).
+// Never breaks the page: before the migration has run it's just empty.
+export async function loadBetting(pb: PocketBase, tournamentId: string): Promise<{ bettors: PBBettor[]; bets: PBBet[] }> {
+  const filter = pb.filter("tournament = {:id}", { id: tournamentId });
+  try {
+    const [bettors, bets] = await Promise.all([
+      pb.collection("bettors").getFullList({ filter, sort: "name" }),
+      pb.collection("bets").getFullList({ filter, sort: "created" }),
+    ]);
+    return {
+      bettors: bettors.map((r) => ({ id: r.id, name: r.name })),
+      bets: bets.map((r) => ({
+        id: r.id,
+        bettor: r.bettor,
+        match: r.match,
+        pick: r.pick,
+        stake: r.stake,
+        odds: r.odds,
+        created: r.created || "",
+      })),
+    };
+  } catch {
+    return { bettors: [], bets: [] };
+  }
 }
 
 // The single TV-control record (see migration 1710000300_tv_state). Falls back
