@@ -10,7 +10,7 @@ import {
 } from "../web/src/lib/server/tournament.ts";
 import { pointsToWin } from "../engine/src/index.ts";
 
-const pb = new PocketBase("http://127.0.0.1:8090");
+const pb = new PocketBase(process.env.PB_URL || "http://127.0.0.1:8090"); // PB_URL=… points it at a test database
 await pb.collection("organisers").authWithPassword("organiser@beyfest.local", "beyfest2026");
 const t = await getActiveTournament(pb);
 if (!t) throw new Error("no active tournament");
