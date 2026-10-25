@@ -23,6 +23,39 @@ $webBuild = Join-Path $webDir "build\index.js"
 $organiserEmail = "organiser@beyfest.local"
 $superuserEmail = "admin@beyfest.local"
 
+# ── Bun builds the app, Node runs it ─────────────────────────────────
+foreach ($tool in @(@("bun", "https://bun.sh"), @("node", "https://nodejs.org (the LTS)"))) {
+  if (-not (Get-Command $tool[0] -ErrorAction SilentlyContinue)) {
+    Write-Host "  $($tool[0]) isn't installed. Install it from $($tool[1]), then run this again." -ForegroundColor Red
+    exit 1
+  }
+}
+
+# ── PocketBase: download it if it's missing (it isn't kept in git) ────
+# The version comes from start.sh, which the Mac and the Pi package use too,
+# so all three stay on the same PocketBase. Needs internet: do the first run
+# at home.
+if (-not (Test-Path $pbExe)) {
+  $pbVersion = (Select-String -Path (Join-Path $root "start.sh") -Pattern '^pb_version="([^"]+)"').Matches[0].Groups[1].Value
+  $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "amd64" }
+  $zipUrl = "https://github.com/pocketbase/pocketbase/releases/download/v$pbVersion/pocketbase_${pbVersion}_windows_$arch.zip"
+  Write-Host "  First run: downloading PocketBase $pbVersion…" -ForegroundColor Cyan
+  $zip = Join-Path ([System.IO.Path]::GetTempPath()) "pocketbase-$pbVersion.zip"
+  try {
+    # Windows PowerShell 5.1 may not offer TLS 1.2 by default; GitHub needs it.
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest $zipUrl -OutFile $zip -UseBasicParsing
+    $unzipped = Join-Path ([System.IO.Path]::GetTempPath()) "pocketbase-$pbVersion"
+    Expand-Archive -Path $zip -DestinationPath $unzipped -Force
+    Copy-Item (Join-Path $unzipped "pocketbase.exe") $pbExe
+    Remove-Item $zip, $unzipped -Recurse -Force -ErrorAction SilentlyContinue
+  }
+  catch {
+    Write-Host "  Couldn't download PocketBase. Are you online? ($zipUrl)" -ForegroundColor Red
+    exit 1
+  }
+}
+
 # ── Detect the LAN IP (the adapter that owns the default route) ──────
 $netCfg = Get-NetIPConfiguration |
   Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq "Up" } |
