@@ -14,13 +14,16 @@ import {
   resetTournament,
 } from "$lib/server/tournament";
 import { readStarters } from "$lib/server/starterFiles";
+import type { StarterPick } from "$lib/starters";
 
-// The starting fighters' player names, for the "Use the starting fighters"
-// button on the create form. Empty (no button) if the folder can't be read.
-async function starterPlayers(): Promise<string[]> {
+// The starting fighters, for the "Use the starting fighters" pop-up on the
+// create form: the name that goes in the Bladers box (player, else combat
+// name), the combat name and the picture. Empty (no button) if the folder
+// can't be read.
+async function starterPicks(): Promise<StarterPick[]> {
   try {
     const { starters } = await readStarters();
-    return starters.map((s) => s.player || s.name);
+    return starters.map((s) => ({ player: s.player || s.name, name: s.name, image: s.image ?? "" }));
   } catch {
     return [];
   }
@@ -28,7 +31,7 @@ async function starterPlayers(): Promise<string[]> {
 
 export const load: PageServerLoad = async ({ locals }) => {
   const [view, tv] = await Promise.all([loadTournamentView(locals.pb), loadTvState(locals.pb)]);
-  return { ...view, tv, starterPlayers: view.tournament ? [] : await starterPlayers() };
+  return { ...view, tv, starters: view.tournament ? [] : await starterPicks() };
 };
 
 export const actions: Actions = {

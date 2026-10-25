@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { onMount, tick as svelteTick } from "svelte";
+  import { onMount, tick as svelteTick, untrack } from "svelte";
   import { invalidateAll } from "$app/navigation";
   import { liveUpdates } from "$lib/pbBrowser";
   import { EVENT, browserPbUrl } from "$lib/config";
-  import { fighterFor, fighterImageUrl, fighterVoiceUrl } from "$lib/fighters";
-  import { VERSUS, titleClip } from "$lib/sounds";
+  import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl } from "$lib/fighters";
+  import { GRAND_CHAMPION, STINGER, VERSUS, WINS, championCallFresh, finishClip, titleClip, winsCall } from "$lib/sounds";
   import { Announcer } from "$lib/components/tv/announcer";
   import { FINISHES } from "$lib/finishes";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
@@ -363,12 +363,28 @@
     if (next) drawShow = next;
   }
   // The Champion scene's fighters: the intro's combat name, katakana and
-  // picture, plus the name they played under.
+  // picture, plus the name they played under and their victory pose.
   function sceneFighter(id: string) {
     const player = names.get(id) ?? "";
-    return { ...introFighter(player), player };
+    const victory = fighterVictoryUrl(browserPbUrl(), fighterFor(player, data.fighters));
+    return { ...introFighter(player), player, victory };
   }
   const champRun = $derived(champ ? championRun(data.matches, champ) : null);
+  // When this TV saw the grand final's result go in (a reload after the fact
+  // never does), so the champion call is only made while it's news.
+  let champBefore = "";
+  let champPrimed = false;
+  let champSeen = $state<{ id: string; at: number } | null>(null);
+  $effect(() => {
+    const c = champ;
+    if (champPrimed && c && c !== champBefore) champSeen = { id: c, at: Date.now() };
+    champBefore = c;
+    champPrimed = true;
+    if (c) announcer.preloadChampion();
+    // The victory pose is full size, so fetch it before the scene needs it.
+    const pose = c ? sceneFighter(c).victory : "";
+    if (pose) new Image().src = pose;
+  });
   // Load every fighter's cut-out ahead of time, so an intro never shows a
   // half-loaded image. (Browsers cache them; the list is at most a few dozen.)
   $effect(() => {
@@ -380,7 +396,8 @@
 
   // ── Sound ───────────────────────────────────────────────────────────
   // The intro's announcer (name, versus, name, match title) over the match
-  // music, which plays from Start match until the result is in.
+  // music, which plays from Start match until the result is in; then each
+  // round's finish, "[name] wins!" and the stinger that ends the match.
   const announcer = new Announcer();
   // The match code the music is playing for. State, so the effect below that
   // fades it out on the result re-runs once it's set.
@@ -394,7 +411,7 @@
   }
   // Load every clip the next intros could need, so each one's length is known
   // when an intro is timed and it plays on cue.
-  onMount(() => VERSUS.forEach((u) => announcer.preload(u)));
+  onMount(() => [...VERSUS, ...FINISHES.map((f) => finishClip(f.key)), WINS, STINGER].forEach((u) => announcer.preload(u)));
   // The admin page's TV panel sets these, live.
   $effect(() => {
     announcer.setEnabled(!data.tv.soundOff);
@@ -404,13 +421,69 @@
     for (const f of data.fighters) announcer.preload(fighterVoiceUrl(browserPbUrl(), f));
     for (const m of data.matches) announcer.preload(titleClip(m));
   });
+
+  // A round's finish is called as soon as it's logged, whatever is on screen:
+  // the TV cuts to that match anyway, and the music plays on every scene too.
+  // It doesn't wait for the call-out animation, so reduced motion still hears
+  // it, and since it isn't tied to a scene the rotation can't replay it.
+  let called = "";
   $effect(() => {
-    if (!musicFor) return;
-    const m = data.matches.find((x) => x.code === musicFor);
-    if (!m || m.matchStatus === "done") {
+    const ev = latestRound;
+    if (!ev) return;
+    const key = `${ev.code}@${ev.at}`; // by time, so undo-then-redo calls again
+    if (key === called) return;
+    called = key;
+    if (Date.now() - ev.at > CALLOUT_FRESH_MS) return;
+    const r = data.matches.find((m) => m.code === ev.code)?.liveLog[ev.n - 1];
+    if (r) announcer.call([finishClip(r.finish)]);
+  });
+
+  // A result going in: "[name] wins!" (after the finish call, if that's still
+  // going), then, if the music is this match's, the stinger in its place.
+  // Seen the same way as the cut to Match centre, by comparing reloads, so a
+  // page load never calls an old result.
+  let statusSeen = new Map<string, string>();
+  let statusPrimed = false;
+  $effect(() => {
+    const playingFor = musicFor;
+    for (const m of data.matches) {
+      const before = statusSeen.get(m.code);
+      statusSeen.set(m.code, m.matchStatus);
+      if (!statusPrimed || before === undefined || before === "done" || m.matchStatus !== "done") continue;
+      const withMusic = m.code === playingFor;
+      if (withMusic) musicFor = "";
+      const voice = fighterVoiceUrl(browserPbUrl(), fighterFor(names.get(m.winner) ?? "", data.fighters));
+      announcer.endMatch(winsCall(voice, m.walkover), withMusic);
+    }
+    statusPrimed = true;
+    // The music's match has gone (a reset), or finished without being seen
+    // to: just fade the music out.
+    if (musicFor && !data.matches.some((x) => x.code === musicFor && x.matchStatus !== "done")) {
       musicFor = "";
       announcer.stopMusic();
     }
+  });
+  // Champion: the theme while the Champion scene is on screen, and the first
+  // time it comes up after the result, the champion's name then "Beyfest 2026
+  // Grand Champion!" (if it's still news, see CHAMPION_FRESH_MS). Only the
+  // scene and the champion re-run this, so a data reload doesn't restart it.
+  let champCalled = "";
+  $effect(() => {
+    if (scene !== "champion" || !champ) return;
+    const id = champ;
+    untrack(() => {
+      const seen = champSeen;
+      let calls: string[] = [];
+      if (seen && seen.id === id && `${seen.id}@${seen.at}` !== champCalled) {
+        champCalled = `${seen.id}@${seen.at}`; // the first showing: now or never
+        if (championCallFresh(seen.at, Date.now())) {
+          const voice = fighterVoiceUrl(browserPbUrl(), fighterFor(names.get(id) ?? "", data.fighters));
+          calls = [voice, GRAND_CHAMPION];
+        }
+      }
+      announcer.startChampion(calls);
+    });
+    return () => announcer.stopChampion();
   });
 
   // The Pi gets the lite intro (no blur or drop-shadow filters): its Chromium

@@ -6,8 +6,9 @@ import { planStarters, type Starter } from "$lib/starters";
 import { readStarters } from "$lib/server/starterFiles";
 
 // The fighter library: who the TV's VS intro shows, with their katakana,
-// cut-out and announcer voice. Not tied to a tournament (see migrations
-// 1710001100_fighters and 1710001200_fighter_player_voice).
+// cut-out, announcer voice and victory pose. Not tied to a tournament (see
+// migrations 1710001100_fighters, 1710001200_fighter_player_voice and
+// 1710001400_fighter_victory).
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const view = await loadTournamentView(locals.pb);
@@ -50,11 +51,13 @@ export const actions: Actions = {
     const problem = await clash(locals.pb, name, fields.player);
     if (problem) return fail(400, { error: problem });
     const image = fileFrom(data, "image");
+    const victory = fileFrom(data, "victory");
     const voice = fileFrom(data, "voice");
     try {
       await locals.pb.collection("fighters").create({
         ...fields,
         ...(image ? { image } : {}),
+        ...(victory ? { victory } : {}),
         ...(voice ? { voice } : {}),
       });
     } catch (e) {
@@ -72,12 +75,14 @@ export const actions: Actions = {
     const problem = await clash(locals.pb, name, fields.player, id);
     if (problem) return fail(400, { error: problem, editing: id });
     const image = fileFrom(data, "image");
+    const victory = fileFrom(data, "victory");
     const voice = fileFrom(data, "voice");
     try {
       await locals.pb.collection("fighters").update(id, {
         ...fields,
         // a new upload replaces the file; "remove" clears it
         ...(image ? { image } : data.get("removeImage") === "on" ? { image: null } : {}),
+        ...(victory ? { victory } : data.get("removeVictory") === "on" ? { victory: null } : {}),
         ...(voice ? { voice } : data.get("removeVoice") === "on" ? { voice: null } : {}),
       });
     } catch (e) {
@@ -109,6 +114,7 @@ export const actions: Actions = {
             kana: s.kana ?? "",
             mirror: !!s.mirror,
             ...(s.image ? { image: await file(s.image) } : {}),
+            ...(s.victory ? { victory: await file(s.victory) } : {}),
             ...(s.voice ? { voice: await file(s.voice) } : {}),
           });
           added++;

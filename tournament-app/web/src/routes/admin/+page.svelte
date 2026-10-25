@@ -13,6 +13,7 @@
   import FixResult from "$lib/components/FixResult.svelte";
   import BladersPanel from "$lib/components/BladersPanel.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
+  import StarterPicker from "$lib/components/StarterPicker.svelte";
 
   let { data, form } = $props();
 
@@ -122,10 +123,8 @@
           <div class="bladers">
             <div class="bladers-head">
               <label class="field" for="players">Bladers <b>{enteredCount}</b></label>
-              {#if data.starterPlayers.length}
-                <button class="btn" type="button" onclick={() => (playersText = data.starterPlayers.join("\n"))}>
-                  Use the starting fighters
-                </button>
+              {#if data.starters.length}
+                <StarterPicker starters={data.starters} bind:text={playersText} />
               {/if}
             </div>
             <textarea id="players" name="players" rows="12" bind:value={playersText} placeholder={"Blader One\nBlader Two\nBlader Three\n…"}></textarea>

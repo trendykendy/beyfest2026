@@ -10,7 +10,9 @@
   // (slam-in, flash, confetti), then idles with a shine, a bobbing trophy and
   // falling confetti. Transform and opacity only, so it holds up on the Pi;
   // `lite` drops the turning rays and most of the confetti.
-  type Fighter = { name: string; player: string; kana: string; img: string; mirror?: boolean };
+  // victory: the fighter's victory pose, if they have one: shown in the frame
+  // instead of the cut-out, and never flipped (it has writing on it).
+  type Fighter = { name: string; player: string; kana: string; img: string; victory?: string; mirror?: boolean };
   let {
     champion,
     runnerUp = null,
@@ -72,7 +74,9 @@
     <div class="portrait">
       <div class="frame">
         <div class="pic">
-          {#if champion.img}
+          {#if champion.victory}
+            <img src={champion.victory} alt="" />
+          {:else if champion.img}
             <img src={champion.img} alt="" class:flip={!champion.mirror} />
           {:else}
             <div class="sil"><FighterSilhouette flip /></div>

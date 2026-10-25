@@ -1,6 +1,7 @@
 // The fighter library (PocketBase `fighters`, migrations 1710001100 and
-// 1710001200): the combat name, katakana, cut-out image and announcer voice
-// the TV's VS intro uses for a blader. Fighters aren't tied to a tournament;
+// 1710001200, 1710001400): the combat name, katakana, cut-out image and
+// announcer voice the TV's VS intro uses for a blader, and the victory pose
+// the Champion scene shows. Fighters aren't tied to a tournament;
 // a player is matched to one by the fighter's player name.
 
 export interface PBFighter {
@@ -9,6 +10,7 @@ export interface PBFighter {
   player: string; // the name typed in for the tournament, e.g. "Conor"
   kana: string;
   image: string; // file name in PocketBase storage, "" if none
+  victory: string; // victory pose for the Champion scene, "" if none
   voice: string; // file name in PocketBase storage, "" if none
   mirror: boolean;
 }
@@ -33,6 +35,13 @@ export function fighterImageUrl(pbUrl: string, f: PBFighter | null, thumb = "0x9
   if (!f?.image) return "";
   const q = thumb ? `?thumb=${thumb}` : "";
   return fileUrl(pbUrl, f, f.image) + q;
+}
+
+// The victory pose's URL, or "" if the fighter has none. Full size by default
+// (the Champion scene); the admin page asks for the 300x200 thumb.
+export function fighterVictoryUrl(pbUrl: string, f: PBFighter | null, thumb = ""): string {
+  if (!f?.victory) return "";
+  return fileUrl(pbUrl, f, f.victory) + (thumb ? `?thumb=${thumb}` : "");
 }
 
 // The announcer clip's URL, or "" if the fighter has no voice.
