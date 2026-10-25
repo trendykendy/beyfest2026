@@ -28,8 +28,9 @@ for every count from 8 to 15 players.
    `organiser@beyfest.local` with the password you chose.
 3. Put the **Public display** URL on the projector/TV. Players can open it on their
    phones (same wifi) — it updates live as you enter scores.
-4. **Windows Firewall** may prompt the first time — allow access on private networks
-   so other devices can reach the laptop.
+4. **Windows Firewall:** `start.ps1` checks that phones can get through (the network
+   isn't marked Public, and nothing blocks `node.exe` or `pocketbase.exe`). If not, it
+   says what's wrong and offers to fix it, with one Windows permission prompt.
 
 ### On a Raspberry Pi (the main setup)
 

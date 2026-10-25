@@ -1,4 +1,4 @@
-# ─────────────────────────────────────────────────────────────────────
+﻿# ─────────────────────────────────────────────────────────────────────
 # Beyfest 2026 tournament app — one-command launcher for the event laptop.
 #
 # Starts PocketBase (data + realtime API) and the built SvelteKit server,
@@ -19,9 +19,10 @@ $organiserEmail = "organiser@beyfest.local"
 $superuserEmail = "admin@beyfest.local"
 
 # ── Detect the LAN IP (the adapter that owns the default route) ──────
-$ip = (Get-NetIPConfiguration |
+$netCfg = Get-NetIPConfiguration |
   Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq "Up" } |
-  Select-Object -First 1).IPv4Address.IPAddress
+  Select-Object -First 1
+$ip = $netCfg.IPv4Address.IPAddress
 if (-not $ip) { $ip = "127.0.0.1" }
 
 $webPort = 3000
@@ -127,6 +128,92 @@ if (-not (Test-Path $pbData)) {
     $loginNote = "Login: $organiserEmail / beyfest2026  (DEFAULT PASSWORDS: change them before the event)"
   }
   & $pbExe superuser upsert $superuserEmail $superuserPw "--dir=$pbData" | Out-Null
+}
+
+# ── Can phones get through Windows Firewall? ──────────────────────────
+# Phones (and the QR code) reach this PC on ports 3000 and 8090. Two things
+# quietly stop them: the network being "Public" (Windows' default for new
+# wifi, where the usual allow-on-private-networks rules don't apply), and a
+# Block rule left by a dismissed firewall prompt (Block beats Allow).
+# Checked by program, as Windows' own prompt rules are: those can be read
+# without admin rights; port rules can't.
+$nodeExe = (Get-Command node -ErrorAction SilentlyContinue).Source
+$programs = @($pbExe, $nodeExe) | Where-Object { $_ }
+$netProfile = if ($netCfg) { Get-NetConnectionProfile -InterfaceIndex $netCfg.InterfaceIndex -ErrorAction SilentlyContinue }
+$category = if ($netProfile) { "$($netProfile.NetworkCategory)" -replace "DomainAuthenticated", "Domain" } else { "" }
+
+$problems = @()
+if ($category -eq "Public") {
+  $problems += "Windows treats this network ($($netProfile.Name)) as Public, so phones are blocked."
+}
+if ($category) {
+  # One pass over the firewall's program list, then each program checked
+  # against it. Paths are stored lower-case, sometimes with %variables%.
+  $appRules = Get-NetFirewallApplicationFilter -All -ErrorAction SilentlyContinue |
+    Where-Object { $_.Program -match '\\(node|pocketbase)\.exe$' } |
+    ForEach-Object {
+      $rule = $_ | Get-NetFirewallRule
+      [pscustomobject]@{ Program = [Environment]::ExpandEnvironmentVariables($_.Program); Rule = $rule }
+    }
+  # The profile the rule must cover: the network's own, or Private once
+  # it's been switched from Public.
+  $need = if ($category -eq "Public") { "Private" } else { $category }
+  # With the firewall off for that kind of network, rules don't matter.
+  $firewallOn = "$((Get-NetFirewallProfile -Name $need -ErrorAction SilentlyContinue).Enabled)" -ne "False"
+  foreach ($exe in $programs | Where-Object { $firewallOn }) {
+    $mine = @($appRules | Where-Object { $_.Program -eq $exe -and "$($_.Rule.Enabled)" -eq "True" -and "$($_.Rule.Direction)" -eq "Inbound" })
+    $covers = { param($r) "$($r.Profile)" -match "Any|$need" }
+    $name = Split-Path $exe -Leaf
+    if ($mine | Where-Object { "$($_.Rule.Action)" -eq "Block" -and (& $covers $_.Rule) }) {
+      $problems += "Windows Firewall has a rule BLOCKING $name."
+    }
+    elseif (-not ($mine | Where-Object { "$($_.Rule.Action)" -eq "Allow" -and (& $covers $_.Rule) })) {
+      $problems += "Windows Firewall hasn't been told to let $name through."
+    }
+  }
+}
+
+if ($problems.Count) {
+  Write-Host ""
+  Write-Host "  Phones may not be able to connect:" -ForegroundColor Yellow
+  $problems | ForEach-Object { Write-Host "   - $_" -ForegroundColor Yellow }
+  $fix = $false
+  if (-not [Console]::IsInputRedirected) {
+    $answer = Read-Host "  Fix it now? Windows will ask for permission once. [Y/n]"
+    $fix = $answer -notmatch '^\s*n'
+  }
+  if ($fix) {
+    # One elevated PowerShell does it all, so there's a single admin prompt.
+    # It drops Block rules for these programs, replaces our own Allow rules,
+    # and makes a Public network Private.
+    $list = ($programs | ForEach-Object { "'" + ($_ -replace "'", "''") + "'" }) -join ","
+    $fixScript = @"
+`$ErrorActionPreference = 'Continue'
+foreach (`$exe in @($list)) {
+  Get-NetFirewallApplicationFilter -All | Where-Object { [Environment]::ExpandEnvironmentVariables(`$_.Program) -eq `$exe } |
+    Get-NetFirewallRule | Where-Object { "`$(`$_.Action)" -eq 'Block' -and "`$(`$_.Direction)" -eq 'Inbound' } | Remove-NetFirewallRule
+  `$name = 'Beyfest 2026 - ' + (Split-Path `$exe -Leaf)
+  Get-NetFirewallRule -DisplayName `$name -ErrorAction SilentlyContinue | Remove-NetFirewallRule
+  New-NetFirewallRule -DisplayName `$name -Direction Inbound -Program `$exe -Action Allow -Profile Private,Domain | Out-Null
+}
+"@
+    if ($category -eq "Public") {
+      $fixScript += "`nSet-NetConnectionProfile -InterfaceIndex $($netCfg.InterfaceIndex) -NetworkCategory Private"
+    }
+    $encoded = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($fixScript))
+    try {
+      $p = Start-Process powershell -Verb RunAs -Wait -PassThru -WindowStyle Hidden `
+        -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", $encoded
+      if ($p.ExitCode -eq 0) { Write-Host "  Fixed: phones should be able to connect now." -ForegroundColor Green }
+      else { Write-Host "  The fix didn't finish (code $($p.ExitCode)). Phones may still be blocked." -ForegroundColor Red }
+    }
+    catch {
+      Write-Host "  No permission given, so nothing was changed. Phones may be blocked." -ForegroundColor Red
+    }
+  }
+  else {
+    Write-Host "  Not fixed. If phones can't connect, run this again and answer Y." -ForegroundColor Yellow
+  }
 }
 
 Write-Host ""
