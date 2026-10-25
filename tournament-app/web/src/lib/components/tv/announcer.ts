@@ -225,8 +225,7 @@ export class Announcer {
     return end;
   }
 
-  // Cut the match music and play the stinger, at the music's level, until
-  // just before the cut-off note at the end of its file.
+  // Cut the match music and play the stinger, at the music's level, to its end.
   private hitStinger() {
     this.wantMusic = false;
     this.ducked = false;

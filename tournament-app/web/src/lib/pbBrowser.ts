@@ -25,6 +25,8 @@ async function reachable(): Promise<boolean> {
 // • When the realtime connection comes back (wifi blip, PocketBase restart),
 //   it refreshes too, because changes made during the gap were never sent.
 // • It also refreshes every `everyMs` in case the connection died silently.
+// • And when the page is shown again: phones drop the connection while the
+//   screen is off, so this catches up the moment it's unlocked.
 // Every refresh asks /ping first and is skipped while the servers can't be
 // reached: a refresh that fails makes the browser fall back to a full page
 // load, which with the network down leaves it stuck on its own offline page.
@@ -90,6 +92,10 @@ export function liveUpdates(
     setUp(false);
     schedule();
   };
+  const onVisible = () => {
+    if (document.visibilityState === "visible") void safeRefresh();
+  };
+  document.addEventListener("visibilitychange", onVisible);
   schedule();
 
   return () => {
@@ -97,5 +103,6 @@ export function liveUpdates(
     clearTimeout(timer);
     [...subs, connected].forEach((p) => p.then((unsub) => unsub()).catch(() => {}));
     client.realtime.onDisconnect = undefined;
+    document.removeEventListener("visibilitychange", onVisible);
   };
 }

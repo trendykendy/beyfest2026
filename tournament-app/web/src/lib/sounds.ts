@@ -19,9 +19,11 @@ export const MUSIC = [
 export const VERSUS = ["/sounds/versus-1.mp3", "/sounds/versus-2.mp3"];
 export const WINS = "/sounds/wins.mp3"; // said straight after the winner's name
 export const STINGER = "/sounds/stinger.mp3"; // ends a match in place of a fade-out
-// The stinger's file runs on past its own fade into a stray cut-off note
-// (~18.1 s), so it's faded out from here, silent before the note.
-export const STINGER_END_MS = 17_900;
+// The stinger is the last 5.25 s of the Suno piece (which won't generate
+// anything shorter), ending on its own final hit; the raw file is in
+// tournament-app/music/. The end fade is only a safety net now: the clip
+// has finished by the time it fires.
+export const STINGER_END_MS = 5_400;
 export const STINGER_END_FADE_MS = 150;
 
 // The call for a round's finish ("Knockout!"), named after its key in

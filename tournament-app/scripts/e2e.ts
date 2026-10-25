@@ -11,7 +11,7 @@ import {
 } from "../web/src/lib/server/tournament.ts";
 import { pointsToWin } from "../engine/src/index.ts";
 
-const PB_URL = "http://127.0.0.1:8090";
+const PB_URL = process.env.PB_URL || "http://127.0.0.1:8090"; // PB_URL=… points it at a test database
 const count = Number(process.argv[2] || 12);
 
 const pb = new PocketBase(PB_URL);

@@ -19,7 +19,7 @@ const ordinal = (n: number): string => {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 };
 
-const PB_URL = "http://127.0.0.1:8090";
+const PB_URL = process.env.PB_URL || "http://127.0.0.1:8090"; // PB_URL=… points it at a test database
 const phase = process.argv[2] || "setup";
 
 const NAMES = [

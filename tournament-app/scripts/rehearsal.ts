@@ -50,7 +50,7 @@ function randomFinish() {
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const pb = new PocketBase("http://127.0.0.1:8090");
+const pb = new PocketBase(process.env.PB_URL || "http://127.0.0.1:8090"); // PB_URL=… points it at a test database
 await pb.collection("organisers").authWithPassword("organiser@beyfest.local", "beyfest2026");
 const existing = await getActiveTournament(pb);
 if (existing) await resetTournament(pb, existing.id);

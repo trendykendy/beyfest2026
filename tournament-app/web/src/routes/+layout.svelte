@@ -6,10 +6,11 @@
   let { children, data } = $props();
 
   const isAdmin = $derived(page.url.pathname.startsWith("/admin"));
-  const isTv = $derived(page.url.pathname.startsWith("/tv"));
+  // The TV and the phone page (/live) draw their own header, edge to edge.
+  const bare = $derived(page.url.pathname.startsWith("/tv") || page.url.pathname.startsWith("/live"));
 </script>
 
-{#if isTv}
+{#if bare}
   {@render children()}
 {:else}
   <div class="topbar">
