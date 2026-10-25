@@ -1,12 +1,13 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import { fighterFor, fighterImageUrl, fighterVoiceUrl, type PBFighter } from "$lib/fighters";
+  import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl, type PBFighter } from "$lib/fighters";
 
   let { data, form } = $props();
 
   // Images and voices are served by PocketBase, which the browser reaches on
   // port 8090 of whichever address served this page.
   const img = (f: PBFighter) => fighterImageUrl(data.pbUrl, f);
+  const victoryImg = (f: PBFighter) => fighterVictoryUrl(data.pbUrl, f, "300x200");
 
   // One clip at a time: a new Play stops the last one.
   let playing: HTMLAudioElement | null = null;
@@ -43,7 +44,8 @@
   <p class="intro hint">
     Best images: a transparent PNG cut-out at least 1000px tall, with the blader facing left. Tick
     <b>Mirror</b> if one faces the other way. The previews show how each side will look. Voice clips:
-    an MP3 of the combat name, with no silence at the start.
+    an MP3 of the combat name, with no silence at the start. Victory pose: a full 3:2 picture
+    (background and all) for the Champion scene, shown as it is, never mirrored.
   </p>
 
   {#if form?.error && !editing}
@@ -83,6 +85,7 @@
       <label>Player name <input type="text" name="player" placeholder="As entered for the tournament" /></label>
       <label>Katakana <input type="text" name="kana" placeholder="Optional, e.g. ラッシュ" /></label>
       <label>Image <input type="file" name="image" accept="image/png,image/webp,image/jpeg" /></label>
+      <label>Victory pose <input type="file" name="victory" accept="image/png,image/webp,image/jpeg" /></label>
       <label>Voice <input type="file" name="voice" accept="audio/*" /></label>
       <label class="check"><input type="checkbox" name="mirror" /> Mirror</label>
       <button class="btn primary" type="submit">Add fighter</button>
@@ -111,6 +114,9 @@
               {/if}
             </div>
           {/each}
+          {#if f.victory}
+            <div class="preview victory" title="Victory pose"><img src={victoryImg(f)} alt="" /></div>
+          {/if}
         </div>
 
         <form method="POST" action="?/update" enctype="multipart/form-data" use:enhance class="fields">
@@ -119,6 +125,7 @@
           <label>Player name <input type="text" name="player" value={f.player} /></label>
           <label>Katakana <input type="text" name="kana" value={f.kana} /></label>
           <label>{f.image ? "Replace image" : "Image"} <input type="file" name="image" accept="image/png,image/webp,image/jpeg" /></label>
+          <label>{f.victory ? "Replace victory pose" : "Victory pose"} <input type="file" name="victory" accept="image/png,image/webp,image/jpeg" /></label>
           <label>{f.voice ? "Replace voice" : "Voice"} <input type="file" name="voice" accept="audio/*" /></label>
           <div class="checks">
             {#if f.voice}
@@ -127,6 +134,9 @@
             <label class="check"><input type="checkbox" name="mirror" checked={f.mirror} /> Mirror</label>
             {#if f.image}
               <label class="check"><input type="checkbox" name="removeImage" /> Remove image</label>
+            {/if}
+            {#if f.victory}
+              <label class="check"><input type="checkbox" name="removeVictory" /> Remove victory pose</label>
             {/if}
             {#if f.voice}
               <label class="check"><input type="checkbox" name="removeVoice" /> Remove voice</label>
@@ -285,6 +295,9 @@
   .preview img {
     max-width: 100%;
     max-height: 100%;
+  }
+  .preview.victory {
+    outline: 3px solid var(--gold);
   }
   .none {
     font-size: 0.8rem;

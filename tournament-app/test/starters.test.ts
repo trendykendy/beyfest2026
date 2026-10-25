@@ -8,6 +8,7 @@ const fighter = (over: Partial<PBFighter>): PBFighter => ({
   player: "",
   kana: "",
   image: "",
+  victory: "",
   voice: "",
   mirror: false,
   ...over,
@@ -38,6 +39,16 @@ describe("planStarters", () => {
     const old = fighter({ id: "b", name: "Conor", player: "Conor", image: "conor.png" });
     const [step] = planStarters([breycist], [old]);
     expect(step).toMatchObject({ kind: "fill", id: "b", files: ["voice"] });
+  });
+
+  test("gives a fighter already loaded the victory pose a later update ships", () => {
+    const posed: Starter = { ...breycist, victory: "victory-breycist.png" };
+    const loaded = fighter({ id: "a", name: "The Breycist", player: "Conor", kana: "k", image: "i.png", voice: "v.mp3" });
+    expect(planStarters([posed], [loaded])).toEqual([
+      { kind: "fill", id: "a", starter: posed, fields: {}, files: ["victory"] },
+    ]);
+    // ...but keeps one uploaded on the admin page.
+    expect(planStarters([posed], [{ ...loaded, victory: "mine.png" }])).toEqual([]);
   });
 
   test("doesn't give a player name that another fighter already has", () => {

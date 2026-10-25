@@ -3,7 +3,7 @@
   import { invalidateAll } from "$app/navigation";
   import { liveUpdates } from "$lib/pbBrowser";
   import { EVENT, browserPbUrl } from "$lib/config";
-  import { fighterFor, fighterImageUrl, fighterVoiceUrl } from "$lib/fighters";
+  import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl } from "$lib/fighters";
   import { GRAND_CHAMPION, STINGER, VERSUS, WINS, championCallFresh, finishClip, titleClip, winsCall } from "$lib/sounds";
   import { Announcer } from "$lib/components/tv/announcer";
   import { FINISHES } from "$lib/finishes";
@@ -363,10 +363,11 @@
     if (next) drawShow = next;
   }
   // The Champion scene's fighters: the intro's combat name, katakana and
-  // picture, plus the name they played under.
+  // picture, plus the name they played under and their victory pose.
   function sceneFighter(id: string) {
     const player = names.get(id) ?? "";
-    return { ...introFighter(player), player };
+    const victory = fighterVictoryUrl(browserPbUrl(), fighterFor(player, data.fighters));
+    return { ...introFighter(player), player, victory };
   }
   const champRun = $derived(champ ? championRun(data.matches, champ) : null);
   // When this TV saw the grand final's result go in (a reload after the fact
@@ -380,6 +381,9 @@
     champBefore = c;
     champPrimed = true;
     if (c) announcer.preloadChampion();
+    // The victory pose is full size, so fetch it before the scene needs it.
+    const pose = c ? sceneFighter(c).victory : "";
+    if (pose) new Image().src = pose;
   });
   // Load every fighter's cut-out ahead of time, so an intro never shows a
   // half-loaded image. (Browsers cache them; the list is at most a few dozen.)

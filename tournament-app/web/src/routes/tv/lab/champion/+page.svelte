@@ -7,6 +7,13 @@
   // Lab page for the Champion scene. Not linked from anywhere. It's laid out
   // like the TV (1920×1080, header strip, stage padding) and scaled to fit.
   const FIGHTERS = {
+    victory: {
+      name: "The Buzzsaw",
+      player: "Sean",
+      kana: "ザ・バズソー",
+      img: "/starter-fighters/buzzsaw.png",
+      victory: "/starter-fighters/victory-buzzsaw.png",
+    },
     picture: { name: "The Buzzsaw", player: "Sean", kana: "ザ・バズソー", img: "/starter-fighters/buzzsaw.png" },
     "no picture": { name: "The Modsmith", player: "Cuffe", kana: "ザ・モッドスミス", img: "" },
     "long name": { name: "The Torque Warden", player: "Moss", kana: "ザ・トルクウォーデン", img: "" },

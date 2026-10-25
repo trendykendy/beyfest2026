@@ -14,6 +14,7 @@ export interface Starter {
   player?: string;
   kana?: string;
   image?: string; // file name in static/starter-fighters/
+  victory?: string; // file name in static/starter-fighters/
   voice?: string; // file name in static/starter-fighters/
   mirror?: boolean;
 }
@@ -21,7 +22,9 @@ export interface Starter {
 export type StarterStep =
   | { kind: "add"; starter: Starter }
   // fields: the text fields to set; files: which files to upload
-  | { kind: "fill"; id: string; starter: Starter; fields: Partial<Pick<PBFighter, "player" | "kana">>; files: ("image" | "voice")[] };
+  | { kind: "fill"; id: string; starter: Starter; fields: Partial<Pick<PBFighter, "player" | "kana">>; files: StarterFile[] };
+
+export type StarterFile = "image" | "victory" | "voice";
 
 const key = (s: string | undefined) => (s ?? "").trim().toLowerCase();
 
@@ -39,8 +42,9 @@ export function planStarters(starters: Starter[], library: PBFighter[]): Starter
     // A player name only goes in if nobody else has it already.
     if (!f.player && s.player && !library.some((x) => key(x.player) === key(s.player))) fields.player = s.player;
     if (!f.kana && s.kana) fields.kana = s.kana;
-    const files: ("image" | "voice")[] = [];
+    const files: StarterFile[] = [];
     if (!f.image && s.image) files.push("image");
+    if (!f.victory && s.victory) files.push("victory");
     if (!f.voice && s.voice) files.push("voice");
     if (Object.keys(fields).length || files.length) steps.push({ kind: "fill", id: f.id, starter: s, fields, files });
   }
