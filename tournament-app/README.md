@@ -26,8 +26,10 @@ for every count from 8 to 15 players.
      admin passwords** (the same on the Mac with `start.sh`). Write them down.
 2. On the laptop, open the **Organiser admin** URL and log in as
    `organiser@beyfest.local` with the password you chose.
-3. Put the **Public display** URL on the projector/TV. Players can open it on their
-   phones (same wifi) — it updates live as you enter scores.
+3. The **TV screen** opens by itself, full screen in Edge, on a second (landscape)
+   screen if there is one; Alt+F4 closes it. `start.ps1 -NoTv` skips it. While the
+   script runs, the PC won't sleep or turn its screens off. Players scan the QR code
+   on the TV for the phone page (same wifi); it updates live as you enter scores.
 4. **Windows Firewall:** `start.ps1` checks that phones can get through (the network
    isn't marked Public, and nothing blocks `node.exe` or `pocketbase.exe`). If not, it
    says what's wrong and offers to fix it, with one Windows permission prompt.

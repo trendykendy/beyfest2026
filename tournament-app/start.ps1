@@ -6,8 +6,13 @@
 # the laptop's LAN IP so it can print the addresses to open. On a brand-new
 # database it asks you to choose the organiser and PocketBase admin passwords.
 #
+# Once it's up, it opens the TV screen full screen (on a second screen if
+# there is one) and keeps the PC from sleeping while it runs.
+#
 #   Right-click → "Run with PowerShell", or:  pwsh -File .\start.ps1
+#   -NoTv   servers only, without opening the TV screen
 # ─────────────────────────────────────────────────────────────────────
+param([switch]$NoTv)
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $pbExe = Join-Path $root "pb\pocketbase.exe"
@@ -224,7 +229,8 @@ Write-Host "  Organiser admin:  http://${ip}:$webPort/admin" -ForegroundColor Gr
 Write-Host "  PocketBase admin: http://127.0.0.1:8090/_/  (on this laptop)"
 Write-Host "  ------------------------------------------------------------"
 Write-Host "  $loginNote"
-Write-Host "  Put the Public display on the projector; share the URL with players."
+if ($NoTv) { Write-Host "  TV screen:        http://${ip}:$webPort/tv  (open it full screen on the TV)" }
+else { Write-Host "  The TV screen opens by itself once the server is up (Alt+F4 closes it)." }
 Write-Host "  Close this window (or Ctrl+C) to stop both servers."
 Write-Host ""
 
@@ -249,6 +255,54 @@ if ($organiserPw) {
   }
 }
 
+# ── Keep the PC and its screens awake while this runs ───────────────
+# Like the Pi's screen-blanking switch-off: no sleep, no screen going dark
+# mid-match. Windows drops it by itself when this window closes.
+Add-Type -Namespace Beyfest -Name Power -MemberDefinition @"
+[System.Runtime.InteropServices.DllImport("kernel32.dll")]
+public static extern uint SetThreadExecutionState(uint flags);
+"@
+$ES_CONTINUOUS = [uint32]"0x80000000"; $ES_SYSTEM = [uint32]1; $ES_DISPLAY = [uint32]2
+[void][Beyfest.Power]::SetThreadExecutionState($ES_CONTINUOUS -bor $ES_SYSTEM -bor $ES_DISPLAY)
+
+# ── Open the TV screen once the web server answers ──────────────────
+# Edge (on every Windows PC) in kiosk mode, with its own profile so it
+# doesn't join an Edge that's already open, and sound allowed to start by
+# itself (otherwise the announcer and music wait for a click on the TV).
+$tvProfile = Join-Path $env:LOCALAPPDATA "Beyfest2026\tv-browser"
+if (-not $NoTv) {
+  $browser = @(
+    (Join-Path ${env:ProgramFiles(x86)} "Microsoft\Edge\Application\msedge.exe"),
+    (Join-Path $env:ProgramFiles "Microsoft\Edge\Application\msedge.exe")
+  ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if ($browser) {
+    # The TV is a second screen, if there is one that's landscape (a portrait
+    # side monitor isn't it); otherwise the main screen.
+    Add-Type -AssemblyName System.Windows.Forms
+    $screen = [System.Windows.Forms.Screen]::AllScreens |
+      Where-Object { -not $_.Primary -and $_.Bounds.Width -ge $_.Bounds.Height } |
+      Sort-Object { $_.Bounds.Width * $_.Bounds.Height } -Descending | Select-Object -First 1
+    if (-not $screen) { $screen = [System.Windows.Forms.Screen]::PrimaryScreen }
+    $tvArgs = @(
+      "--kiosk", "http://${ip}:$webPort/tv", "--edge-kiosk-type=fullscreen",
+      "--user-data-dir=`"$tvProfile`"", "--no-first-run", "--noerrdialogs",
+      "--disable-session-crashed-bubble", "--autoplay-policy=no-user-gesture-required",
+      "--window-position=$($screen.Bounds.X),$($screen.Bounds.Y)"
+    )
+    # A background job, because the web server below holds this window.
+    $null = Start-Job -ArgumentList "http://127.0.0.1:$webPort/ping", $browser, $tvArgs -ScriptBlock {
+      param($ping, $exe, $argList)
+      for ($i = 0; $i -lt 60; $i++) {
+        try { $null = Invoke-WebRequest $ping -UseBasicParsing -TimeoutSec 3; break } catch { Start-Sleep -Seconds 2 }
+      }
+      Start-Process $exe -ArgumentList $argList
+    }
+  }
+  else {
+    Write-Host "  Edge isn't installed: open http://${ip}:$webPort/tv full screen on the TV yourself." -ForegroundColor Yellow
+  }
+}
+
 # ── Start the web server in the foreground ──────────────────────────
 $env:HOST = "0.0.0.0"
 $env:PORT = "$webPort"
@@ -258,4 +312,10 @@ try {
 finally {
   Write-Host "`n  Shutting down…" -ForegroundColor Yellow
   if ($pb -and -not $pb.HasExited) { Stop-Process -Id $pb.Id -Force -ErrorAction SilentlyContinue }
+  # Close the TV screen too, rather than leave it showing an error. Found by
+  # its own profile folder, so any other Edge windows are left alone.
+  Get-CimInstance Win32_Process -Filter "Name = 'msedge.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -and $_.CommandLine.Contains($tvProfile) } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+  [void][Beyfest.Power]::SetThreadExecutionState($ES_CONTINUOUS)
 }
