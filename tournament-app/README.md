@@ -19,7 +19,8 @@ for every count from 8 to 15 players.
 ## Running it at the event
 
 1. On Windows, double-click **`start.ps1`** (or `pwsh -File .\start.ps1`). For the Raspberry Pi and the Mac, see below.
-   - It builds the web app on first run, starts PocketBase + the web server bound
+   - It builds the web app on first run and again whenever the code has changed
+     (e.g. after a `git pull`), starts PocketBase + the web server bound
      to `0.0.0.0`, detects the laptop's LAN IP, and prints the URLs.
    - On a brand-new database it asks you to **choose the organiser and PocketBase
      admin passwords** (the same on the Mac with `start.sh`). Write them down.

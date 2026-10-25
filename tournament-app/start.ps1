@@ -27,11 +27,76 @@ if (-not $ip) { $ip = "127.0.0.1" }
 $webPort = 3000
 
 # ── Build the web app if needed ─────────────────────────────────────
-if (-not (Test-Path $webBuild)) {
-  Write-Host "  First run: building the web app…" -ForegroundColor Cyan
+# Rebuilt whenever any of its code has changed since the last build, so new
+# code (from git pull or a copied folder) never runs as an old build. Each
+# build leaves a fingerprint of the files it was built from (name, size and
+# time of every file). Timestamps alone would miss a copied folder: Explorer
+# keeps the original times, which can be older than the last build.
+function Get-Fingerprint([string[]]$paths) {
+  # Folders are walked, files looked up on their own. (Windows PowerShell 5.1
+  # treats a file given to -Recurse as a name to search for everywhere below,
+  # which would pull in every package.json under node_modules.)
+  $files = foreach ($p in $paths) {
+    if (Test-Path -LiteralPath $p -PathType Container) { Get-ChildItem -LiteralPath $p -Recurse -File }
+    elseif (Test-Path -LiteralPath $p) { Get-Item -LiteralPath $p }
+  }
+  [string[]]$lines = $files |
+    ForEach-Object { "$($_.FullName.Substring($root.Length))|$($_.Length)|$($_.LastWriteTimeUtc.Ticks)" }
+  # Ordinal, so 5.1 and 7 (whose culture-aware sorts differ) agree on the order.
+  [Array]::Sort($lines, [StringComparer]::Ordinal)
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes(($lines -join "`n"))
+  # Written for Windows PowerShell 5.1 too ("Run with PowerShell" uses it).
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  ($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString("x2") }) -join ""
+}
+$sources = @(
+  (Join-Path $webDir "src"), (Join-Path $webDir "static"), (Join-Path $root "engine\src"),
+  (Join-Path $webDir "svelte.config.js"), (Join-Path $webDir "vite.config.ts")
+)
+$packages = @(
+  (Join-Path $root "bun.lock"), (Join-Path $root "package.json"),
+  (Join-Path $webDir "package.json"), (Join-Path $root "engine\package.json")
+)
+# Kept inside build\ (gitignored): a fresh copy without a build has no
+# fingerprint either, so it always builds.
+$sourceStamp = Join-Path $webDir "build\.sources"
+$packageStamp = Join-Path $webDir "build\.packages"
+$sourcePrint = Get-Fingerprint ($sources + $packages)
+$packagePrint = Get-Fingerprint $packages
+$hasBuild = Test-Path $webBuild
+$lastSources = if (Test-Path $sourceStamp) { Get-Content $sourceStamp -Raw } else { "" }
+$lastPackages = if (Test-Path $packageStamp) { Get-Content $packageStamp -Raw } else { "" }
+
+if (-not $hasBuild -or $lastSources.Trim() -ne $sourcePrint) {
+  if ($hasBuild) { Write-Host "  The code has changed since the last build: rebuilding…" -ForegroundColor Cyan }
+  else { Write-Host "  First run: building the web app…" -ForegroundColor Cyan }
+
+  # A new or changed package comes in with the lock file: install it first.
+  if ($lastPackages.Trim() -ne $packagePrint) {
+    Push-Location $root
+    bun install --frozen-lockfile
+    if ($LASTEXITCODE -ne 0) { Write-Host "  bun install failed (offline?). Trying the build anyway." -ForegroundColor Yellow }
+    Pop-Location
+  }
+
   Push-Location $webDir
   bun run build
+  $built = $LASTEXITCODE -eq 0
   Pop-Location
+  if ($built) {
+    Set-Content -Path $sourceStamp -Value $sourcePrint -NoNewline
+    Set-Content -Path $packageStamp -Value $packagePrint -NoNewline
+  }
+  elseif (Test-Path $webBuild) {
+    # Don't strand the event: keep going on the last good build. No new
+    # fingerprint, so the next start tries the build again.
+    Write-Host "  THE BUILD FAILED (see above). Running the PREVIOUS build instead:" -ForegroundColor Red
+    Write-Host "  it won't have the newest changes." -ForegroundColor Red
+  }
+  else {
+    Write-Host "  The build failed (see above), and there's no earlier build to fall back on." -ForegroundColor Red
+    exit 1
+  }
 }
 
 # ── Fresh database: create it, and choose the passwords ───────────────
