@@ -2,8 +2,8 @@
 
 A self-contained app to **run** the Beyfest 2026 tournament on the day: enter the
 players who show up, auto-draw the groups and build the right bracket, record
-scores, and show a live public display. Runs entirely on one laptop over the
-venue wifi — **no internet required**.
+scores, and show a live TV screen and phone page. Runs entirely on one Windows PC
+over the venue wifi — **no internet required** on the day.
 
 It implements the locked-in structures in
 [`../bracket-and-tourney/tournament-spec.txt`](../bracket-and-tourney/tournament-spec.txt)
@@ -12,29 +12,134 @@ for every count from 8 to 15 players.
 ## Stack
 
 - **PocketBase** (`pb/pocketbase.exe`) — database + auth + REST + realtime, one binary.
-- **SvelteKit** (`web/`, Svelte 5, `adapter-node`) — public display + organiser admin.
+- **SvelteKit** (`web/`, Svelte 5, `adapter-node`) — TV screen, phone page + organiser admin.
 - **Engine** (`engine/`) — zero-dependency TypeScript: the draw, round-robin,
   standings/tiebreakers, bracket generation and resolution. Fully unit-tested.
 
-## Running it at the event
+## On the Windows PC (the main setup)
 
-1. On Windows, double-click **`start.ps1`** (or `pwsh -File .\start.ps1`). For the Raspberry Pi and the Mac, see below.
-   - It builds the web app on first run and again whenever the code has changed
-     (e.g. after a `git pull`), starts PocketBase + the web server bound
-     to `0.0.0.0`, detects the laptop's LAN IP, and prints the URLs.
-   - On a brand-new database it asks you to **choose the organiser and PocketBase
-     admin passwords** (the same on the Mac with `start.sh`). Write them down.
-2. On the laptop, open the **Organiser admin** URL and log in as
+The PC runs everything: the app, the database and the TV screen (plugged in as a
+second screen, or as its only one). The organiser uses the admin page on the PC or
+from a phone or laptop on the same wifi. Phones scan the QR code on the TV for the
+live phone page.
+
+### Before the day (at home, with internet)
+
+1. Install **[Bun](https://bun.sh)** (builds the app) and **[Node.js](https://nodejs.org)**,
+   the current LTS (runs it; tested on Node 22).
+2. Get this repo onto the PC: `git clone https://github.com/trendykendy/beyfest2026.git`,
+   or copy the folder across.
+3. Run **`start.ps1`** in `tournament-app` once, with internet: right-click it →
+   *Run with PowerShell*, or `pwsh -File .\start.ps1`. The first run downloads
+   PocketBase (it isn't kept in git), installs the packages, builds the app and
+   creates the database, and asks you to **choose the organiser and PocketBase admin
+   passwords**. Write them down.
+4. Plug in the TV and check the TV screen opens on it (see below).
+
+**To update** later: `git pull` (or copy the new files over), then run `start.ps1`.
+It notices the code has changed and rebuilds before starting. If a rebuild fails it
+says so in red and runs the previous build, so the event isn't stuck. The tournament
+data (`pb/pb_data/`) is never touched by an update.
+
+### On the day
+
+1. Run **`start.ps1`**. It:
+   - rebuilds the app if the code has changed since the last build;
+   - checks **Windows Firewall** will let phones in: the network mustn't be marked
+     *Public*, and nothing may block `node.exe` or `pocketbase.exe`. If something's
+     wrong, it says what and offers to fix it, with one Windows permission prompt;
+   - starts PocketBase and the web server, and prints the addresses;
+   - opens the **TV screen** full screen in Edge, on a second landscape screen if
+     there is one, else the main screen. Alt+F4 closes it. `start.ps1 -NoTv` skips it
+     and prints the TV address instead;
+   - keeps the PC from sleeping or turning its screens off while it runs.
+2. Open the **Organiser admin** address it prints and log in as
    `organiser@beyfest.local` with the password you chose.
-3. The **TV screen** opens by itself, full screen in Edge, on a second (landscape)
-   screen if there is one; Alt+F4 closes it. `start.ps1 -NoTv` skips it. While the
-   script runs, the PC won't sleep or turn its screens off. Players scan the QR code
-   on the TV for the phone page (same wifi); it updates live as you enter scores.
-4. **Windows Firewall:** `start.ps1` checks that phones can get through (the network
-   isn't marked Public, and nothing blocks `node.exe` or `pocketbase.exe`). If not, it
-   says what's wrong and offers to fix it, with one Windows permission prompt.
+3. Players scan the QR code on the TV (big on the waiting screen, small in the corner
+   of most others) for the phone page. It updates live as you enter scores.
+4. Close the window (or Ctrl+C) to stop everything, TV screen included.
 
-### On a Raspberry Pi (the main setup)
+Keep the PC plugged in. Don't have anything full screen (a game, a video) open when
+you start it: the TV window opens behind it.
+
+## Organiser workflow
+
+0. **Fighters (before the day)**: *Fighters* (top of the admin page) is the library the TV's VS
+   intro uses. It plays on **Start match**, before the stadium draw.
+   - **Add starting fighters** loads the fighters that come with the app (combat names, player
+     names, katakana, images and voice clips, from `web/static/starter-fighters/`). It only adds
+     who's missing and fills in gaps, so it never overwrites changes made here, and it's safe to
+     press again after an update.
+   - Each fighter has a **combat name** (shown and announced, e.g. *The Breycist*) and a
+     **player name** (as typed in for the tournament, e.g. *Conor*), plus katakana, a cut-out
+     image and a voice clip of the combat name. The best images are transparent PNGs, at least
+     1000px tall, facing left. Tick *Mirror* for one that faces right.
+   - Bladers are matched by player name (or, failing that, combat name), ignoring capitals and
+     spaces. The library isn't tied to a tournament, so it's set up once and kept through resets.
+   - **Sound:** on Start match the announcer calls *name, versus, name, match title* over the
+     match music. The intro holds until the calls finish; the music dips under the voice. When
+     the result is recorded it calls the winner, then a stinger ends the match. The admin page's
+     TV panel has **Sound** on/off and a **Music** level. The TV window `start.ps1` opens plays
+     sound by itself; any other browser may block sound until someone clicks the TV page, and
+     says so in the corner.
+   - Anyone without a fighter, or without an image, gets a "?" silhouette. The page lists the
+     current bladers who don't have a fighter yet.
+   - Slow machines (like a Raspberry Pi) get a lighter version of the intro automatically (no
+     blur effects). Add `?fx=full` or `?fx=lite` to the TV address to choose.
+1. **Enter bladers**: type the names (one per line, 8–15), then *Draw groups and build bracket*.
+   The app randomly draws the groups and generates every group match.
+2. **Now playing** shows one match at a time.
+   - Tap the finish for each round (Spin +1, Knockout +2, Dominant +3). The TV follows live.
+   - When someone reaches the target, press **Record result**. Now playing moves on to the next match.
+   - **Up next** lists what's ready. *Score this* switches to a different match.
+3. When every group is in, Now playing offers **Generate knockout bracket**.
+4. **Knockout**: same as the groups, through to the Grand Final.
+5. **Made a mistake?** Under Now playing, **Last result → Fix** corrects any recorded score.
+   - If the winner changes, the next round is updated.
+   - The fix is refused, with the reason, if a later match has already been played with the old winner or loser.
+6. **Danger zone** (bottom of the page):
+   - *Download results* saves a copy of everything as a file.
+   - *Reset tournament* deletes everything and starts again.
+
+## If something goes wrong
+
+- **Phones can't open the QR code's address.** They must be on the same wifi as the PC.
+  If they are, close `start.ps1`, run it again and answer **Y** when it offers to fix the
+  firewall. (It only offers when it finds a problem.)
+- **The TV shows "Reconnecting" in the corner.** It has lost the PC. Nothing to do: it catches up by itself as soon as the connection is back (it checks every 5 seconds).
+- **The TV window didn't open, or opened on the wrong screen.** Open `http://<PC address>:3000/tv` in a browser on the TV screen and press F11 for full screen.
+- **Backups.** PocketBase saves a backup of everything every 10 minutes into `pb/pb_data/backups/`, keeping the newest 20 (about 3 hours).
+- **To restore one:**
+  1. Log in to the PocketBase console (`http://<PC address>:8090/_/`) with the superuser.
+  2. Go to *Settings → Backups*.
+  3. Pick a backup and choose *Restore*. PocketBase restarts with that data.
+- **Admin says it can't reach the database.** PocketBase has stopped. Run `start.ps1` (or `start.sh` on a Mac) again; on the Pi it restarts by itself within seconds, or `sudo systemctl restart beyfest-pb`. Your data is safe either way. On a Mac, PocketBase's own messages are in `pb/pocketbase.log`.
+
+## Other setups
+
+### On a Mac (backup setup)
+
+`start.sh` is the Mac/Linux twin of `start.ps1`. **Do the first run at home, with
+internet**: it installs packages, builds the web app, downloads the right PocketBase
+for the Mac (Apple Silicon or Intel) into `pb/pocketbase`, and creates the database,
+asking you to choose the passwords. After that it runs offline. (It doesn't open the
+TV screen or check the firewall; those are Windows-only.)
+
+1. Install **Bun**: `curl -fsSL https://bun.sh/install | bash`. **Node** is optional;
+   it's used to run the server if present, otherwise Bun does.
+2. Double-click **`start.command`** in Finder, or run `./start.sh` in Terminal.
+   - If macOS says it can't check the file, right-click it → *Open* (only the first time).
+   - When macOS asks whether `pocketbase` and `node`/`bun` may **accept incoming
+     connections**, choose *Allow*. Otherwise the TV and phones can't reach the Mac.
+3. It prints the URLs, including the **TV screen** one. Close the window (or Ctrl+C)
+   to stop both servers.
+4. Stop the Mac sleeping during the event (System Settings → Battery/Energy →
+   *Prevent automatic sleeping*), and keep it plugged in.
+
+If it prints the wrong address (e.g. the Mac is on both wifi and a cable), force it:
+`BEYFEST_IP=192.168.1.20 ./start.sh`.
+
+### On a Raspberry Pi (the earlier main setup)
 
 The Pi runs everything: the app, the database and the TV screen on its HDMI output.
 The organiser uses the admin page from the Mac, a phone or any other device, at
@@ -106,27 +211,6 @@ journalctl -u beyfest-web -u beyfest-pb -n 50 # recent messages
 sudo systemctl restart beyfest-web beyfest-pb
 ```
 
-### On a Mac (backup setup)
-
-`start.sh` is the Mac/Linux twin of `start.ps1`. **Do the first run at home, with
-internet**: it installs packages, builds the web app, downloads the right PocketBase
-for the Mac (Apple Silicon or Intel) into `pb/pocketbase`, and creates the database,
-asking you to choose the passwords. After that it runs offline.
-
-1. Install **Bun**: `curl -fsSL https://bun.sh/install | bash`. **Node** is optional;
-   it's used to run the server if present, otherwise Bun does.
-2. Double-click **`start.command`** in Finder, or run `./start.sh` in Terminal.
-   - If macOS says it can't check the file, right-click it → *Open* (only the first time).
-   - When macOS asks whether `pocketbase` and `node`/`bun` may **accept incoming
-     connections**, choose *Allow*. Otherwise the TV and phones can't reach the Mac.
-3. It prints the URLs, including the **TV screen** one. Close the window (or Ctrl+C)
-   to stop both servers.
-4. Stop the Mac sleeping during the event (System Settings → Battery/Energy →
-   *Prevent automatic sleeping*), and keep it plugged in.
-
-If it prints the wrong address (e.g. the Mac is on both wifi and a cable), force it:
-`BEYFEST_IP=192.168.1.20 ./start.sh`.
-
 ### The TV on a Raspberry Pi, with the app on the Mac
 
 If the Mac runs the app (above), the Pi can be just the TV's browser. Run
@@ -145,54 +229,6 @@ then:
 - It waits until the Mac's app answers, so the order you switch things on doesn't matter.
 - Alt+F4 leaves the kiosk. To stop it starting at login: `rm ~/.config/autostart/beyfest-tv.desktop`.
 - `pi-kiosk.sh` is in `scripts/` in this repo; copy it to the Pi.
-
-### Organiser workflow
-
-0. **Fighters (before the day)**: *Fighters* (top of the admin page) is the library the TV's VS
-   intro uses. It plays on **Start match**, before the stadium draw.
-   - **Add starting fighters** loads the fighters that come with the app (combat names, player
-     names, katakana, images and voice clips, from `web/static/starter-fighters/`). It only adds
-     who's missing and fills in gaps, so it never overwrites changes made here, and it's safe to
-     press again after an update.
-   - Each fighter has a **combat name** (shown and announced, e.g. *The Breycist*) and a
-     **player name** (as typed in for the tournament, e.g. *Conor*), plus katakana, a cut-out
-     image and a voice clip of the combat name. The best images are transparent PNGs, at least
-     1000px tall, facing left. Tick *Mirror* for one that faces right.
-   - Bladers are matched by player name (or, failing that, combat name), ignoring capitals and
-     spaces. The library isn't tied to a tournament, so it's set up once and kept through resets.
-   - **Sound:** on Start match the announcer calls *name, versus, name, match title* over the
-     match music. The intro holds until the calls finish; the music dips under the voice and
-     fades out when the result is recorded. The admin page's TV panel has **Sound** on/off and a
-     **Music** level. A browser other than the Pi's kiosk may block sound until someone clicks
-     the TV page; it says so in the corner.
-   - Anyone without a fighter, or without an image, gets a "?" silhouette. The page lists the
-     current bladers who don't have a fighter yet.
-   - The Pi's TV gets a lighter version of the intro automatically (no blur effects). Add
-     `?fx=full` or `?fx=lite` to the TV address to choose.
-1. **Enter bladers**: type the names (one per line, 8–15), then *Draw groups and build bracket*.
-   The app randomly draws the groups and generates every group match.
-2. **Now playing** shows one match at a time.
-   - Tap the finish for each round (Spin +1, Knockout +2, Dominant +3). The TV follows live.
-   - When someone reaches the target, press **Record result**. Now playing moves on to the next match.
-   - **Up next** lists what's ready. *Score this* switches to a different match.
-3. When every group is in, Now playing offers **Generate knockout bracket**.
-4. **Knockout**: same as the groups, through to the Grand Final.
-5. **Made a mistake?** Under Now playing, **Last result → Fix** corrects any recorded score.
-   - If the winner changes, the next round is updated.
-   - The fix is refused, with the reason, if a later match has already been played with the old winner or loser.
-6. **Danger zone** (bottom of the page):
-   - *Download results* saves a copy of everything as a file.
-   - *Reset tournament* deletes everything and starts again.
-
-## If something goes wrong
-
-- **The TV shows "Reconnecting" in the corner.** It has lost the laptop. Nothing to do: it catches up by itself as soon as the connection is back (it checks every 5 seconds).
-- **Backups.** PocketBase saves a backup of everything every 10 minutes into `pb/pb_data/backups/`, keeping the newest 20 (about 3 hours).
-- **To restore one:**
-  1. Log in to the PocketBase console (`http://<laptop>:8090/_/`) with the superuser.
-  2. Go to *Settings → Backups*.
-  3. Pick a backup and choose *Restore*. PocketBase restarts with that data.
-- **Admin says it can't reach the database.** PocketBase has stopped. On the Pi it restarts by itself within seconds; if not, `sudo systemctl restart beyfest-pb`. On Windows or a Mac, run `start.ps1` (or `start.sh`) again. Your data is safe either way. On a Mac, PocketBase's own messages are in `pb/pocketbase.log`.
 
 ## Development
 
@@ -232,16 +268,16 @@ or on the Pi re-run the installer with `--passwords`.
 
 ```
 tournament-app/
-  start.ps1              one-command launcher for the event laptop (Windows)
-  start.sh               the same for macOS / Linux / Raspberry Pi
+  start.ps1              the event launcher (Windows): rebuild, firewall check, servers, TV screen
+  start.sh               the same for macOS / Linux / Raspberry Pi (servers only)
   start.command          double-click wrapper for start.sh on a Mac
   install-pi.sh          Raspberry Pi: install or update everything (see above)
   scripts/pi-kiosk.sh    Raspberry Pi: TV screen full-screen in Chromium
   scripts/beyfest-wifi.sh  Raspberry Pi: wifi networks + fallback hotspot (the `beyfest-wifi` command)
   scripts/pi-package.sh  builds the ready-to-run Pi package (GitHub runs it)
   engine/                pure-TS tournament logic + tests
-  pb/                    PocketBase binary + migrations (pb_data is runtime)
-  web/                   SvelteKit app (public display + admin)
+  pb/                    PocketBase migrations; the binary and pb_data appear at runtime
+  web/                   SvelteKit app (TV screen, phone page + admin)
   scripts/e2e.ts         end-to-end check against a running PocketBase
 ```
 
@@ -250,4 +286,5 @@ tournament-app/
 - **One tournament at a time.** Starting a new event = *Reset*, then enter new players.
 - The group draw and Mid-Bracket pairings are **random** and persisted once done, so
   they stay stable for the rest of the event.
-- Everything is vendored (PocketBase binary, self-hosted fonts) so it runs offline.
+- After the first run it needs no internet: fonts are self-hosted, and the launchers
+  download PocketBase once (the version is set by `pb_version` in `start.sh`).
