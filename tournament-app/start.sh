@@ -143,6 +143,14 @@ if [[ ! -d "$pb_data" ]]; then
   "$pb_bin" superuser upsert "$superuser_email" "$superuser_pw" --dir="$pb_data" >/dev/null
 fi
 
+# ── The web server's own login, for phone betting ───────────────────
+# Phones can't write to PocketBase, so the web server checks each bet and
+# writes it as this superuser. A fresh random password every start, handed
+# to the web server only (below), so it's never written down anywhere.
+bookie_email="bookie@beyfest.local"
+bookie_pw="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+"$pb_bin" superuser upsert "$bookie_email" "$bookie_pw" --dir="$pb_data" >/dev/null
+
 echo ""
 echo "  BEYFEST 2026 — Tournament"
 echo "  ------------------------------------------------------------"
@@ -186,6 +194,6 @@ trap 'exit 130' INT TERM HUP
 # handled straight away rather than after the server has exited.
 export HOST="0.0.0.0"
 export PORT="$web_port"
-"$runner" "$web_build" &
+BOOKIE_EMAIL="$bookie_email" BOOKIE_PW="$bookie_pw" "$runner" "$web_build" &
 web_pid=$!
 wait "$web_pid"

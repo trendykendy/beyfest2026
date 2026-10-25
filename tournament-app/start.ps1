@@ -168,6 +168,14 @@ if (-not (Test-Path $pbData)) {
   & $pbExe superuser upsert $superuserEmail $superuserPw "--dir=$pbData" | Out-Null
 }
 
+# ── The web server's own login, for phone betting ───────────────────
+# Phones can't write to PocketBase, so the web server checks each bet and
+# writes it as this superuser. A fresh random password every start, handed
+# to the web server only (below), so it's never written down anywhere.
+$bookieEmail = "bookie@beyfest.local"
+$bookiePw = [guid]::NewGuid().ToString("N")
+& $pbExe superuser upsert $bookieEmail $bookiePw "--dir=$pbData" | Out-Null
+
 # ── Can phones get through Windows Firewall? ──────────────────────────
 # Phones (and the QR code) reach this PC on ports 3000 and 8090. Two things
 # quietly stop them: the network being "Public" (Windows' default for new
@@ -339,6 +347,7 @@ if (-not $NoTv) {
 # ── Start the web server in the foreground ──────────────────────────
 $env:HOST = "0.0.0.0"
 $env:PORT = "$webPort"
+$env:BOOKIE_EMAIL = $bookieEmail; $env:BOOKIE_PW = $bookiePw
 try {
   node $webBuild
 }
