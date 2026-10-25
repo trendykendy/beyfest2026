@@ -20,6 +20,9 @@
     roundName,
     availableScenes,
     isLive,
+    liveMatches,
+    upNext,
+    rrFate,
     matchContext,
     computeAwards,
     championRun,
@@ -122,16 +125,11 @@
   // Locked to the Ascent look; the bracket runs left-to-right on 16:9 screens.
   const bracketOrientation = "horizontal";
 
-  // Play order, except the match the organiser picked with "Score this" goes first.
-  const nextOrder = (a: PBMatch, b: PBMatch) =>
-    Number(b.code === data.tv.next) - Number(a.code === data.tv.next) || a.orderIndex - b.orderIndex;
-
   // ── Spotlight ───────────────────────────────────────────────────────
+  // Live, then up next (the organiser's "Score this" pick first), then done.
   const featured = $derived.by(() => {
-    const live = data.matches.filter(isLive).sort((a, b) => a.orderIndex - b.orderIndex);
-    const ready = data.matches
-      .filter((m) => m.matchStatus === "ready" && !isLive(m))
-      .sort(nextOrder);
+    const live = liveMatches(data.matches);
+    const ready = upNext(data.matches, data.tv.next);
     const done = data.matches
       .filter((m) => m.matchStatus === "done")
       .sort((a, b) => b.orderIndex - a.orderIndex);
@@ -169,14 +167,10 @@
     return "later";
   }
   // The next fixture to be played (not the one currently live) — for the "prep" strip.
-  const nextUp = $derived(
-    data.matches.filter((m) => m.matchStatus === "ready" && !isLive(m)).sort(nextOrder)[0] ?? null,
-  );
+  const nextUp = $derived(upNext(data.matches, data.tv.next)[0] ?? null);
 
   // The match on the table right now (first live one), for the "On now" band.
-  const onNow = $derived(
-    data.matches.filter(isLive).sort((a, b) => a.orderIndex - b.orderIndex)[0] ?? null,
-  );
+  const onNow = $derived(liveMatches(data.matches)[0] ?? null);
 
   // Where the featured match sits, in plain words: "Group 2, match 4 of 6"
   // for group games, "Mid bracket semi-final" for knockout ones.
@@ -185,11 +179,6 @@
     const pid = which === 1 ? m.p1 : m.p2;
     if (pid) return names.get(pid) ?? "—";
     return slotLabel(which === 1 ? m.slot1 : m.slot2, groupCount);
-  }
-  function rrFate(stage: "wb_rr" | "lb_rr", rank: number, advancers: number) {
-    if (stage === "wb_rr")
-      return rank === 1 ? { text: "Grand final", tier: "gf" } : { text: "Mid bracket", tier: "mb" };
-    return rank <= advancers ? { text: "Mid bracket", tier: "mb" } : { text: "Out", tier: "out" };
   }
   const rrMatchesOf = (stage: string) =>
     data.matches.filter((m) => m.stage === stage).sort((a, b) => a.orderIndex - b.orderIndex);

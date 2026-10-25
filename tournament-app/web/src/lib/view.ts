@@ -404,3 +404,77 @@ export function championRun(matches: PBMatch[], id: string): ChampionRun {
     final: gf ? { opponent: sideOf(gf) === 1 ? gf.p2 : gf.p1, score: scores(gf), walkover: gf.walkover } : null,
   };
 }
+
+// ── What's on, what's next ──────────────────────────────────────────
+// Shared by the TV and the phone page (/live), so both agree on the order.
+
+// Matches being played right now, in play order.
+export function liveMatches(matches: PBMatch[]): PBMatch[] {
+  return matches.filter(isLive).sort((a, b) => a.orderIndex - b.orderIndex);
+}
+
+// Playable matches not yet started, in the order they'll be called: the one
+// the organiser picked with "Score this" (`preferCode`) first, then play order.
+export function upNext(matches: PBMatch[], preferCode = ""): PBMatch[] {
+  return matches
+    .filter((m) => m.matchStatus === "ready" && !isLive(m))
+    .sort((a, b) => Number(b.code === preferCode) - Number(a.code === preferCode) || a.orderIndex - b.orderIndex);
+}
+
+// The latest results, newest first. resultAt is when it was recorded, so a
+// match played out of order still shows as recent; play order breaks ties.
+export function recentResults(matches: PBMatch[], n: number): PBMatch[] {
+  return matches
+    .filter((m) => m.matchStatus === "done")
+    .sort((a, b) => b.resultAt.localeCompare(a.resultAt) || b.orderIndex - a.orderIndex)
+    .slice(0, n);
+}
+
+// A blader's next match, for the phone page's "your next match" card:
+// - live: they're playing it now
+// - ready: it's playable; `ahead` is how many matches will be called first
+// - waiting: they're in it, but the other side isn't decided yet
+// null when they have nothing left to play.
+export type NextMatch = { match: PBMatch; state: "live" | "ready" | "waiting"; ahead: number };
+export function nextMatchFor(playerId: string, matches: PBMatch[], preferCode = ""): NextMatch | null {
+  const theirs = (m: PBMatch) => m.p1 === playerId || m.p2 === playerId;
+  const live = liveMatches(matches).find(theirs);
+  if (live) return { match: live, state: "live", ahead: 0 };
+  const queue = upNext(matches, preferCode);
+  const i = queue.findIndex(theirs);
+  if (i >= 0) return { match: queue[i], state: "ready", ahead: i };
+  const waiting = matches
+    .filter((m) => m.matchStatus === "pending" && theirs(m))
+    .sort((a, b) => a.orderIndex - b.orderIndex)[0];
+  return waiting ? { match: waiting, state: "waiting", ahead: 0 } : null;
+}
+
+// The knockout for a phone screen: one list per tier (winners, mid, losers,
+// final), each split into rounds in play order. Same grouping as Bracket.svelte.
+export type KnockoutTier = { tier: "wb" | "mb" | "lb" | "gf"; rounds: { label: string; matches: PBMatch[] }[] };
+export function knockoutTiers(matches: PBMatch[]): KnockoutTier[] {
+  const order = ["wb", "mb", "lb", "gf"] as const;
+  const tiers: KnockoutTier[] = order.map((tier) => ({ tier, rounds: [] }));
+  const ko = matches.filter((m) => m.stage !== "group").sort((a, b) => a.orderIndex - b.orderIndex);
+  for (const m of ko) {
+    const t = tierOf(m.stage);
+    if (t === "group") continue;
+    const tier = tiers[order.indexOf(t)];
+    let round = tier.rounds.find((r) => r.label === m.roundLabel);
+    if (!round) {
+      round = { label: m.roundLabel, matches: [] };
+      tier.rounds.push(round);
+    }
+    round.matches.push(m);
+  }
+  return tiers.filter((t) => t.rounds.length);
+}
+
+// Where a mini round-robin finisher goes next. WB: the winner reaches the
+// grand final, the rest drop to the mid bracket. LB: the top `advancers`
+// reach the mid bracket, the rest are out.
+export function rrFate(stage: "wb_rr" | "lb_rr", rank: number, advancers: number) {
+  if (stage === "wb_rr")
+    return rank === 1 ? { text: "Grand final", tier: "gf" } : { text: "Mid bracket", tier: "mb" };
+  return rank <= advancers ? { text: "Mid bracket", tier: "mb" } : { text: "Out", tier: "out" };
+}
