@@ -17,7 +17,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")" && pwd)"
-pb_version="0.40.4" # keep in step with pb/pocketbase.exe on Windows
+pb_version="0.40.4" # start.ps1 and the Pi package read this too
 pb_bin="$root/pb/pocketbase"
 pb_data="$root/pb/pb_data"
 pb_mig="$root/pb/pb_migrations"
