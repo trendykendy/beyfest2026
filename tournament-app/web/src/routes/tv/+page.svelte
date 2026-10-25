@@ -4,7 +4,18 @@
   import { liveUpdates } from "$lib/pbBrowser";
   import { EVENT, browserPbUrl } from "$lib/config";
   import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl } from "$lib/fighters";
-  import { GRAND_CHAMPION, STINGER, VERSUS, WINS, championCallFresh, finishClip, titleClip, winsCall } from "$lib/sounds";
+  import {
+    GRAND_CHAMPION,
+    STINGER,
+    VERSUS,
+    WINNER_SLAM,
+    WINS,
+    championCallFresh,
+    finishClip,
+    titleClip,
+    winnerOut,
+    winsCall,
+  } from "$lib/sounds";
   import { Announcer } from "$lib/components/tv/announcer";
   import { FINISHES } from "$lib/finishes";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
@@ -35,6 +46,7 @@
   import StadiumDraw from "$lib/components/tv/StadiumDraw.svelte";
   import VsIntro from "$lib/components/tv/VsIntro.svelte";
   import ChampionScene from "$lib/components/tv/ChampionScene.svelte";
+  import WinnerScreen from "$lib/components/tv/WinnerScreen.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
   import LiveQr from "$lib/components/tv/LiveQr.svelte";
 
@@ -359,6 +371,43 @@
     const victory = fighterVictoryUrl(browserPbUrl(), fighterFor(player, data.fighters));
     return { ...introFighter(player), player, victory };
   }
+  // ── Winner screen ───────────────────────────────────────────────────
+  // Every result gets the winner screen (WinnerScreen) over the whole screen,
+  // started from the sound effect below so it's timed with "[name] wins!" and
+  // the stinger; Match centre (the cut to the result) carries on under it.
+  // It only plays where the cut to Match centre would happen (not while the
+  // organiser has locked another scene, or one was picked at the TV). A new
+  // intro or draw, picking a scene at the TV, or the Champion scene ends it.
+  type WinnerShow = {
+    id: string;
+    winner: ReturnType<typeof sceneFighter>;
+    loser: { name: string };
+    score: [number, number];
+    side: "red" | "blue"; // the side the winner had in the intro: p1 red, p2 blue
+    title: string;
+    tier: ReturnType<typeof tierOf>;
+    walkover: boolean;
+    out: number; // when it leaves: on the stinger's last hit (winnerOut)
+  };
+  let winnerShow = $state<WinnerShow | null>(null);
+  function showWinner(m: PBMatch, out: number) {
+    const p1Won = m.winner === m.p1;
+    winnerShow = {
+      id: `${m.code}@${Date.now()}`,
+      winner: sceneFighter(m.winner),
+      loser: { name: sceneFighter(m.loser).name || "—" },
+      score: p1Won ? [m.p1Score ?? 0, m.p2Score ?? 0] : [m.p2Score ?? 0, m.p1Score ?? 0],
+      side: p1Won ? "red" : "blue",
+      title: matchContext(m, data.matches),
+      tier: tierOf(m.stage),
+      walkover: m.walkover,
+      out,
+    };
+  }
+  $effect(() => {
+    if (winnerShow && scene === "champion") winnerShow = null;
+  });
+
   const champRun = $derived(champ ? championRun(data.matches, champ) : null);
   // When this TV saw the grand final's result go in (a reload after the fact
   // never does), so the champion call is only made while it's news.
@@ -381,6 +430,16 @@
     for (const f of data.fighters) {
       const url = fighterImageUrl(browserPbUrl(), f);
       if (url) new Image().src = url;
+    }
+  });
+  // The winner screen shows the victory pose (full size, so only the two
+  // bladers of each match in play are fetched ahead).
+  $effect(() => {
+    for (const m of liveMatches(data.matches)) {
+      for (const id of [m.p1, m.p2]) {
+        const pose = id ? sceneFighter(id).victory : "";
+        if (pose) new Image().src = pose;
+      }
     }
   });
 
@@ -443,7 +502,12 @@
       const withMusic = m.code === playingFor;
       if (withMusic) musicFor = "";
       const voice = fighterVoiceUrl(browserPbUrl(), fighterFor(names.get(m.winner) ?? "", data.fighters));
-      announcer.endMatch(winsCall(voice, m.walkover), withMusic);
+      // With the winner screen, the call starts with its slam (a walkover gets
+      // the screen but no call), and the screen leaves on the stinger's last
+      // hit. Without it (another scene is locked or picked), as before.
+      const screen = !!m.winner && untrack(() => scene === "spotlight" && spotMatch?.code === m.code);
+      const t = announcer.endMatch(winsCall(voice, m.walkover), withMusic, screen ? WINNER_SLAM : 0);
+      if (screen) showWinner(m, winnerOut(t.quietAt, t.stingerAt));
     }
     statusPrimed = true;
     // The music's match has gone (a reset), or finished without being seen
@@ -505,6 +569,7 @@
     const look = pool[Math.floor(Math.random() * pool.length)];
     lastLook = look;
     endDraw();
+    winnerShow = null; // a new match's build-up takes over
     drawHold = ev.code;
     blank = ev.kind === "launch";
     const show: DrawShow = { ...ev, id: key, look };
@@ -535,7 +600,9 @@
 
   // The phone page's QR in the corner: not on Standby (it has a big one),
   // Champion, or while the intro / stadium draw / blank build-up is on.
-  const cornerQr = $derived(scene !== "standby" && scene !== "champion" && !introShow && !drawShow && !blank);
+  const cornerQr = $derived(
+    scene !== "standby" && scene !== "champion" && !introShow && !drawShow && !blank && !winnerShow,
+  );
 
   // ── Operator control (keyboard / mouse at the TV) ───────────────────
   let barVisible = $state(true);
@@ -549,6 +616,7 @@
   function setScene(s: Scene) {
     local = { scene: s, until: Date.now() + LOCAL_SECONDS * 1000 };
     react = null;
+    winnerShow = null;
     if (s === "spotlight") spotIndex = 0; // jump to the live / next match
     poke();
   }
@@ -958,6 +1026,27 @@
           out={introShow.out}
           lite={fxLite}
           ondone={endIntro}
+        />
+      </div>
+    {/key}
+  {/if}
+
+  <!-- The winner screen covers the whole screen too, after a result. A new
+       intro always wins. -->
+  {#if winnerShow && !introShow}
+    {#key winnerShow.id}
+      <div class="intro-layer">
+        <WinnerScreen
+          winner={winnerShow.winner}
+          loser={winnerShow.loser}
+          score={winnerShow.score}
+          side={winnerShow.side}
+          title={winnerShow.title}
+          tier={winnerShow.tier}
+          walkover={winnerShow.walkover}
+          out={winnerShow.out}
+          lite={fxLite}
+          ondone={() => (winnerShow = null)}
         />
       </div>
     {/key}
