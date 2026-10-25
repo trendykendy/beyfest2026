@@ -36,6 +36,7 @@
   import VsIntro from "$lib/components/tv/VsIntro.svelte";
   import ChampionScene from "$lib/components/tv/ChampionScene.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
+  import LiveQr from "$lib/components/tv/LiveQr.svelte";
 
   let { data } = $props();
 
@@ -532,6 +533,10 @@
     if (drawHold && (scene !== "spotlight" || spotMatch?.code !== drawHold)) endDraw();
   });
 
+  // The phone page's QR in the corner: not on Standby (it has a big one),
+  // Champion, or while the intro / stadium draw / blank build-up is on.
+  const cornerQr = $derived(scene !== "standby" && scene !== "champion" && !introShow && !drawShow && !blank);
+
   // ── Operator control (keyboard / mouse at the TV) ───────────────────
   let barVisible = $state(true);
   let hideTimer: ReturnType<typeof setTimeout>;
@@ -614,7 +619,7 @@
   });
 </script>
 
-<div class="tv" class:cursor-hide={!barVisible} class:bar-open={barVisible} class:blank>
+<div class="tv" class:cursor-hide={!barVisible} class:bar-open={barVisible} class:blank class:qr-corner={cornerQr}>
   <header class="strip">
     <div class="brand">
       <span class="bmain">Beyfest</span>
@@ -632,6 +637,7 @@
 
   <main class="stage">
     {#if scene === "standby"}
+      <div class="standby">
       <div class="finale">
         <div class="finale-kana" lang="ja">ベイフェスト</div>
         <div class="big-slab"><span>Beyfest 2026</span></div>
@@ -649,6 +655,13 @@
             <span class="join-step"><span>Organiser <b>{n.host}/admin</b></span></span>
           </div>
         {/if}
+      </div>
+      <!-- Beside the title, not under it: the column is already tall at 1080p. -->
+      <div class="live-card">
+        <div class="live-card-head"><span>Live results on your phone</span></div>
+        <LiveQr size={data.liveQr.size} path={data.liveQr.path} px={260} />
+        <div class="live-card-url">{data.liveQr.url.replace(/^https?:\/\//, "")}</div>
+      </div>
       </div>
 
     {:else if scene === "groups"}
@@ -948,6 +961,14 @@
         />
       </div>
     {/key}
+  {/if}
+
+  <!-- Small, fixed and static: the phone page's QR for the busy scenes. -->
+  {#if cornerQr}
+    <div class="corner-qr" class:lifted={soundBlocked}>
+      <span>Scan for<br />live results</span>
+      <LiveQr size={data.liveQr.size} path={data.liveQr.path} px={100} />
+    </div>
   {/if}
 
   <!-- Small and in the corner: for the operator, not the room. -->
@@ -1789,6 +1810,77 @@
   .join-ip {
     color: var(--on-field-soft);
     margin-left: 0.4em;
+  }
+  /* Standby: the title column with the phone-page QR card beside it. */
+  .standby {
+    display: flex;
+    align-items: center;
+    gap: 70px;
+  }
+  .live-card {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .live-card-head {
+    background: var(--ink);
+    color: var(--paper);
+    border: 3px solid var(--paper);
+    padding: 8px 22px;
+    font-family: var(--font-text);
+    font-weight: 700;
+    font-size: 1.5rem;
+    transform: skewX(-10deg);
+  }
+  .live-card-head > span {
+    display: block;
+    transform: skewX(10deg);
+  }
+  .live-card :global(svg) {
+    border: 5px solid var(--ink);
+    box-shadow: 12px 12px 0 var(--ink);
+  }
+  .live-card-url {
+    margin-top: 8px;
+    font-family: var(--font-text);
+    font-weight: 800;
+    font-size: 1.6rem;
+    color: var(--gold);
+  }
+
+  /* Corner QR on the other scenes. Below the intro (40) and the operator's
+     marks (60); fixed, no animation, so it costs the Pi nothing. */
+  .corner-qr {
+    position: fixed;
+    right: 14px;
+    bottom: 14px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--ink);
+    padding: 6px 6px 6px 12px;
+  }
+  /* Caption beside the code, not under it: the card stays short enough to sit
+     below the group slabs, level with the "On now" strip. */
+  .corner-qr span {
+    font-family: var(--font-text);
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1.2;
+    text-align: right;
+    color: var(--paper);
+  }
+  /* Clear of the "sound is blocked" button and the operator bar, which share
+     this corner. The button sits on top of the bar, so above the bar clears
+     both. */
+  .corner-qr.lifted {
+    bottom: 50px;
+  }
+  .tv.bar-open .corner-qr {
+    bottom: 76px;
   }
 
   /* Operator bar */
