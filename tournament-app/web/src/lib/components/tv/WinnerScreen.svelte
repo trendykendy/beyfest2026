@@ -825,6 +825,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    padding-right: 0.15em; /* italic overhang: the clip would cut the last letter */
     text-align: right;
     font-family: var(--font-display);
     font-stretch: 75%;
@@ -964,6 +965,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    padding-right: 0.15em; /* italic overhang: the clip would cut the last letter */
   }
   .next-names {
     font-family: var(--font-display);
