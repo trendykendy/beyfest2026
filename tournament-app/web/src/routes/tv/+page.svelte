@@ -383,7 +383,7 @@
   // scene ends it at once. A reload drops it (it's only seen as news).
   type WinnerShow = {
     id: string;
-    winner: ReturnType<typeof sceneFighter>;
+    winner: IntroFighter; // the cut-out, never the victory pose (the Champion scene's)
     loser: { name: string };
     score: [number, number];
     side: "red" | "blue"; // the side the winner had in the intro: p1 red, p2 blue
@@ -400,8 +400,8 @@
     winnerLeaving = false;
     winnerShow = {
       id: `${m.code}@${Date.now()}`,
-      winner: sceneFighter(m.winner),
-      loser: { name: sceneFighter(m.loser).name || "—" },
+      winner: introFighter(names.get(m.winner) ?? ""),
+      loser: { name: introFighter(names.get(m.loser) ?? "").name || "—" },
       score: p1Won ? [m.p1Score ?? 0, m.p2Score ?? 0] : [m.p2Score ?? 0, m.p1Score ?? 0],
       side: p1Won ? "red" : "blue",
       title: matchContext(m, data.matches),
@@ -419,6 +419,19 @@
   $effect(() => {
     if (winnerShow && scene === "champion") winnerShow = null;
   });
+  // Its "Up next": the fixture the TV calls next (the organiser's "Score
+  // this" pick first, as the Next up strip and /live order it), live from
+  // the data, so a new pick or a slot this result fills in shows straight away.
+  const winnerNext = $derived(
+    nextUp
+      ? {
+          p1: sideName(nextUp, 1),
+          p2: sideName(nextUp, 2),
+          title: matchContext(nextUp, data.matches),
+          tier: tierOf(nextUp.stage),
+        }
+      : null,
+  );
 
   const champRun = $derived(champ ? championRun(data.matches, champ) : null);
   // When this TV saw the grand final's result go in (a reload after the fact
@@ -442,16 +455,6 @@
     for (const f of data.fighters) {
       const url = fighterImageUrl(browserPbUrl(), f);
       if (url) new Image().src = url;
-    }
-  });
-  // The winner screen shows the victory pose (full size, so only the two
-  // bladers of each match in play are fetched ahead).
-  $effect(() => {
-    for (const m of liveMatches(data.matches)) {
-      for (const id of [m.p1, m.p2]) {
-        const pose = id ? sceneFighter(id).victory : "";
-        if (pose) new Image().src = pose;
-      }
     }
   });
 
@@ -1041,6 +1044,7 @@
           tier={winnerShow.tier}
           walkover={winnerShow.walkover}
           leaving={winnerLeaving}
+          next={winnerNext}
           lite={fxLite}
           ondone={() => (winnerShow = null)}
         />

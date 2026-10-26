@@ -15,9 +15,13 @@
   // blue), and the name tag sits on that side, as it did in the intro.
   //
   // img: the cut-out's URL ("" for the silhouette); cut-outs face left, and
-  // mirror flips one that faces the other way. victory: the victory pose, shown
-  // instead of the cut-out when there is one; never flipped (it has writing).
-  type Fighter = { name: string; kana: string; img: string; victory?: string; mirror?: boolean };
+  // mirror flips one that faces the other way. (Never the victory pose: that's
+  // the Champion scene's.)
+  //
+  // next: the fixture the TV would call next (view.ts upNext), shown in the
+  // top corner while the screen holds; it follows the data live. null hides it.
+  type Fighter = { name: string; kana: string; img: string; mirror?: boolean };
+  type Next = { p1: string; p2: string; title: string; tier: "wb" | "mb" | "lb" | "gf" | "group" };
   let {
     winner,
     loser,
@@ -29,6 +33,7 @@
     slow = 1, // timing multiplier: 2 = half speed (lab only)
     lite = false, // Pi-safe: no blur or drop-shadow filters, fewer streaks and shards
     leaving = false, // set to play the exit; ondone fires when it's over
+    next = null, // the next fixture, or null
     ondone,
   }: {
     winner: Fighter;
@@ -41,6 +46,7 @@
     slow?: number;
     lite?: boolean;
     leaving?: boolean;
+    next?: Next | null;
     ondone?: () => void;
   } = $props();
 
@@ -107,9 +113,7 @@
       <!-- The banner: the winner's picture, full width, cropped to the band. -->
       <div class="banner">
         <div class="pic">
-          {#if winner.victory}
-            <img src={winner.victory} alt="" />
-          {:else if winner.img}
+          {#if winner.img}
             <!-- Cut-outs face left: turned to face right for p1, as in the intro. -->
             <img src={winner.img} alt="" class:flip={(side === "red") !== !!winner.mirror} />
           {:else}
@@ -183,6 +187,21 @@
     </div>
     {#if title}
       <div class="title tier-{tier}"><span>{title}</span></div>
+    {/if}
+    <!-- Up next, in the top corner beside the title. Keyed so a change (the
+         organiser's "Score this" pick, a slot filling in) pops in. -->
+    {#if next}
+      <div class="next">
+        {#key `${next.p1}|${next.p2}|${next.title}`}
+          <div class="next-in">
+            <span class="next-tag">Up next</span>
+            <span class="next-body tier-{next.tier}">
+              <span class="next-names">{next.p1} <em>v</em> {next.p2}</span>
+              <span class="next-title">{next.title}</span>
+            </span>
+          </div>
+        {/key}
+      </div>
     {/if}
     <div class="flash"></div>
   </div>
@@ -294,10 +313,10 @@
   .pic img {
     position: absolute;
     left: 50%;
-    top: -40px;
-    width: 1080px;
-    height: 720px;
-    margin-left: -540px;
+    top: -22px;
+    width: 972px;
+    height: 648px;
+    margin-left: -486px;
     object-fit: cover;
     mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%);
   }
@@ -877,6 +896,93 @@
     color: var(--gold);
     border-color: var(--gold);
     box-shadow: 8px 8px 0 var(--gold);
+  }
+
+  /* ── Up next (top corner, on the loser's side) ── */
+  /* The TV's "Next up" chip: a gold tag on a dark slab whose end takes the
+     fixture's tier colour, as the title's caps do. */
+  .next {
+    position: absolute;
+    top: 30px;
+    right: 40px;
+    max-width: 600px;
+    animation: def-in calc(300ms * var(--k)) ease-out calc(1600ms * var(--k)) both;
+  }
+  .from-r .next {
+    right: auto;
+    left: 40px;
+  }
+  .next-in {
+    display: flex;
+    align-items: stretch;
+    transform: skewX(-12deg);
+    animation: next-pop calc(260ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  }
+  @keyframes next-pop {
+    from {
+      transform: skewX(-12deg) scale(0.85);
+      opacity: 0;
+    }
+  }
+  .next-tag,
+  .next-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .next-tag {
+    background: var(--gold);
+    color: var(--ink);
+    border: 4px solid var(--ink);
+    padding: 4px 18px 8px;
+    font-family: var(--font-display);
+    font-stretch: 75%;
+    font-size: 34px;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .next-body {
+    min-width: 0;
+    background: var(--ink);
+    border: 4px solid var(--ink);
+    border-left: 0;
+    border-right: 14px solid var(--on-field-soft);
+    padding: 4px 22px 8px;
+    color: var(--paper);
+  }
+  .next-body.tier-wb,
+  .next-body.tier-mb,
+  .next-body.tier-lb {
+    border-right-color: var(--cap);
+  }
+  .next-body.tier-gf {
+    border-right-color: var(--gold);
+  }
+  .next-names,
+  .next-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .next-names {
+    font-family: var(--font-display);
+    font-stretch: 75%;
+    font-size: 38px;
+    line-height: 1.05;
+    text-transform: uppercase;
+  }
+  .next-names em {
+    font-style: normal;
+    color: var(--gold);
+    margin: 0 4px;
+  }
+  .next-title {
+    font: 600 20px/1.2 var(--font-text);
+    color: var(--on-field-soft);
+  }
+  .leaving .next {
+    animation: fade-out calc(200ms * var(--k)) linear both;
   }
 
   /* ── Leaving: when the next match starts ── */
