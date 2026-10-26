@@ -14,6 +14,7 @@ import {
   resetTournament,
 } from "$lib/server/tournament";
 import { readStarters } from "$lib/server/starterFiles";
+import { createRoyale, recordBattle, resetRoyale, RoyaleError, startBattle } from "$lib/server/royale";
 import type { StarterPick } from "$lib/starters";
 
 // The starting fighters, for the "Use the starting fighters" pop-up on the
@@ -33,6 +34,17 @@ export const load: PageServerLoad = async ({ locals }) => {
   const [view, tv] = await Promise.all([loadTournamentView(locals.pb), loadTvState(locals.pb)]);
   return { ...view, tv, starters: view.tournament ? [] : await starterPicks() };
 };
+
+// Run a battle royale change; a broken rule comes back as the page's error.
+async function royaleDo(work: () => Promise<void>) {
+  try {
+    await work();
+  } catch (e) {
+    if (e instanceof RoyaleError) return fail(400, { error: e.message });
+    throw e;
+  }
+  return { royale: true };
+}
 
 export const actions: Actions = {
   create: async ({ request, locals }) => {
@@ -213,6 +225,46 @@ export const actions: Actions = {
     const tv = await loadTvState(locals.pb);
     if (tv.id) await locals.pb.collection("tv_state").update(tv.id, { mode: "auto", next: "" });
     return { reset: true };
+  },
+
+  // ── Battle royale (after the main tournament; see lib/royale.ts) ──
+  // Start it: the ticked tournament players plus any names added, and how
+  // many fit around the arena at once.
+  royaleCreate: async ({ request, locals }) => {
+    const data = await request.formData();
+    const t = await getActiveTournament(locals.pb);
+    if (!t) return fail(400, { error: "There's no tournament." });
+    const names = [
+      ...data.getAll("names").map(String),
+      ...String(data.get("extra") || "").split(/[\n,]/),
+    ];
+    return royaleDo(() => createRoyale(locals.pb, t.id, names, Number(data.get("spaces"))));
+  },
+
+  // Start (or cancel the start of) a battle: the TV plays its intro.
+  royaleStart: async ({ request, locals }) => {
+    const data = await request.formData();
+    return royaleDo(() =>
+      startBattle(locals.pb, String(data.get("id")), String(data.get("key")), data.get("start") === "true"),
+    );
+  },
+
+  // A battle's result: winner and runner-up, or who goes through from the
+  // sudden death.
+  royaleResult: async ({ request, locals }) => {
+    const data = await request.formData();
+    return royaleDo(() =>
+      recordBattle(locals.pb, String(data.get("id")), String(data.get("key")), {
+        winner: String(data.get("winner") || ""),
+        runnerUp: String(data.get("runnerUp") || ""),
+        advancing: data.getAll("advancing").map(String),
+      }),
+    );
+  },
+
+  royaleReset: async ({ request, locals }) => {
+    const id = String((await request.formData()).get("id") || "");
+    return royaleDo(() => resetRoyale(locals.pb, id));
   },
 
   logout: async ({ locals }) => {
