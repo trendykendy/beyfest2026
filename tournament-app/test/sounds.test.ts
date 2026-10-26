@@ -9,6 +9,9 @@ import {
   STINGER,
   VERSUS,
   WINS,
+  AND,
+  QUALIFIED,
+  qualifiedCall,
   callSequence,
   callTimes,
   finishClip,
@@ -126,5 +129,24 @@ describe("stingerDelay", () => {
   });
   test("hits straight away when nobody's talking", () => {
     expect(stingerDelay(0)).toBe(0);
+  });
+});
+
+describe("qualifiedCall", () => {
+  test("one name, then qualified", () => {
+    expect(qualifiedCall(["a.mp3"])).toEqual(["a.mp3", QUALIFIED]);
+  });
+  test("two names with 'and' between", () => {
+    expect(qualifiedCall(["a.mp3", "b.mp3"])).toEqual(["a.mp3", AND, "b.mp3", QUALIFIED]);
+  });
+  test("three names: 'and' before the last only", () => {
+    expect(qualifiedCall(["a.mp3", "b.mp3", "c.mp3"])).toEqual(["a.mp3", "b.mp3", AND, "c.mp3", QUALIFIED]);
+  });
+  test("names without a voice clip are left out; none at all is just 'qualified'", () => {
+    expect(qualifiedCall(["", "b.mp3"])).toEqual(["b.mp3", QUALIFIED]);
+    expect(qualifiedCall(["", ""])).toEqual([QUALIFIED]);
+  });
+  test("the clips are in static/", () => {
+    for (const u of [AND, QUALIFIED]) expect(existsSync(join(STATIC, u))).toBe(true);
   });
 });

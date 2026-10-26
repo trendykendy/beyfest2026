@@ -148,6 +148,22 @@ export function royaleView(r: PBRoyale): RoyaleView | null {
   };
 }
 
+// Who a finished heat or sudden death sends through to the final (the TV's
+// Qualified screen), and, for a heat with a sudden death to come, the
+// runner-up who goes to that instead. Matches royaleView's line-ups: the
+// runners-up go straight through only when there's no sudden death and the
+// final has places beyond the heat winners.
+export function qualifiers(plan: RoyalePlan, b: Battle): { through: string[]; toSudden: string } {
+  const r = b.result;
+  if (b.kind === "sudden") return { through: r.advancing ?? [], toSudden: "" };
+  if (b.kind !== "heat" || !r.winner) return { through: [], toSudden: "" };
+  const runnerUp = r.runnerUp ?? "";
+  if (!runnerUp) return { through: [r.winner], toSudden: "" };
+  if (plan.sudden) return { through: [r.winner], toSudden: runnerUp };
+  const placesLeft = plan.finalSize - plan.heats.length;
+  return { through: placesLeft > 0 ? [r.winner, runnerUp] : [r.winner], toSudden: "" };
+}
+
 // The battles played after this one (they depend on its result).
 export function laterBattles(view: RoyaleView, key: string): Battle[] {
   const i = view.battles.findIndex((b) => b.key === key);

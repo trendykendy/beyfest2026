@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { laterBattles, planInWords, planRoyale, royaleView, type PBRoyale, type RoyalePlan } from "../web/src/lib/royale";
+import { laterBattles, planInWords, planRoyale, qualifiers, royaleView, type PBRoyale, type RoyalePlan } from "../web/src/lib/royale";
 
 const names = (n: number) => Array.from({ length: n }, (_, i) => `P${i + 1}`);
 const royale = (n: number, spaces: number, battles: PBRoyale["battles"] = {}): PBRoyale => ({
@@ -141,5 +141,31 @@ describe("laterBattles", () => {
     expect(laterBattles(v, "H1").map((b) => b.key)).toEqual(["SD", "F"]);
     expect(laterBattles(v, "SD").map((b) => b.key)).toEqual(["F"]);
     expect(laterBattles(v, "F")).toEqual([]);
+  });
+});
+
+describe("qualifiers", () => {
+  const heat = (v: ReturnType<typeof royaleView>, key: string) => v!.battles.find((b) => b.key === key)!;
+  test("with a sudden death to come, a heat sends its winner through and its runner-up to the sudden death", () => {
+    const v = royaleView(royale(12, 5, { H1: { winner: "P1", runnerUp: "P2" } }));
+    expect(qualifiers(v!.plan, heat(v, "H1"))).toEqual({ through: ["P1"], toSudden: "P2" });
+  });
+  test("runners-up who all fit go through with the winner", () => {
+    const v = royaleView(royale(7, 5, { H1: { winner: "P1", runnerUp: "P2" } }));
+    expect(qualifiers(v!.plan, heat(v, "H1"))).toEqual({ through: ["P1", "P2"], toSudden: "" });
+  });
+  test("heat winners filling the final: only the winner", () => {
+    const v = royaleView(royale(9, 3, { H1: { winner: "P1", runnerUp: "P2" } }));
+    expect(qualifiers(v!.plan, heat(v, "H1"))).toEqual({ through: ["P1"], toSudden: "" });
+  });
+  test("the sudden death sends through who it advances", () => {
+    const base = { H1: { winner: "P1", runnerUp: "P2" }, H2: { winner: "P5", runnerUp: "P6" }, H3: { winner: "P9", runnerUp: "P10" } };
+    const v = royaleView(royale(12, 5, { ...base, SD: { advancing: ["P2", "P10"] } }));
+    expect(qualifiers(v!.plan, heat(v, "SD"))).toEqual({ through: ["P2", "P10"], toSudden: "" });
+  });
+  test("an unfinished heat, or the final: nobody", () => {
+    const v = royaleView(royale(7, 5));
+    expect(qualifiers(v!.plan, heat(v, "H1"))).toEqual({ through: [], toSudden: "" });
+    expect(qualifiers(v!.plan, heat(v, "F"))).toEqual({ through: [], toSudden: "" });
   });
 });

@@ -5,7 +5,10 @@
   import { EVENT, browserPbUrl } from "$lib/config";
   import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl } from "$lib/fighters";
   import {
+    AND,
     GRAND_CHAMPION,
+    QUALIFIED,
+    QUALIFIED_CALL,
     ROYALE,
     ROYALE_CHAMPION,
     STINGER,
@@ -14,11 +17,12 @@
     WINS,
     championCallFresh,
     finishClip,
+    qualifiedCall,
     royaleLabelClip,
     titleClip,
     winsCall,
   } from "$lib/sounds";
-  import { royaleView, type Battle } from "$lib/royale";
+  import { qualifiers, royaleView, type Battle } from "$lib/royale";
   import { Announcer } from "$lib/components/tv/announcer";
   import { FINISHES } from "$lib/finishes";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
@@ -53,6 +57,7 @@
   import WinnerScreen from "$lib/components/tv/WinnerScreen.svelte";
   import RoyaleBoard from "$lib/components/tv/RoyaleBoard.svelte";
   import RoyaleIntro from "$lib/components/tv/RoyaleIntro.svelte";
+  import QualifiedScreen from "$lib/components/tv/QualifiedScreen.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
   import LiveQr from "$lib/components/tv/LiveQr.svelte";
 
@@ -408,7 +413,6 @@
     tier: ReturnType<typeof tierOf>;
     walkover: boolean;
     live: string[]; // the matches already live when it came up (another table)
-    royale?: boolean; // a battle royale battle: "Last bey standing", loser is the runner-up
   };
   let winnerShow = $state<WinnerShow | null>(null);
   let winnerLeaving = $state(false);
@@ -439,7 +443,7 @@
     if (liveMatches(data.matches).some((m) => !w.live.includes(liveKey(m)))) winnerLeaving = true;
   });
   $effect(() => {
-    if (winnerShow && !winnerShow.royale && scene === "champion") winnerShow = null;
+    if (winnerShow && scene === "champion") winnerShow = null;
   });
   // Its "Up next": the fixture the TV calls next (the organiser's "Score
   // this" pick first, as the Next up strip and /live order it), live from
@@ -497,7 +501,9 @@
   }
   // Load every clip the next intros could need, so each one's length is known
   // when an intro is timed and it plays on cue.
-  onMount(() => [...VERSUS, ...FINISHES.map((f) => finishClip(f.key)), WINS, STINGER, ROYALE].forEach((u) => announcer.preload(u)));
+  onMount(() =>
+    [...VERSUS, ...FINISHES.map((f) => finishClip(f.key)), WINS, STINGER, ROYALE, AND, QUALIFIED].forEach((u) => announcer.preload(u)),
+  );
   // The admin page's TV panel sets these, live.
   $effect(() => {
     announcer.setEnabled(!data.tv.soundOff);
@@ -585,10 +591,10 @@
   // ── Battle royale ───────────────────────────────────────────────────
   // After the main event (lib/royale.ts). Start on the admin page plays the
   // battle's intro over the match music ("Battle royale!", then its name);
-  // a heat or final result gets "[name] wins!" and the stinger, a heat the
-  // winner screen too (even with a scene locked); the sudden death just the stinger (the board shows
-  // who's through). The final's result brings up the battle royale champion
-  // scene (held), with the champion theme and the champion's call.
+  // a heat or sudden death result gets the Qualified screen (even with a
+  // scene locked), "[A] and [B]… qualified!" and the stinger. The final's
+  // result brings up the battle royale champion scene (held), with the
+  // champion theme and the champion's call.
   const royale = $derived(data.royale ? royaleView(data.royale) : null);
   const royaleChamp = $derived(royale?.champion ?? "");
   const royaleRunnerUp = $derived(royale?.runnerUp ?? "");
@@ -602,12 +608,20 @@
 
   function startRoyaleIntro(b: Battle) {
     if (Date.now() - Date.parse(b.result.startedAt ?? "") > CALLOUT_FRESH_MS) return; // old news
-    if (winnerShow) winnerLeaving = true; // the next battle's build-up takes over
+    if (qualifiedShow) qualifiedLeaving = true; // the next battle's build-up takes over
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const out = announcer.intro([ROYALE, royaleLabelClip(b.key)]);
     musicFor = `royale:${b.key}`;
     royaleIntro = { id: `${b.key}@${b.result.startedAt}`, fighters: b.entrants.map(introFighter), label: b.label, out };
   }
+
+  // The Qualified screen, after a heat or the sudden death: who's through to
+  // the final. Held like the winner screen: until the next battle starts or
+  // WINNER_SECONDS is up.
+  type QualifiedShow = { id: string; fighters: IntroFighter[]; label: string; toSudden: string };
+  let qualifiedShow = $state<QualifiedShow | null>(null);
+  let qualifiedLeaving = $state(false);
+  let qualifiedTimer: ReturnType<typeof setTimeout>;
 
   function royaleResult(b: Battle) {
     const withMusic = musicFor === `royale:${b.key}`;
@@ -618,29 +632,23 @@
       royaleChampSeen = { name: b.result.winner ?? "", at: Date.now() };
       return;
     }
-    if (b.kind === "sudden") return void announcer.endMatch([], withMusic);
-    const winner = b.result.winner ?? "";
-    const voice = fighterVoiceUrl(browserPbUrl(), fighterFor(winner, data.fighters));
+    const { through, toSudden } = qualifiers(royale!.plan, b);
+    const voices = through.map((name) => fighterVoiceUrl(browserPbUrl(), fighterFor(name, data.fighters)));
     // Unlike a match, a scene locked from the admin page doesn't stop it: the
     // board is the only thing worth locking to now, and the result belongs over it.
     const screen = !localActive;
-    announcer.endMatch(winsCall(voice, false), withMusic, screen ? WINNER_SLAM : 0);
+    announcer.endMatch(qualifiedCall(voices), withMusic, screen ? QUALIFIED_CALL : 0);
     if (!screen) return;
-    winnerLeaving = false;
+    if (winnerShow) winnerShow = null;
+    qualifiedLeaving = false;
     react = null;
-    clearTimeout(winnerTimer);
-    winnerTimer = setTimeout(() => (winnerLeaving = true), WINNER_SECONDS * 1000);
-    winnerShow = {
+    clearTimeout(qualifiedTimer);
+    qualifiedTimer = setTimeout(() => (qualifiedLeaving = true), WINNER_SECONDS * 1000);
+    qualifiedShow = {
       id: `${b.key}@${Date.now()}`,
-      winner: introFighter(winner),
-      loser: { name: b.result.runnerUp ? introFighter(b.result.runnerUp).name : "" },
-      score: [0, 0],
-      side: "red",
-      title: `Battle royale · ${b.label}`,
-      tier: "mb",
-      walkover: false,
-      live: liveMatches(data.matches).map(liveKey),
-      royale: true,
+      fighters: through.map(introFighter),
+      label: b.label,
+      toSudden: toSudden ? introFighter(toSudden).name : "",
     };
   }
 
@@ -685,6 +693,7 @@
         }
       }
       winnerShow = null;
+      qualifiedShow = null;
       announcer.startChampion(calls);
     });
     return () => announcer.stopChampion();
@@ -758,7 +767,8 @@
       !royaleIntro &&
       !drawShow &&
       !blank &&
-      !winnerShow,
+      !winnerShow &&
+      !qualifiedShow,
   );
 
   // ── Operator control (keyboard / mouse at the TV) ───────────────────
@@ -774,6 +784,7 @@
     local = { scene: s, until: Date.now() + LOCAL_SECONDS * 1000 };
     react = null;
     winnerShow = null;
+    qualifiedShow = null;
     if (s === "spotlight") spotIndex = 0; // jump to the live / next match
     poke();
   }
@@ -1210,11 +1221,26 @@
           title={winnerShow.title}
           tier={winnerShow.tier}
           walkover={winnerShow.walkover}
-          royale={winnerShow.royale}
           leaving={winnerLeaving}
-          next={winnerShow.royale ? null : winnerNext}
+          next={winnerNext}
           lite={fxLite}
           ondone={() => (winnerShow = null)}
+        />
+      </div>
+    {/key}
+  {/if}
+
+  <!-- The battle royale's Qualified screen, after a heat or the sudden death. -->
+  {#if qualifiedShow}
+    {#key qualifiedShow.id}
+      <div class="intro-layer">
+        <QualifiedScreen
+          fighters={qualifiedShow.fighters}
+          label={qualifiedShow.label}
+          toSudden={qualifiedShow.toSudden}
+          leaving={qualifiedLeaving}
+          lite={fxLite}
+          ondone={() => (qualifiedShow = null)}
         />
       </div>
     {/key}
@@ -1248,7 +1274,7 @@
           lite={fxLite}
           ondone={() => {
             royaleIntro = null;
-            winnerShow = null; // it held under the intro until now
+            qualifiedShow = null; // it held under the intro until now
           }}
         />
       </div>

@@ -30,7 +30,6 @@
     title = "", // matchContext(), as in the intro
     tier = "group", // bracket tier, colours the title's end caps
     walkover = false, // a no-show: WALKOVER instead of a score
-    royale = false, // a battle royale battle: "Last bey standing" instead of a score; loser is the runner-up
     slow = 1, // timing multiplier: 2 = half speed (lab only)
     lite = false, // Pi-safe: no blur or drop-shadow filters, fewer streaks and shards
     leaving = false, // set to play the exit; ondone fires when it's over
@@ -44,7 +43,6 @@
     title?: string;
     tier?: "wb" | "mb" | "lb" | "gf" | "group";
     walkover?: boolean;
-    royale?: boolean;
     slow?: number;
     lite?: boolean;
     leaving?: boolean;
@@ -175,10 +173,8 @@
         {#if winner.kana}<div class="kana" lang="ja"><span>{winner.kana}</span></div>{/if}
         <div class="name" class:long={winner.name.length > 10}><span>{winner.name}</span></div>
       </div>
-      <div class="result" class:royale>
-        {#if royale}
-          <div class="score"><div class="wo"><span>Last bey standing</span></div></div>
-        {:else if walkover}
+      <div class="result">
+        {#if walkover}
           <div class="score"><div class="wo"><span>Walkover</span></div></div>
         {:else if score}
           <div class="score">
@@ -186,9 +182,7 @@
             <div class="num ln"><span>{score[1]}</span></div>
           </div>
         {/if}
-        {#if loser.name}
-          <div class="def"><s>{royale ? "runner-up" : walkover ? "over" : "defeats"}</s>{loser.name}</div>
-        {/if}
+        <div class="def"><s>{walkover ? "over" : "defeats"}</s>{loser.name}</div>
       </div>
     </div>
     {#if title}
@@ -823,15 +817,6 @@
     color: var(--gold);
     border: 6px solid var(--gold);
     box-shadow: 10px 10px 0 var(--ink);
-  }
-  /* "Last bey standing" is twice the length of "Walkover": smaller, with the
-     runner-up kept narrow, so the two stay clear of a long winner's name tag. */
-  .royale .wo {
-    font-size: 84px;
-    padding: 8px 32px 14px;
-  }
-  .royale .def {
-    max-width: 380px;
   }
   /* "DEFEATS STORM", beside the score, reading towards it. */
   .def {

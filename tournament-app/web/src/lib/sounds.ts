@@ -123,8 +123,23 @@ export const WINNER_SLAM = 450; // the winner's banner lands
 //   sudden-death.mp3     "Sudden death!"
 //   final.mp3            "The final!"
 //   royale-champion.mp3  "Battle royale champion!" (after the champion's name)
+//   and.mp3              "and" (between the last two names)
+//   qualified.mp3        "Qualified!" (after the names)
 export const ROYALE = "/sounds/royale/battle-royale.mp3";
 export const ROYALE_CHAMPION = "/sounds/royale/royale-champion.mp3";
+export const AND = "/sounds/royale/and.mp3";
+export const QUALIFIED = "/sounds/royale/qualified.mp3";
+
+// The Qualified screen's call: "[A] and [B]… qualified!" ("A, B and C" for
+// three or more, without the commas). Names with no voice clip are left out;
+// with none at all it's just "Qualified!". The call starts as the panels
+// land (QUALIFIED_CALL ms in).
+export const QUALIFIED_CALL = 550;
+export function qualifiedCall(voices: string[]): string[] {
+  const v = voices.filter(Boolean);
+  if (v.length < 2) return [...v, QUALIFIED];
+  return [...v.slice(0, -1), AND, v[v.length - 1], QUALIFIED];
+}
 
 // The call for a battle's name, from its key (H1…H4, SD, F); "" for none.
 export function royaleLabelClip(key: string): string {
