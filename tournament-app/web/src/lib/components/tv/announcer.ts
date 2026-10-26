@@ -104,6 +104,12 @@ export class Announcer {
     return out;
   }
 
+  // Just the music, no intro (the battle royale draw). A match intro that
+  // follows carries on with it rather than starting again.
+  playMusic() {
+    if (this.enabled) this.startMusic();
+  }
+
   // A "versus" take, never the same one twice running.
   nextVersus(): string {
     this.versus = pickOther(VERSUS, this.versus);

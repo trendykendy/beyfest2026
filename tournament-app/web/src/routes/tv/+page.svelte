@@ -623,6 +623,10 @@
   // heat by heat, with "Battle royale!" as the hub slams in. The board is
   // held underneath, so it's what's left when the draw clears. Seen by
   // comparing reloads, so a page load never replays it.
+  // The match music starts with it and plays on under the board until the
+  // first heat starts, whose intro carries on with it (musicFor moves to that
+  // heat). A reset before then stops it.
+  const DRAW_MUSIC = "royale:draw";
   type RoyaleDrawShow = { id: string; fighters: IntroFighter[] };
   let royaleDraw = $state<RoyaleDrawShow | null>(null);
   let royaleIdSeen: string | null | undefined = undefined; // undefined: not loaded yet
@@ -631,11 +635,17 @@
     untrack(() => {
       const was = royaleIdSeen;
       royaleIdSeen = r?.id ?? null;
+      if (musicFor === DRAW_MUSIC && r?.id !== was) {
+        musicFor = "";
+        announcer.stopMusic();
+      }
       if (was === undefined || !r || r.id === was) return;
       // Old news (no date counts as old: NaN fails the test).
       if (!(Date.now() - Date.parse(r.createdAt ?? "") <= CALLOUT_FRESH_MS)) return;
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       royaleDraw = { id: r.id, fighters: r.entrants.map(introFighter) };
+      announcer.playMusic();
+      musicFor = DRAW_MUSIC;
       announcer.call([ROYALE]);
     });
   });
