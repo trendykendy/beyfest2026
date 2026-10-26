@@ -14,6 +14,7 @@
   import BladersPanel from "$lib/components/BladersPanel.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
   import StarterPicker from "$lib/components/StarterPicker.svelte";
+  import RoyalePanel from "$lib/components/RoyalePanel.svelte";
 
   let { data, form } = $props();
 
@@ -80,10 +81,10 @@
   };
 
   // Scenes the organiser can put on the TV right now.
-  const tvScenes = $derived(availableScenes(!!data.tournament, data.matches).filter((s) => s !== "standby"));
+  const tvScenes = $derived(availableScenes(!!data.tournament, data.matches, data.royale).filter((s) => s !== "standby"));
 
   // Realtime: any change made anywhere refreshes this page.
-  onMount(() => liveUpdates(["tournaments", "groups", "players", "matches", "tv_state"], () => invalidateAll()));
+  onMount(() => liveUpdates(["tournaments", "groups", "players", "matches", "tv_state", "royales"], () => invalidateAll()));
 </script>
 
 <div class="container">
@@ -156,6 +157,11 @@
         {#if champion}
           <h2 class="kicker">Champion</h2>
           <div class="champ"><Trophy /> <span>{champion}</span></div>
+          <!-- After the main event: the battle royale. -->
+          <RoyalePanel
+            royale={data.royale}
+            players={data.players.filter((p) => !p.withdrawn).map((p) => p.name).sort((a, b) => a.localeCompare(b))}
+          />
         {:else}
           <h2 class="kicker">Now playing</h2>
           {#if current}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { artFor } from "$lib/fighters";
   import FighterSilhouette from "./FighterSilhouette.svelte";
 
   // The fighter intro before a match: two half-banners (red p1, blue p2) slam
@@ -11,8 +12,9 @@
   // seam's coordinates are the same at any screen size. Every duration and
   // delay in the CSS is multiplied by --k (the `slow` prop).
   // img: the cut-out's URL ("" for the silhouette). Cut-outs face left;
-  // mirror flips one that faces the other way.
-  type Fighter = { name: string; kana: string; img: string; mirror?: boolean };
+  // mirror flips one that faces the other way. imgMirrored: a hand-made
+  // mirror image, shown instead of flipping (artFor).
+  type Fighter = { name: string; kana: string; img: string; imgMirrored?: string; mirror?: boolean };
   let {
     p1,
     p2,
@@ -146,7 +148,8 @@
     <!-- p1 (left) is turned to face right; a fighter's mirror flag flips that. -->
     <div class="fighter">
       {#if f.img}
-        <img class="art" class:flip={(side === "red") !== !!f.mirror} src={f.img} alt="" />
+        {@const art = artFor(f, (side === "red") !== !!f.mirror)}
+        <img class="art" class:flip={art.flip} src={art.src} alt="" />
       {:else}
         <div class="art"><FighterSilhouette flip={side === "red"} /></div>
       {/if}

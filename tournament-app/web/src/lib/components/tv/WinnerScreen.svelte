@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { artFor } from "$lib/fighters";
   import FighterSilhouette from "./FighterSilhouette.svelte";
 
   // The winner screen, after a match result: the winner's picture slams in
@@ -20,7 +21,7 @@
   //
   // next: the fixture the TV would call next (view.ts upNext), shown in the
   // top corner while the screen holds; it follows the data live. null hides it.
-  type Fighter = { name: string; kana: string; img: string; mirror?: boolean };
+  type Fighter = { name: string; kana: string; img: string; imgMirrored?: string; mirror?: boolean };
   type Next = { p1: string; p2: string; title: string; tier: "wb" | "mb" | "lb" | "gf" | "group" };
   let {
     winner,
@@ -115,7 +116,8 @@
         <div class="pic">
           {#if winner.img}
             <!-- Cut-outs face left: turned to face right for p1, as in the intro. -->
-            <img src={winner.img} alt="" class:flip={(side === "red") !== !!winner.mirror} />
+            {@const art = artFor(winner, (side === "red") !== !!winner.mirror)}
+            <img src={art.src} alt="" class:flip={art.flip} />
           {:else}
             <div class="sil"><FighterSilhouette flip={side === "red"} /></div>
           {/if}

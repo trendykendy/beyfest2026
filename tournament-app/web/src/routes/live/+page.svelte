@@ -88,7 +88,7 @@
     const fromHash = location.hash.slice(1);
     if (TABS.some((t) => t.key === fromHash)) tab = fromHash as Tab;
     return liveUpdates(
-      ["tournaments", "groups", "players", "matches", "fighters", "tv_state", "bettors", "bets"],
+      ["tournaments", "groups", "players", "matches", "fighters", "tv_state", "bettors", "bets", "royales"],
       () => invalidateAll(),
       { everyMs: 30_000, onStatus: (up) => (online = up) },
     );
@@ -133,7 +133,7 @@
 
       <div class="tab">
         {#if shownTab === "now"}
-          <NowTab matches={data.matches} {names} {groupCount} {followId} nextCode={data.next} />
+          <NowTab matches={data.matches} {names} {groupCount} {followId} nextCode={data.next} royale={data.royale} />
         {:else if shownTab === "groups"}
           <GroupsTab
             groups={data.groups}

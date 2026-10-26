@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { fighterFor, fighterImageUrl, fighterVoiceUrl, type PBFighter } from "../web/src/lib/fighters";
+import { artFor, faceCrop, facePan, fighterFor, fighterImageUrl, fighterVoiceUrl, toFace, type PBFighter } from "../web/src/lib/fighters";
 
 const f = (id: string, name: string, player: string, image = "", voice = ""): PBFighter => ({
   id,
@@ -7,8 +7,12 @@ const f = (id: string, name: string, player: string, image = "", voice = ""): PB
   player,
   kana: "",
   image,
+  imageMirrored: "",
+  victory: "",
+  royaleVictory: "",
   voice,
   mirror: false,
+  face: null,
 });
 const library = [
   f("a1", "The Breycist", "Conor", "breycist.png", "the-breycist.mp3"),
@@ -60,5 +64,67 @@ describe("fighterVoiceUrl", () => {
   test("is empty without a voice or a fighter", () => {
     expect(fighterVoiceUrl("http://x:8090", library[1])).toBe("");
     expect(fighterVoiceUrl("http://x:8090", null)).toBe("");
+  });
+});
+
+describe("toFace", () => {
+  test("reads a stored face point", () => {
+    expect(toFace({ x: 0.27, y: 0.26, h: 0.29 })).toEqual({ x: 0.27, y: 0.26, h: 0.29 });
+  });
+  test("keeps it inside the picture", () => {
+    expect(toFace({ x: 1.2, y: -0.1, h: 0 })).toEqual({ x: 1, y: 0, h: 0.02 });
+  });
+  test("is null when it's missing or garbled", () => {
+    expect(toFace(null)).toBeNull();
+    expect(toFace("")).toBeNull(); // PocketBase's empty json field
+    expect(toFace({ x: 0.5, y: 0.5 })).toBeNull();
+    expect(toFace({ x: "0.5", y: 0.5, h: 0.2 })).toBeNull();
+  });
+});
+
+describe("facePan", () => {
+  const breycist = { x: 0.266, y: 0.263, h: 0.286 }; // face left of centre
+  test("slides the picture so the face is in the middle", () => {
+    expect(facePan(breycist)).toBe(23.4);
+    expect(facePan({ x: 0.5, y: 0.2, h: 0.2 })).toBe(0);
+  });
+  test("goes the other way when the picture is mirrored", () => {
+    expect(facePan(breycist, true)).toBe(-23.4);
+  });
+  test("leaves it centred without a face", () => {
+    expect(facePan(null)).toBe(0);
+  });
+});
+
+describe("faceCrop", () => {
+  const face = { x: 0.25, y: 0.2, h: 0.3 };
+  test("centres the face and zooms so it fills the box", () => {
+    const css = faceCrop(face, 0.6);
+    expect(css).toContain("height: 200%");
+    expect(css).toContain("transform: translate(-25%, -20%)");
+  });
+  test("mirrors the face's position along with the picture", () => {
+    expect(faceCrop(face, 0.6, true)).toContain("transform: translate(-75%, -20%) scaleX(-1)");
+  });
+  test("never zooms out past the picture filling the box", () => {
+    expect(faceCrop({ x: 0.5, y: 0.5, h: 0.9 }, 0.6)).toContain("height: 100%");
+  });
+  test("is empty without a face, so the old crop stays", () => {
+    expect(faceCrop(null)).toBe("");
+  });
+});
+
+describe("artFor", () => {
+  const plain = { img: "a.png" };
+  const lettered = { img: "c.png", imgMirrored: "c-mirrored.png" };
+  test("shows the hand-made mirror image, unflipped, where it'd be mirrored", () => {
+    expect(artFor(lettered, true)).toEqual({ src: "c-mirrored.png", flip: false });
+  });
+  test("shows the cut-out the right way round as it is", () => {
+    expect(artFor(lettered, false)).toEqual({ src: "c.png", flip: false });
+  });
+  test("flips the cut-out when there's no mirror image", () => {
+    expect(artFor(plain, true)).toEqual({ src: "a.png", flip: true });
+    expect(artFor({ img: "a.png", imgMirrored: "" }, true)).toEqual({ src: "a.png", flip: true });
   });
 });

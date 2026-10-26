@@ -3,18 +3,34 @@
   import { invalidateAll } from "$app/navigation";
   import { liveUpdates } from "$lib/pbBrowser";
   import { EVENT, browserPbUrl } from "$lib/config";
-  import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl } from "$lib/fighters";
   import {
+    fighterFor,
+    fighterImageUrl,
+    fighterMirroredUrl,
+    fighterRoyaleVictoryUrl,
+    fighterVictoryUrl,
+    fighterVoiceUrl,
+    type Face,
+  } from "$lib/fighters";
+  import {
+    AND,
     GRAND_CHAMPION,
+    QUALIFIED,
+    QUALIFIED_CALL,
+    ROYALE,
+    ROYALE_CHAMPION,
     STINGER,
     VERSUS,
     WINNER_SLAM,
     WINS,
     championCallFresh,
     finishClip,
+    qualifiedCall,
+    royaleLabelClip,
     titleClip,
     winsCall,
   } from "$lib/sounds";
+  import { qualifiers, royaleView, type Battle } from "$lib/royale";
   import { Announcer } from "$lib/components/tv/announcer";
   import { FINISHES } from "$lib/finishes";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
@@ -47,6 +63,10 @@
   import VsIntro from "$lib/components/tv/VsIntro.svelte";
   import ChampionScene from "$lib/components/tv/ChampionScene.svelte";
   import WinnerScreen from "$lib/components/tv/WinnerScreen.svelte";
+  import RoyaleBoard from "$lib/components/tv/RoyaleBoard.svelte";
+  import RoyaleIntro from "$lib/components/tv/RoyaleIntro.svelte";
+  import RoyaleDraw from "$lib/components/tv/RoyaleDraw.svelte";
+  import QualifiedScreen from "$lib/components/tv/QualifiedScreen.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
   import LiveQr from "$lib/components/tv/LiveQr.svelte";
 
@@ -71,9 +91,11 @@
     spotlight: "マッチセンター",
     awards: "アワード",
     champion: "チャンピオン",
+    royale: "バトルロイヤル",
+    royaleChampion: "チャンピオン",
   };
 
-  const scenes = $derived(availableScenes(!!data.tournament, data.matches));
+  const scenes = $derived(availableScenes(!!data.tournament, data.matches, data.royale));
   const awards = $derived(computeAwards(data.matches));
   const tournamentOver = $derived(data.matches.some((m) => m.stage === "gf" && m.matchStatus === "done"));
 
@@ -88,7 +110,7 @@
   //   5. auto rotation, each scene for its DWELL
   // A result doesn't cut to Match centre: the winner screen plays over
   // whatever is on (WINNER_SECONDS), then the rotation carries on.
-  const DWELL: Record<Scene, number> = { standby: 60, groups: 25, rr: 20, bracket: 25, spotlight: 15, awards: 20, champion: 30 };
+  const DWELL: Record<Scene, number> = { standby: 60, groups: 25, rr: 20, bracket: 25, spotlight: 15, awards: 20, champion: 30, royale: 25, royaleChampion: 30 };
   const REACT_SECONDS = 20;
   const LOCAL_SECONDS = 60;
   const WINNER_SECONDS = 15;
@@ -101,7 +123,7 @@
 
   const localActive = $derived(!!local && local.until > now && scenes.includes(local.scene));
   const reacting = $derived(!!react && react.until > now && scenes.includes("spotlight"));
-  const hold = $derived(tvHold(data.matches, scenes));
+  const hold = $derived(tvHold(data.matches, scenes, data.royale));
   const scene = $derived.by<Scene>(() => {
     if (localActive) return local!.scene;
     if (!data.tournament) return "standby";
@@ -351,7 +373,7 @@
   // Start match plays the fighter intro first (VsIntro), then the launch
   // draw. Each blader's katakana and cut-out come from the fighter library,
   // matched by name; anyone not in it gets the mystery silhouette.
-  type IntroFighter = { name: string; kana: string; img: string; mirror: boolean };
+  type IntroFighter = { name: string; kana: string; img: string; imgMirrored: string; mirror: boolean; face: Face | null };
   type IntroShow = {
     id: string;
     p1: IntroFighter;
@@ -365,7 +387,7 @@
   function introFighter(name: string): IntroFighter {
     const f = fighterFor(name, data.fighters);
     // The intro shows the combat name; players without a fighter keep their own.
-    return { name: f?.name || name, kana: f?.kana ?? "", img: fighterImageUrl(browserPbUrl(), f), mirror: !!f?.mirror };
+    return { name: f?.name || name, kana: f?.kana ?? "", img: fighterImageUrl(browserPbUrl(), f), imgMirrored: fighterMirroredUrl(browserPbUrl(), f), mirror: !!f?.mirror, face: f?.face ?? null };
   }
   function endIntro() {
     const next = introShow?.then ?? null;
@@ -466,8 +488,9 @@
   // half-loaded image. (Browsers cache them; the list is at most a few dozen.)
   $effect(() => {
     for (const f of data.fighters) {
-      const url = fighterImageUrl(browserPbUrl(), f);
-      if (url) new Image().src = url;
+      for (const url of [fighterImageUrl(browserPbUrl(), f), fighterMirroredUrl(browserPbUrl(), f)]) {
+        if (url) new Image().src = url;
+      }
     }
   });
 
@@ -488,7 +511,9 @@
   }
   // Load every clip the next intros could need, so each one's length is known
   // when an intro is timed and it plays on cue.
-  onMount(() => [...VERSUS, ...FINISHES.map((f) => finishClip(f.key)), WINS, STINGER].forEach((u) => announcer.preload(u)));
+  onMount(() =>
+    [...VERSUS, ...FINISHES.map((f) => finishClip(f.key)), WINS, STINGER, ROYALE, AND, QUALIFIED].forEach((u) => announcer.preload(u)),
+  );
   // The admin page's TV panel sets these, live.
   $effect(() => {
     announcer.setEnabled(!data.tv.soundOff);
@@ -545,7 +570,7 @@
     statusPrimed = true;
     // The music's match has gone (a reset), or finished without being seen
     // to: just fade the music out.
-    if (musicFor && !data.matches.some((x) => x.code === musicFor && x.matchStatus !== "done")) {
+    if (musicFor && !musicFor.startsWith("royale:") && !data.matches.some((x) => x.code === musicFor && x.matchStatus !== "done")) {
       musicFor = "";
       announcer.stopMusic();
     }
@@ -568,6 +593,147 @@
           calls = [voice, GRAND_CHAMPION];
         }
       }
+      announcer.startChampion(calls);
+    });
+    return () => announcer.stopChampion();
+  });
+
+  // ── Battle royale ───────────────────────────────────────────────────
+  // After the main event (lib/royale.ts). Start on the admin page plays the
+  // battle's intro over the match music ("Battle royale!", then its name);
+  // a heat or sudden death result gets the Qualified screen (even with a
+  // scene locked), "[A] and [B]… qualified!" and the stinger. The final's
+  // result brings up the battle royale champion scene (held), with the
+  // champion theme and the champion's call.
+  const royale = $derived(data.royale ? royaleView(data.royale) : null);
+  const royaleChamp = $derived(royale?.champion ?? "");
+  const royaleRunnerUp = $derived(royale?.runnerUp ?? "");
+  type RoyaleIntroShow = { id: string; fighters: IntroFighter[]; label: string; out: number };
+  let royaleIntro = $state<RoyaleIntroShow | null>(null);
+  // The champion scene's fighters by name (battle royale entrants needn't be
+  // tournament players): combat name, katakana, picture and victory pose:
+  // the battle royale one if they have it, else their normal one.
+  function royaleSceneFighter(name: string) {
+    const f = fighterFor(name, data.fighters);
+    const victory = fighterRoyaleVictoryUrl(browserPbUrl(), f) || fighterVictoryUrl(browserPbUrl(), f);
+    return { ...introFighter(name), player: name, victory };
+  }
+
+  // The draw: when the heats are generated, the wheel of everyone in it,
+  // heat by heat, with "Battle royale!" as the hub slams in. The board is
+  // held underneath, so it's what's left when the draw clears. Seen by
+  // comparing reloads, so a page load never replays it.
+  type RoyaleDrawShow = { id: string; fighters: IntroFighter[] };
+  let royaleDraw = $state<RoyaleDrawShow | null>(null);
+  let royaleIdSeen: string | null | undefined = undefined; // undefined: not loaded yet
+  $effect(() => {
+    const r = data.royale;
+    untrack(() => {
+      const was = royaleIdSeen;
+      royaleIdSeen = r?.id ?? null;
+      if (was === undefined || !r || r.id === was) return;
+      // Old news (no date counts as old: NaN fails the test).
+      if (!(Date.now() - Date.parse(r.createdAt ?? "") <= CALLOUT_FRESH_MS)) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      royaleDraw = { id: r.id, fighters: r.entrants.map(introFighter) };
+      announcer.call([ROYALE]);
+    });
+  });
+
+  function startRoyaleIntro(b: Battle) {
+    if (Date.now() - Date.parse(b.result.startedAt ?? "") > CALLOUT_FRESH_MS) return; // old news
+    royaleDraw = null; // the first heat's intro takes over
+    if (qualifiedShow) qualifiedLeaving = true; // the next battle's build-up takes over
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const out = announcer.intro([ROYALE, royaleLabelClip(b.key)]);
+    musicFor = `royale:${b.key}`;
+    royaleIntro = { id: `${b.key}@${b.result.startedAt}`, fighters: b.entrants.map(introFighter), label: b.label, out };
+  }
+
+  // The Qualified screen, after a heat or the sudden death: who's through to
+  // the final. Held like the winner screen: until the next battle starts or
+  // WINNER_SECONDS is up.
+  type QualifiedShow = { id: string; fighters: IntroFighter[]; label: string; toSudden: string };
+  let qualifiedShow = $state<QualifiedShow | null>(null);
+  let qualifiedLeaving = $state(false);
+  let qualifiedTimer: ReturnType<typeof setTimeout>;
+
+  function royaleResult(b: Battle) {
+    const withMusic = musicFor === `royale:${b.key}`;
+    if (withMusic) musicFor = "";
+    royaleIntro = null;
+    // The final: the champion scene (held) has the sound from here.
+    if (b.kind === "final") {
+      royaleChampSeen = { name: b.result.winner ?? "", at: Date.now() };
+      return;
+    }
+    const { through, toSudden } = qualifiers(royale!.plan, b);
+    const voices = through.map((name) => fighterVoiceUrl(browserPbUrl(), fighterFor(name, data.fighters)));
+    // Unlike a match, a scene locked from the admin page doesn't stop it: the
+    // board is the only thing worth locking to now, and the result belongs over it.
+    const screen = !localActive;
+    announcer.endMatch(qualifiedCall(voices), withMusic, screen ? QUALIFIED_CALL : 0);
+    if (!screen) return;
+    if (winnerShow) winnerShow = null;
+    qualifiedLeaving = false;
+    react = null;
+    clearTimeout(qualifiedTimer);
+    qualifiedTimer = setTimeout(() => (qualifiedLeaving = true), WINNER_SECONDS * 1000);
+    qualifiedShow = {
+      id: `${b.key}@${Date.now()}`,
+      fighters: through.map(introFighter),
+      label: b.label,
+      toSudden: toSudden ? introFighter(toSudden).name : "",
+    };
+  }
+
+  // Seen by comparing reloads, like the match results, so a page load never
+  // replays an old start or result.
+  let royaleSeen = new Map<string, string>();
+  $effect(() => {
+    const battles = royale?.battles ?? [];
+    untrack(() => {
+      for (const b of battles) {
+        const was = royaleSeen.get(b.key);
+        const is = `${b.status}|${b.result.startedAt ?? ""}|${b.result.resultAt ?? ""}`;
+        royaleSeen.set(b.key, is);
+        if (was === undefined || was === is) continue;
+        if (b.status === "live" && !was.startsWith("live")) startRoyaleIntro(b);
+        else if (b.status === "done" && !was.startsWith("done")) royaleResult(b);
+        else if (b.status === "ready" && was.startsWith("live") && musicFor === `royale:${b.key}`) {
+          // Start cancelled: no music for a battle that isn't on.
+          musicFor = "";
+          royaleIntro = null;
+          announcer.stopMusic();
+        }
+      }
+    });
+  });
+
+  // The battle royale champion scene: the theme while it's up, and the
+  // first time after the final's result, the champion's name then "Battle
+  // royale champion!" (while it's news, as for the main champion).
+  let royaleChampSeen = $state<{ name: string; at: number } | null>(null);
+  let royaleChampCalled = "";
+  // The pose is full size, so fetch it once the champion's known.
+  $effect(() => {
+    const pose = royaleChamp ? royaleSceneFighter(royaleChamp).victory : "";
+    if (pose) new Image().src = pose;
+  });
+  $effect(() => {
+    if (scene !== "royaleChampion" || !royaleChamp) return;
+    const name = royaleChamp;
+    untrack(() => {
+      const seen = royaleChampSeen;
+      let calls: string[] = [];
+      if (seen && seen.name === name && `${seen.name}@${seen.at}` !== royaleChampCalled) {
+        royaleChampCalled = `${seen.name}@${seen.at}`;
+        if (championCallFresh(seen.at, Date.now())) {
+          calls = [fighterVoiceUrl(browserPbUrl(), fighterFor(name, data.fighters)), ROYALE_CHAMPION];
+        }
+      }
+      winnerShow = null;
+      qualifiedShow = null;
       announcer.startChampion(calls);
     });
     return () => announcer.stopChampion();
@@ -634,7 +800,16 @@
   // The phone page's QR in the corner: not on Standby (it has a big one),
   // Champion, or while the intro / stadium draw / blank build-up is on.
   const cornerQr = $derived(
-    scene !== "standby" && scene !== "champion" && !introShow && !drawShow && !blank && !winnerShow,
+    scene !== "standby" &&
+      scene !== "champion" &&
+      scene !== "royaleChampion" &&
+      !introShow &&
+      !royaleIntro &&
+      !royaleDraw &&
+      !drawShow &&
+      !blank &&
+      !winnerShow &&
+      !qualifiedShow,
   );
 
   // ── Operator control (keyboard / mouse at the TV) ───────────────────
@@ -650,6 +825,7 @@
     local = { scene: s, until: Date.now() + LOCAL_SECONDS * 1000 };
     react = null;
     winnerShow = null;
+    qualifiedShow = null;
     if (s === "spotlight") spotIndex = 0; // jump to the live / next match
     poke();
   }
@@ -688,6 +864,8 @@
     if (localActive) return `Picked here, back to ${fallback} in ${Math.ceil((local!.until - now) / 1000)}s`;
     if (data.tv.mode === "locked") return "Locked by the organiser";
     if (reacting) return "Auto, showing the latest score";
+    if (hold === "royale") return "Holding on the battle royale";
+    if (hold === "royaleChampion") return "Holding on the battle royale champion";
     if (hold === "champion") return "Holding on the champion: the tournament is over";
     if (hold === "groups") return "Holding on the groups until the bracket is generated";
     if (hold) return "Holding on the bracket until the first match starts";
@@ -700,7 +878,7 @@
 
   onMount(() => {
     poke();
-    const stopLive = liveUpdates(["tournaments", "groups", "players", "matches", "tv_state", "fighters"], () => invalidateAll(), {
+    const stopLive = liveUpdates(["tournaments", "groups", "players", "matches", "tv_state", "fighters", "royales"], () => invalidateAll(), {
       onStatus: (up) => (online = up),
       everyMs: 30_000,
     });
@@ -1053,6 +1231,21 @@
           lite={fxLite}
         />
       {/if}
+
+    {:else if scene === "royale"}
+      {#if data.royale && mounted}
+        <RoyaleBoard royale={data.royale} fighter={introFighter} />
+      {/if}
+
+    {:else if scene === "royaleChampion"}
+      {#if royaleChamp && mounted}
+        <ChampionScene
+          champion={royaleSceneFighter(royaleChamp)}
+          runnerUp={royaleRunnerUp ? royaleSceneFighter(royaleRunnerUp) : null}
+          kicker="Battle royale champion"
+          lite={fxLite}
+        />
+      {/if}
     {/if}
   </main>
 
@@ -1078,6 +1271,22 @@
     {/key}
   {/if}
 
+  <!-- The battle royale's Qualified screen, after a heat or the sudden death. -->
+  {#if qualifiedShow}
+    {#key qualifiedShow.id}
+      <div class="intro-layer">
+        <QualifiedScreen
+          fighters={qualifiedShow.fighters}
+          label={qualifiedShow.label}
+          toSudden={qualifiedShow.toSudden}
+          leaving={qualifiedLeaving}
+          lite={fxLite}
+          ondone={() => (qualifiedShow = null)}
+        />
+      </div>
+    {/key}
+  {/if}
+
   <!-- The VS intro covers the whole screen (header and all) before a launch. -->
   {#if introShow}
     {#key introShow.id}
@@ -1090,6 +1299,40 @@
           out={introShow.out}
           lite={fxLite}
           ondone={endIntro}
+        />
+      </div>
+    {/key}
+  {/if}
+
+  <!-- The battle royale draw: the heats, as a wheel, over everything. -->
+  {#if royaleDraw && royale}
+    {#key royaleDraw.id}
+      <div class="intro-layer">
+        <RoyaleDraw
+          fighters={royaleDraw.fighters}
+          heats={royale.plan.heats}
+          finalSize={royale.plan.finalSize}
+          sudden={royale.plan.sudden}
+          lite={fxLite}
+          ondone={() => (royaleDraw = null)}
+        />
+      </div>
+    {/key}
+  {/if}
+
+  <!-- The battle royale's intro: everyone in the battle, over everything. -->
+  {#if royaleIntro}
+    {#key royaleIntro.id}
+      <div class="intro-layer">
+        <RoyaleIntro
+          fighters={royaleIntro.fighters}
+          label={royaleIntro.label}
+          out={royaleIntro.out}
+          lite={fxLite}
+          ondone={() => {
+            royaleIntro = null;
+            qualifiedShow = null; // it held under the intro until now
+          }}
         />
       </div>
     {/key}

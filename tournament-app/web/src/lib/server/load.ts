@@ -1,8 +1,9 @@
 import type PocketBase from "pocketbase";
 import type { RecordModel } from "pocketbase";
 import type { PBGroup, PBMatch, PBPlayer, TvState } from "$lib/view";
-import type { PBFighter } from "$lib/fighters";
+import { toFace, type PBFighter } from "$lib/fighters";
 import type { PBBet, PBBettor } from "$lib/betting";
+import type { PBRoyale } from "$lib/royale";
 
 export interface TournamentView {
   tournament: {
@@ -17,6 +18,7 @@ export interface TournamentView {
   players: PBPlayer[];
   matches: PBMatch[];
   fighters: PBFighter[]; // the fighter library (not tied to the tournament)
+  royale: PBRoyale | null; // the battle royale after the main event, once started
 }
 
 const toGroup = (r: RecordModel): PBGroup => ({
@@ -43,9 +45,12 @@ const toFighter = (r: RecordModel): PBFighter => ({
   player: r.player || "",
   kana: r.kana || "",
   image: r.image || "",
+  imageMirrored: r.imageMirrored || "",
   victory: r.victory || "",
+  royaleVictory: r.royaleVictory || "",
   voice: r.voice || "",
   mirror: !!r.mirror,
+  face: toFace(r.face),
 });
 
 // The fighter library. Never breaks the page: an empty list just means
@@ -95,14 +100,15 @@ const toMatch = (r: RecordModel): PBMatch => {
 export async function loadTournamentView(pb: PocketBase): Promise<TournamentView> {
   const tournaments = await pb.collection("tournaments").getFullList({ sort: "-createdAt" });
   const t = tournaments[0];
-  if (!t) return { tournament: null, groups: [], players: [], matches: [], fighters: await loadFighters(pb) };
+  if (!t) return { tournament: null, groups: [], players: [], matches: [], fighters: await loadFighters(pb), royale: null };
 
   const filter = pb.filter("tournament = {:id}", { id: t.id });
-  const [groups, players, matches, fighters] = await Promise.all([
+  const [groups, players, matches, fighters, royale] = await Promise.all([
     pb.collection("groups").getFullList({ filter, sort: "index" }),
     pb.collection("players").getFullList({ filter }),
     pb.collection("matches").getFullList({ filter, sort: "orderIndex" }),
     loadFighters(pb),
+    loadRoyale(pb, t.id),
   ]);
 
   return {
@@ -118,6 +124,7 @@ export async function loadTournamentView(pb: PocketBase): Promise<TournamentView
     players: players.map(toPlayer),
     matches: matches.map(toMatch),
     fighters,
+    royale,
   };
 }
 
@@ -144,6 +151,25 @@ export async function loadBetting(pb: PocketBase, tournamentId: string): Promise
     };
   } catch {
     return { bettors: [], bets: [] };
+  }
+}
+
+// PocketBase writes dates as "2026-10-26 15:48:33.234Z"; not every browser
+// parses that, so hand them on as ISO ("" if missing).
+function isoDate(v: unknown): string {
+  const t = typeof v === "string" ? Date.parse(v.replace(" ", "T")) : NaN;
+  return Number.isFinite(t) ? new Date(t).toISOString() : "";
+}
+
+// The tournament's battle royale (see migration 1710001600_royale), or null
+// before it starts (or before the migration has run).
+async function loadRoyale(pb: PocketBase, tournamentId: string): Promise<PBRoyale | null> {
+  try {
+    const list = await pb.collection("royales").getFullList({ filter: pb.filter("tournament = {:id}", { id: tournamentId }) });
+    const r = list[0];
+    return r ? { id: r.id, spaces: r.spaces, entrants: r.entrants ?? [], battles: r.battles ?? {}, createdAt: isoDate(r.createdAt) } : null;
+  } catch {
+    return null;
   }
 }
 

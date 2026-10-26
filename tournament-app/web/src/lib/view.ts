@@ -1,4 +1,5 @@
 import { computeStandings, type Match, type Slot, type Stage, type StandingRow } from "@beyfest/engine";
+import { royaleView, type PBRoyale } from "./royale";
 
 // Plain shapes as they arrive from PocketBase (superset of engine fields).
 export interface PBPlayer {
@@ -218,7 +219,16 @@ export function hasStage(matches: PBMatch[], stage: string): boolean {
 // ── TV scenes ─────────────────────────────────────────────────────────────
 // Shared by the TV (what it can show) and the admin page (what it can pick).
 
-export type Scene = "standby" | "groups" | "rr" | "bracket" | "spotlight" | "awards" | "champion";
+export type Scene =
+  | "standby"
+  | "groups"
+  | "rr"
+  | "bracket"
+  | "spotlight"
+  | "awards"
+  | "champion"
+  | "royale"
+  | "royaleChampion";
 
 export const SCENE_TITLE: Record<Scene, string> = {
   standby: "Beyfest 2026",
@@ -228,6 +238,8 @@ export const SCENE_TITLE: Record<Scene, string> = {
   spotlight: "Match centre",
   awards: "Awards",
   champion: "Champion",
+  royale: "Battle royale",
+  royaleChampion: "Battle royale champion",
 };
 
 // What the venue TV should be doing, as set from the admin page.
@@ -249,7 +261,7 @@ export const MUSIC_LEVELS = [
 ];
 
 // Scenes that have something to show right now, in rotation order.
-export function availableScenes(hasTournament: boolean, matches: PBMatch[]): Scene[] {
+export function availableScenes(hasTournament: boolean, matches: PBMatch[], royale: PBRoyale | null = null): Scene[] {
   if (!hasTournament) return ["standby"];
   const s: Scene[] = ["groups"];
   if (hasStage(matches, "wb_rr") || hasStage(matches, "lb_rr")) s.push("rr");
@@ -257,6 +269,10 @@ export function availableScenes(hasTournament: boolean, matches: PBMatch[]): Sce
   s.push("spotlight");
   if (loggedResults(matches).length >= AWARDS_AFTER) s.push("awards");
   if (matches.some((m) => m.stage === "gf" && m.matchStatus === "done")) s.push("champion");
+  if (royale) {
+    s.push("royale");
+    if (royaleView(royale)?.champion) s.push("royaleChampion");
+  }
   return s;
 }
 
@@ -266,9 +282,12 @@ export function availableScenes(hasTournament: boolean, matches: PBMatch[]): Sce
 // - the knockout is generated but none of it has been played → the Bracket
 //   (or the mini round-robins, if there's no bracket scene), until a match is
 //   started (Start match cuts to Match centre as usual, which ends the hold);
-// - the grand final is done → the Champion, for good (the tournament's over).
+// - the grand final is done → the Champion, for good (the tournament's over);
+// - then the battle royale takes over: its board while it's played, then
+//   its champion.
 // null the rest of the time.
-export function tvHold(matches: PBMatch[], scenes: Scene[]): Scene | null {
+export function tvHold(matches: PBMatch[], scenes: Scene[], royale: PBRoyale | null = null): Scene | null {
+  if (royale && scenes.includes("royale")) return scenes.includes("royaleChampion") ? "royaleChampion" : "royale";
   if (scenes.includes("champion") && matches.some((m) => m.stage === "gf" && m.matchStatus === "done")) return "champion";
   const groups = matches.filter((m) => m.stage === "group");
   const knockout = matches.filter((m) => m.stage !== "group");

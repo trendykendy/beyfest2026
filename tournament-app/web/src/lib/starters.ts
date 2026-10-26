@@ -7,28 +7,45 @@
 // missing filled in. So it's safe to press again, e.g. after an update ships
 // more starters, and edits made on the admin page are kept.
 
-import type { PBFighter } from "./fighters";
+import type { Face, PBFighter } from "./fighters";
 
 export interface Starter {
   name: string;
   player?: string;
   kana?: string;
   image?: string; // file name in static/starter-fighters/
+  imageMirrored?: string; // file name in static/starter-fighters/: `image` mirrored by hand
   victory?: string; // file name in static/starter-fighters/
+  royaleVictory?: string; // file name in static/starter-fighters/
   voice?: string; // file name in static/starter-fighters/
   mirror?: boolean;
+  face?: Face; // where the face is in `image` (scripts/find-faces.py)
 }
 
 export type StarterStep =
   | { kind: "add"; starter: Starter }
   // fields: the text fields to set; files: which files to upload
-  | { kind: "fill"; id: string; starter: Starter; fields: Partial<Pick<PBFighter, "player" | "kana">>; files: StarterFile[] };
+  | { kind: "fill"; id: string; starter: Starter; fields: Partial<Pick<PBFighter, "player" | "kana" | "face">>; files: StarterFile[] };
 
-export type StarterFile = "image" | "victory" | "voice";
+export type StarterFile = "image" | "imageMirrored" | "victory" | "royaleVictory" | "voice";
 
 const key = (s: string | undefined) => (s ?? "").trim().toLowerCase();
 
-export function planStarters(starters: Starter[], library: PBFighter[]): StarterStep[] {
+// PocketBase stores an upload as "<name>_<random>.<ext>", so "breycist.png"
+// comes back as e.g. "breycist_x8k2p9q1zz.png".
+function sameFile(stored: string, original: string | undefined): boolean {
+  if (!original) return false;
+  const dot = original.lastIndexOf(".");
+  const base = (dot < 0 ? original : original.slice(0, dot)).toLowerCase();
+  const ext = dot < 0 ? "" : original.slice(dot).toLowerCase();
+  const s = stored.toLowerCase();
+  return s === base + ext || (s.startsWith(base + "_") && s.endsWith(ext));
+}
+
+// `pictures`: fighters whose image is byte-for-byte a starter's picture,
+// fighter id → that picture's file name (the Fighters page works it out,
+// since a picture uploaded by hand keeps its own file name).
+export function planStarters(starters: Starter[], library: PBFighter[], pictures = new Map<string, string>()): StarterStep[] {
   const steps: StarterStep[] = [];
   for (const s of starters) {
     const f =
@@ -38,13 +55,20 @@ export function planStarters(starters: Starter[], library: PBFighter[]): Starter
       steps.push({ kind: "add", starter: s });
       continue;
     }
-    const fields: Partial<Pick<PBFighter, "player" | "kana">> = {};
+    const fields: Partial<Pick<PBFighter, "player" | "kana" | "face">> = {};
     // A player name only goes in if nobody else has it already.
     if (!f.player && s.player && !library.some((x) => key(x.player) === key(s.player))) fields.player = s.player;
     if (!f.kana && s.kana) fields.kana = s.kana;
+    // The face point belongs to the starter's own picture, so it only goes in
+    // with that picture, or onto it if it's still the starter's.
+    const ownPicture = !f.image || sameFile(f.image, s.image) || (!!s.image && pictures.get(f.id) === s.image);
+    if (!f.face && s.face && ownPicture) fields.face = s.face;
     const files: StarterFile[] = [];
     if (!f.image && s.image) files.push("image");
+    // Like the face point, the mirror image only goes with the starter's own picture.
+    if (!f.imageMirrored && s.imageMirrored && ownPicture) files.push("imageMirrored");
     if (!f.victory && s.victory) files.push("victory");
+    if (!f.royaleVictory && s.royaleVictory) files.push("royaleVictory");
     if (!f.voice && s.voice) files.push("voice");
     if (Object.keys(fields).length || files.length) steps.push({ kind: "fill", id: f.id, starter: s, fields, files });
   }
