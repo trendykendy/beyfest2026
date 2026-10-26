@@ -33,6 +33,11 @@ describe("tvHold", () => {
     expect(tvHold(ms, ["groups", "rr", "spotlight"])).toBe("rr");
   });
 
+  test("grand final done: hold on the champion", () => {
+    const ms = [match("G1", "group", "done"), match("MB1", "mb", "done"), match("GF", "gf", "done")];
+    expect(tvHold(ms, [...ALL, "champion"])).toBe("champion");
+  });
+
   test("no matches at all: no hold", () => {
     expect(tvHold([], ["groups", "spotlight"])).toBeNull();
   });

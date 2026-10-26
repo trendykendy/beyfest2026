@@ -83,7 +83,8 @@
   //   2. the organiser locked a scene from the admin page
   //   3. a match started or its score changed → Match centre (REACT_SECONDS)
   //   4. between stages, a held scene (tvHold: the final groups, then the
-  //      new bracket until its first match starts)
+  //      new bracket until its first match starts; Champion once the grand
+  //      final is done)
   //   5. auto rotation, each scene for its DWELL
   // A result doesn't cut to Match centre: the winner screen plays over
   // whatever is on (WINNER_SECONDS), then the rotation carries on.
@@ -528,6 +529,10 @@
       if (!statusPrimed || before === undefined || before === "done" || m.matchStatus !== "done") continue;
       const withMusic = m.code === playingFor;
       if (withMusic) musicFor = "";
+      // The grand final going straight to the Champion scene: that scene's
+      // theme and "[name]… Grand Champion!" call take over the sound (and
+      // fade the match music out), so no "[name] wins!" or stinger under it.
+      if (m.stage === "gf" && untrack(() => scene === "champion")) continue;
       const voice = fighterVoiceUrl(browserPbUrl(), fighterFor(names.get(m.winner) ?? "", data.fighters));
       // With the winner screen, the call starts with its slam (a walkover gets
       // the screen but no call). Without it (the grand final, or a scene
@@ -683,6 +688,7 @@
     if (localActive) return `Picked here, back to ${fallback} in ${Math.ceil((local!.until - now) / 1000)}s`;
     if (data.tv.mode === "locked") return "Locked by the organiser";
     if (reacting) return "Auto, showing the latest score";
+    if (hold === "champion") return "Holding on the champion: the tournament is over";
     if (hold === "groups") return "Holding on the groups until the bracket is generated";
     if (hold) return "Holding on the bracket until the first match starts";
     return "Auto rotation";
