@@ -439,7 +439,7 @@
     if (liveMatches(data.matches).some((m) => !w.live.includes(liveKey(m)))) winnerLeaving = true;
   });
   $effect(() => {
-    if (winnerShow && scene === "champion") winnerShow = null;
+    if (winnerShow && !winnerShow.royale && scene === "champion") winnerShow = null;
   });
   // Its "Up next": the fixture the TV calls next (the organiser's "Score
   // this" pick first, as the Next up strip and /live order it), live from
@@ -586,7 +586,7 @@
   // After the main event (lib/royale.ts). Start on the admin page plays the
   // battle's intro over the match music ("Battle royale!", then its name);
   // a heat or final result gets "[name] wins!" and the stinger, a heat the
-  // winner screen too; the sudden death just the stinger (the board shows
+  // winner screen too (even with a scene locked); the sudden death just the stinger (the board shows
   // who's through). The final's result brings up the battle royale champion
   // scene (held), with the champion theme and the champion's call.
   const royale = $derived(data.royale ? royaleView(data.royale) : null);
@@ -621,7 +621,9 @@
     if (b.kind === "sudden") return void announcer.endMatch([], withMusic);
     const winner = b.result.winner ?? "";
     const voice = fighterVoiceUrl(browserPbUrl(), fighterFor(winner, data.fighters));
-    const screen = !localActive && data.tv.mode !== "locked";
+    // Unlike a match, a scene locked from the admin page doesn't stop it: the
+    // board is the only thing worth locking to now, and the result belongs over it.
+    const screen = !localActive;
     announcer.endMatch(winsCall(voice, false), withMusic, screen ? WINNER_SLAM : 0);
     if (!screen) return;
     winnerLeaving = false;
