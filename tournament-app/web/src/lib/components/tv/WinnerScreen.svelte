@@ -175,7 +175,7 @@
         {#if winner.kana}<div class="kana" lang="ja"><span>{winner.kana}</span></div>{/if}
         <div class="name" class:long={winner.name.length > 10}><span>{winner.name}</span></div>
       </div>
-      <div class="result">
+      <div class="result" class:royale>
         {#if royale}
           <div class="score"><div class="wo"><span>Last bey standing</span></div></div>
         {:else if walkover}
@@ -823,6 +823,15 @@
     color: var(--gold);
     border: 6px solid var(--gold);
     box-shadow: 10px 10px 0 var(--ink);
+  }
+  /* "Last bey standing" is twice the length of "Walkover": smaller, with the
+     runner-up kept narrow, so the two stay clear of a long winner's name tag. */
+  .royale .wo {
+    font-size: 84px;
+    padding: 8px 32px 14px;
+  }
+  .royale .def {
+    max-width: 380px;
   }
   /* "DEFEATS STORM", beside the score, reading towards it. */
   .def {

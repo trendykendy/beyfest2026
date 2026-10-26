@@ -45,6 +45,8 @@
   let side = $state<"red" | "blue">(q.get("side") === "blue" ? "blue" : "red");
   // ?wo: a walkover.
   let walkover = $state(q.has("wo"));
+  // ?royale: a battle royale heat ("Last bey standing", the runner-up, no Up next).
+  let royale = $state(q.has("royale"));
   let wins = $state(5);
   let losses = $state(3);
   // ?lite: the Pi-safe version.
@@ -178,10 +180,11 @@
           {title}
           {tier}
           {walkover}
+          {royale}
           {slow}
           {lite}
           {leaving}
-          next={NEXTS[nextPick]}
+          next={royale ? null : NEXTS[nextPick]}
           ondone={() => (gone = true)}
         />
       {/key}
@@ -230,6 +233,7 @@
         {/each}
       </span>
       <label><input type="checkbox" bind:checked={walkover} onchange={replay} /> Walkover</label>
+      <label><input type="checkbox" bind:checked={royale} onchange={replay} /> Battle royale</label>
       <label><input type="checkbox" bind:checked={noImg} onchange={replay} /> No images</label>
       <label><input type="checkbox" bind:checked={lite} onchange={replay} /> Lite (Pi)</label>
       <span class="group">
