@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { enhance } from "$app/forms";
   import { FINISHES } from "$lib/finishes";
   import { STADIA, stadiumOf } from "$lib/stadia";
@@ -28,9 +29,9 @@
   // reloading the page mid-match picks up where it left off instead of 0–0.
   type Round = { who: 1 | 2; pts: number; label: string; key: string };
   const FINISH_BY_KEY = new Map(FINISHES.map((f) => [f.key, f]));
-  function savedRounds(): Round[] {
+  function savedRounds(log = match.liveLog): Round[] {
     const out: Round[] = [];
-    for (const r of match.liveLog) {
+    for (const r of log) {
       const f = FINISH_BY_KEY.get(r.finish);
       if (f && (r.who === 1 || r.who === 2)) out.push({ who: r.who, pts: f.pts, label: f.label, key: f.key });
     }
@@ -58,17 +59,38 @@
   const total = (who: 1 | 2) => initial.filter((r) => r.who === who).reduce((a, r) => a + r.pts, 0);
   let everScored = initial.length > 0;
   let posted = `${total(1)}-${total(2)}-${initial.length}`;
+  // Taps on their way to the server. While any are, the server's copy is
+  // behind this one, so it isn't taken (see below).
+  let sending = 0;
   $effect(() => {
     const key = `${s1}-${s2}-${rounds.length}`;
     if (rounds.length === 0 && !everScored) return;
     everScored = true;
     if (key === posted) return;
     posted = key;
+    sending++;
     fetch("/admin/live", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ code: match.code, s1, s2, log: rounds.map((r) => ({ who: r.who, finish: r.key })) }),
-    }).catch(() => {});
+    })
+      .catch(() => {})
+      .finally(() => sending--);
+  });
+
+  // Scored on another device (the organiser's phone, say): take the saved
+  // rounds when they differ from this one's, so two open admin pages agree
+  // without a reload.
+  const logKey = (rs: { who: number; key: string }[]) => rs.map((r) => `${r.who}${r.key}`).join(",");
+  $effect(() => {
+    const saved = savedRounds(match.liveLog);
+    untrack(() => {
+      if (sending > 0 || logKey(saved) === logKey(rounds)) return;
+      const t = (who: 1 | 2) => saved.filter((r) => r.who === who).reduce((a, r) => a + r.pts, 0);
+      posted = `${t(1)}-${t(2)}-${saved.length}`; // already on the server: don't send it back
+      everScored = true;
+      rounds = saved;
+    });
   });
 
   const last = $derived(rounds[rounds.length - 1]);
@@ -78,14 +100,24 @@
   let askingWalkover = $state(false); // "who didn't show?" is open
   const wasStarted = () => !!match.startedAt; // read once, like the saved rounds
   let started = $state(wasStarted());
+  let starting = false; // a Start / Cancel start on its way to the server
   async function setStarted(start: boolean) {
     started = start;
+    starting = true;
     await fetch("/admin/start", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ code: match.code, start }),
     }).catch(() => {});
+    starting = false;
   }
+  // Started (or cancelled) on another device.
+  $effect(() => {
+    const saved = !!match.startedAt;
+    untrack(() => {
+      if (!starting) started = saved;
+    });
+  });
   const nameOf = (who: 1 | 2) => (who === 1 ? p1Name : p2Name);
   const SIDES = [1, 2] as const;
 

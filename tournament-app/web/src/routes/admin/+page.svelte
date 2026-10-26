@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import { invalidateAll } from "$app/navigation";
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { liveUpdates } from "$lib/pbBrowser";
   import { STRUCTURES, pickStructure, pointsToWin, miniRRAdvancers } from "@beyfest/engine";
   import { nameMap, slotLabel, hasStage, availableScenes, SCENE_TITLE, MUSIC_LEVELS, isLive, matchContext, tierOf, groupsInWords } from "$lib/view";
@@ -52,6 +52,16 @@
   // reload and the TV can show it as "Up next"; chosenCode applies it at once.
   let chosenCode = $state<string | null>(null);
   const pickedCode = $derived(chosenCode ?? data.tv.next);
+  // Once the saved pick changes (here or on another device) it wins.
+  let savedNext = untrack(() => data.tv.next);
+  $effect(() => {
+    const next = data.tv.next;
+    untrack(() => {
+      if (next === savedNext) return;
+      savedNext = next;
+      chosenCode = null;
+    });
+  });
   const current = $derived(
     playable.find((m) => m.code === pickedCode) ?? playable.find(isLive) ?? playable[0] ?? null,
   );
@@ -255,9 +265,11 @@
                     <span class="q-context">{matchContext(m, data.matches)}</span>
                     <span class="q-names">{label(m, 1)} <i>v</i> {label(m, 2)}</span>
                   </div>
-                  <form method="POST" action="?/pick" use:enhance>
+                  <!-- Switch to it once the form is on its way: switching on click
+                       takes this row (and its form) away before it's sent. -->
+                  <form method="POST" action="?/pick" use:enhance={() => ((chosenCode = m.code), undefined)}>
                     <input type="hidden" name="code" value={m.code} />
-                    <button class="q-pick" onclick={() => (chosenCode = m.code)}>
+                    <button class="q-pick">
                       {isLive(m) ? "Resume" : "Score this"}
                     </button>
                   </form>
