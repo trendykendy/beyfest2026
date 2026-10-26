@@ -1,5 +1,6 @@
 import type PocketBase from "pocketbase";
-import { loadTournamentView, loadTvState, type TournamentView } from "./load";
+import { loadBetting, loadTournamentView, loadTvState, type TournamentView } from "./load";
+import type { PBBet, PBBettor } from "$lib/betting";
 
 // Every phone on /live refreshes the moment a score is tapped, so 40 phones
 // means 40 identical full loads hitting the Pi at once. Instead, at most one
@@ -42,12 +43,13 @@ export function sharedLoader<A extends unknown[], T>(
   };
 }
 
-export type LiveView = TournamentView & { next: string };
+export type LiveView = TournamentView & { next: string; bettors: PBBettor[]; bets: PBBet[] };
 
 // What /live shows: the tournament plus the organiser's "Score this" pick, so
-// Up next lists matches in the same order as the TV. Everything it reads is
-// public, so whose request starts the load doesn't matter.
+// Up next lists matches in the same order as the TV, and the betting. Everything
+// it reads is public, so whose request starts the load doesn't matter.
 export const loadLiveView = sharedLoader(async (pb: PocketBase): Promise<LiveView> => {
   const [view, tv] = await Promise.all([loadTournamentView(pb), loadTvState(pb)]);
-  return { ...view, next: tv.next };
+  const betting = view.tournament ? await loadBetting(pb, view.tournament.id) : { bettors: [], bets: [] };
+  return { ...view, next: tv.next, ...betting };
 });

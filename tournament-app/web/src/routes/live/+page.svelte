@@ -5,12 +5,14 @@
   import { liveUpdates } from "$lib/pbBrowser";
   import { EVENT } from "$lib/config";
   import { loadFollow, resolveFollow, saveFollow, type Follow } from "$lib/follow";
+  import { loadBettor, saveBettor, type Bettor } from "$lib/betting";
   import { nameMap, type PBPlayer } from "$lib/view";
   import NowTab from "$lib/components/live/NowTab.svelte";
   import GroupsTab from "$lib/components/live/GroupsTab.svelte";
   import BracketTab from "$lib/components/live/BracketTab.svelte";
   import FollowPicker from "$lib/components/live/FollowPicker.svelte";
   import YourNext from "$lib/components/live/YourNext.svelte";
+  import BetsTab from "$lib/components/live/BetsTab.svelte";
 
   // The phone page, reached from the QR code on the TV. Spectators browse it
   // themselves (unlike the TV, which the organiser drives): what's on now,
@@ -25,11 +27,12 @@
   // ── Tabs ────────────────────────────────────────────────────────────
   // Kept in the address (#groups), so a reload or a shared link lands on the
   // same tab. Bracket only appears once the knockout exists.
-  type Tab = "now" | "groups" | "bracket" | "follow";
+  type Tab = "now" | "groups" | "bracket" | "bets" | "follow";
   const TABS: { key: Tab; label: string }[] = [
     { key: "now", label: "Now" },
     { key: "groups", label: "Groups" },
     { key: "bracket", label: "Bracket" },
+    { key: "bets", label: "Bets" },
     { key: "follow", label: "Follow" },
   ];
   const tabs = $derived(TABS.filter((t) => t.key !== "bracket" || hasKnockout));
@@ -62,13 +65,30 @@
     if (followed && follow && followed.id !== follow.id) setFollow(followed);
   });
 
+  // ── Betting ─────────────────────────────────────────────────────────
+  // This phone's betting name and token, also only in the browser.
+  let bettor = $state<Bettor | null>(null);
+
+  async function joined(b: Bettor) {
+    saveBettor(b);
+    // Load the new bettor before showing the wallet, so it never flashes
+    // back to the join form.
+    await invalidateAll();
+    bettor = b;
+  }
+  function lostBettor() {
+    saveBettor(null);
+    bettor = null;
+  }
+
   let online = $state(true);
   onMount(() => {
     follow = loadFollow();
+    bettor = loadBettor();
     const fromHash = location.hash.slice(1);
     if (TABS.some((t) => t.key === fromHash)) tab = fromHash as Tab;
     return liveUpdates(
-      ["tournaments", "groups", "players", "matches", "fighters", "tv_state"],
+      ["tournaments", "groups", "players", "matches", "fighters", "tv_state", "bettors", "bets"],
       () => invalidateAll(),
       { everyMs: 30_000, onStatus: (up) => (online = up) },
     );
@@ -134,6 +154,18 @@
             {followId}
             nextCode={data.next}
           />
+        {:else if shownTab === "bets"}
+          <BetsTab
+            matches={data.matches}
+            {names}
+            bettors={data.bettors}
+            bets={data.bets}
+            me={bettor}
+            enabled={data.betting}
+            nextCode={data.next}
+            onjoin={joined}
+            onlost={lostBettor}
+          />
         {:else}
           <FollowPicker players={data.players} fighters={data.fighters} {followId} onpick={setFollow} />
         {/if}
@@ -156,6 +188,10 @@
               {:else if t.key === "bracket"}
                 <!-- Bracket lines -->
                 <path class="line" d="M2 5.5h7v13H2M9 12h6M15 7v10M15 7h7M15 17h7" />
+              {:else if t.key === "bets"}
+                <!-- A coin -->
+                <circle cx="12" cy="12" r="9.5" />
+                <path class="cut" d="M12 6v12M15 8.5c-.8-.9-1.8-1.3-3-1.3-1.7 0-3 .9-3 2.3 0 3.2 6 1.6 6 4.9 0 1.4-1.3 2.4-3 2.4-1.3 0-2.4-.5-3.2-1.4" />
               {:else}
                 <!-- A star -->
                 <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.5 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.5 6.6-.8z" />
@@ -310,6 +346,15 @@
     width: 22px;
     height: 22px;
     fill: currentColor;
+  }
+  .tb svg .cut {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .tb.on svg .cut {
+    stroke: var(--gold);
   }
   .tb svg .line {
     fill: none;

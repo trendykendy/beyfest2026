@@ -178,6 +178,16 @@ if $set_passwords; then
   "$app/pb/pocketbase" superuser upsert "$superuser_email" "$superuser_pw" --dir="$data" >/dev/null
 fi
 
+# The web server's own login, for phone betting: phones can't write to
+# PocketBase, so the web server checks each bet and writes it as this
+# superuser. A fresh random password on every install, kept in a file only
+# root can read (systemd hands it to the web service).
+bookie_pw="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+"$app/pb/pocketbase" superuser upsert "bookie@beyfest.local" "$bookie_pw" --dir="$data" >/dev/null
+printf 'BOOKIE_EMAIL=bookie@beyfest.local\nBOOKIE_PW=%s\n' "$bookie_pw" |
+  sudo install -m 600 -o root -g root /dev/stdin /etc/beyfest-bookie.env
+unset bookie_pw
+
 # ── Services: start at boot, restart if they crash ───────────────────
 say "Setting up the services…"
 sudo tee /etc/systemd/system/beyfest-pb.service >/dev/null <<EOF
@@ -206,6 +216,8 @@ User=$USER
 Environment=HOST=0.0.0.0 PORT=$web_port
 # Written by beyfest-network.service; the TV's standby screen shows it.
 Environment=BEYFEST_NETWORK_FILE=/run/beyfest/network.json
+# The betting login (see above).
+EnvironmentFile=/etc/beyfest-bookie.env
 # Lets the app use port 80 without running as root.
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 ExecStart=$(command -v node) $app/web/build/index.js
