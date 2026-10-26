@@ -25,6 +25,10 @@ export const STINGER = "/sounds/stinger.mp3"; // ends a match in place of a fade
 // has finished by the time it fires.
 export const STINGER_END_MS = 5_400;
 export const STINGER_END_FADE_MS = 150;
+// The stinger eases in rather than cutting in: it starts at the ducked
+// music's level and rises to full over this long, while the match music
+// fades out underneath (a crossfade).
+export const STINGER_IN_MS = 600;
 
 // The call for a round's finish ("Knockout!"), named after its key in
 // finishes.ts; "" for a key it doesn't know.

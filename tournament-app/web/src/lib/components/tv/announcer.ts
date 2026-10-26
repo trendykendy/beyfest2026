@@ -3,7 +3,8 @@
 // and when is worked out in lib/sounds.ts.
 //
 // - Music starts with a match's intro, loops through random tracks, and drops
-//   while the announcer talks. When the result is in it cuts to the stinger.
+//   while the announcer talks. When the result is in it crossfades into the
+//   stinger.
 // - Volumes are set on the <audio> elements directly, stepped by a timer:
 //   simple, and light enough for a Raspberry Pi.
 // - A browser that blocks sound until someone clicks (anything but the Pi's
@@ -20,6 +21,7 @@ import {
   STINGER,
   STINGER_END_FADE_MS,
   STINGER_END_MS,
+  STINGER_IN_MS,
   VERSUS,
   callSequence,
   callTimes,
@@ -32,7 +34,6 @@ const FALLBACK_MS = 1300; // a clip's length if it hasn't loaded yet
 const FADE_IN_MS = 600;
 const DUCK_MS = 150;
 const FADE_OUT_MS = 2500;
-const CUT_MS = 250; // music out under the stinger: a cut, but without a click
 const STINGER_OUT_MS = 300; // a new match's music arriving over the stinger
 const CHAMP_OUT_MS = 1000; // the champion theme, leaving the Champion scene
 
@@ -228,17 +229,20 @@ export class Announcer {
     return end;
   }
 
-  // Cut the match music and play the stinger, at the music's level, to its end.
+  // Crossfade from the (still ducked) match music into the stinger: the
+  // stinger starts at the ducked level and rises to the music's normal
+  // level while the music fades out, then plays to its end.
   private hitStinger() {
     this.wantMusic = false;
     this.ducked = false;
-    this.musicOut(CUT_MS);
+    this.musicOut(STINGER_IN_MS);
     this.preload(STINGER);
     const s = this.clips.get(STINGER)!;
     clearInterval(this.stingerTween);
-    s.volume = this.level;
+    s.volume = this.level * DUCK;
     this.stinger = s;
     this.play(STINGER);
+    this.stingerTween = fade(s, this.level, STINGER_IN_MS);
     clearTimeout(this.stingerEnd);
     this.stingerEnd = setTimeout(() => {
       if (this.stinger === s) this.fadeStinger(STINGER_END_FADE_MS);
