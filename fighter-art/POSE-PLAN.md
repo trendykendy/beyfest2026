@@ -3,6 +3,10 @@
 One unique action pose per starter fighter, for the action cut-outs. Planned
 together so no two match. Style rules are in [STYLE-GUIDE.md](STYLE-GUIDE.md).
 
+Every pose catches **the launch moment**, and the hands follow the style guide's
+hands rule (launcher in one hand, plain ripcord in the other). Expressions vary:
+not everyone smiles.
+
 Only the Stancemancer and the Joyzerker have written bios (on the public site).
 The other poses are drawn from the fighter's name and current outfit; anything
 marked *(assumed)* is a guess to confirm.
@@ -18,7 +22,7 @@ marked *(assumed)* is a guess to confirm.
 | Aiming | Modsmith (sight down the launcher) |
 | Punch at camera | Pugilist (the one keeper of the classic lunge) |
 | Big and open | Joyzerker (arms thrown wide) |
-| Walking away | Breycist (over the shoulder) |
+| Turning away | Breycist (no-look launch) |
 
 Camera angles vary too: low, high, side and front, so the set doesn't read as
 twelve versions of one shot.
@@ -36,9 +40,10 @@ twelve versions of one shot.
 - **Mood:** small, fast, fearless *(assumed)*.
 
 **3. The Breycist** (Conor): white Italian-style tracksuit, red and green
-- **Pose:** walking away from a launch. The Beyblade spins behind him and he glances back over his shoulder with a smirk, launcher resting on his shoulder.
-- **Camera:** three-quarter from behind, face turned toward the viewer.
-- **Mood:** too cool to watch *(assumed)*.
+- **Pose:** a no-look launch. Already turning away, he rips the cord behind him without watching, launcher arm thrown out, and glances back over his shoulder.
+- **Camera:** three-quarter from behind, low, face turned toward the viewer.
+- **Mood:** too cool to watch *(assumed)*. A closed-mouth smirk.
+- **Status:** tested 2026-10-26. The no-look version (`candidates/breycist-B-nolook.png`) beat the walk-away, but it fails the hands rule (a grip on the end of the ripcord) and has a toothy grin. Not yet approved.
 
 **4. The Buzzsaw** (Sean): bald, glasses, beard, white T-shirt, jeans, blue
 - **Pose:** a full-body twist like a discus thrower, mid-rotation, launching sideways. The Beyblade's trail curves around him like a saw blade.
@@ -47,7 +52,8 @@ twelve versions of one shot.
 - **Note:** this replaces the current fist-at-camera lunge, which stays with the Pugilist.
 
 **5. The Cheatseeker** (Tadhg): blue jacket, red top, rule book
-- **Pose:** standing tall, rule book held up beside his face in one hand like a badge, launcher pointed down at his feet in the other. The Beyblade spins at his feet. A knowing squint.
+- **Pose:** standing tall, rule book held up beside his face in one hand like a badge, launching one-handed with the other, the Beyblade dropping from the launcher toward his feet. A knowing squint.
+- **Hands:** the one exception to the hands rule: rule book and launcher, no ripcord.
 - **Camera:** slightly low, front.
 - **Mood:** "I've read the rules. Have you?"
 - **Note:** the "RULE BOOK" lettering stays. It needs a hand-made mirror image (`scripts/unflip-text.py`), as before.
@@ -80,9 +86,9 @@ twelve versions of one shot.
 - **Mood:** calm, focused, unshakeable.
 
 **11. The Torque Warden** (Moss): fedora, full beard, black coat, black and silver; *redesign, in the target style*
-- **Pose:** standing completely still while everything moves around him. The coat billows, the launcher hangs at his side just after launching, and the Beyblade grinds at his feet throwing sparks. A stern stare from under the hat brim.
+- **Pose:** standing completely still while everything moves around him. Only his arms move, ripping the cord, and the Beyblade drops from the launcher throwing sparks. The coat billows. A stern stare from under the hat brim.
 - **Camera:** low, front.
-- **Mood:** the guardian who doesn't move *(assumed)*.
+- **Mood:** the guardian who doesn't move *(assumed)*. Stern, not smiling.
 - **Note:** the "T.W" coat badge stays. It needs a hand-made mirror image, as before.
 
 **12. The Underdogger** (Mark): long blond hair, waistcoat, bronze and orange
