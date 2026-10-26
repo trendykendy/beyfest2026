@@ -325,6 +325,7 @@
     text-transform: uppercase;
     max-width: 100%;
     overflow: hidden;
+    padding-right: 0.15em; /* italic overhang: the clip would cut the last letter */
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -416,6 +417,7 @@
     text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
+    padding-right: 0.15em; /* italic overhang: the clip would cut the last letter */
     text-overflow: ellipsis;
   }
   .b-sub {
@@ -455,6 +457,7 @@
     font-stretch: 62%;
     text-transform: uppercase;
     overflow: hidden;
+    padding-right: 0.15em; /* italic overhang: the clip would cut the last letter */
     text-overflow: ellipsis;
     white-space: nowrap;
   }
