@@ -27,9 +27,12 @@ export interface LoadedTournament {
   groups: RecordModel[];
 }
 
+// The current tournament: the newest one that hasn't been archived. (Picked
+// here rather than in a filter, so it still works before the archive
+// migration has run.)
 export async function getActiveTournament(pb: PocketBase): Promise<RecordModel | null> {
   const list = await pb.collection("tournaments").getFullList({ sort: "-createdAt" });
-  return list[0] ?? null;
+  return list.find((t) => !t.archivedAt) ?? null;
 }
 
 function recToPlayer(r: RecordModel): Player {
@@ -469,6 +472,12 @@ async function markGroupsComplete(pb: PocketBase, loaded: LoadedTournament): Pro
       g.complete = done;
     }
   }
+}
+
+// Put the tournament away, results and all: it drops off every screen and a
+// new one can be started. The admin page lists it for download.
+export async function archiveTournament(pb: PocketBase, tournamentId: string): Promise<void> {
+  await pb.collection("tournaments").update(tournamentId, { archivedAt: new Date().toISOString() });
 }
 
 export async function resetTournament(pb: PocketBase, tournamentId: string): Promise<void> {

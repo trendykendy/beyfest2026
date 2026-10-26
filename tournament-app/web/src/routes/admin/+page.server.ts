@@ -12,6 +12,7 @@ import {
   generateKnockoutStage,
   getActiveTournament,
   resetTournament,
+  archiveTournament,
 } from "$lib/server/tournament";
 import { readStarters } from "$lib/server/starterFiles";
 import { createRoyale, recordBattle, resetRoyale, RoyaleError, startBattle } from "$lib/server/royale";
@@ -30,9 +31,19 @@ async function starterPicks(): Promise<StarterPick[]> {
   }
 }
 
+// Archived tournaments, newest first, for the download list. Its own request
+// key: it runs alongside loadTournamentView's identical query, which the
+// PocketBase client would otherwise cancel as a duplicate.
+async function archivedList(pb: App.Locals["pb"]) {
+  const all = await pb.collection("tournaments").getFullList({ sort: "-createdAt", requestKey: "archived-list" });
+  return all
+    .filter((t) => t.archivedAt)
+    .map((t) => ({ id: t.id as string, name: t.name as string, createdAt: t.createdAt as string, archivedAt: t.archivedAt as string }));
+}
+
 export const load: PageServerLoad = async ({ locals }) => {
-  const [view, tv] = await Promise.all([loadTournamentView(locals.pb), loadTvState(locals.pb)]);
-  return { ...view, tv, starters: view.tournament ? [] : await starterPicks() };
+  const [view, tv, archived] = await Promise.all([loadTournamentView(locals.pb), loadTvState(locals.pb), archivedList(locals.pb)]);
+  return { ...view, tv, archived, starters: view.tournament ? [] : await starterPicks() };
 };
 
 // Run a battle royale change; a broken rule comes back as the page's error.
@@ -215,6 +226,16 @@ export const actions: Actions = {
     const tv = await loadTvState(locals.pb);
     if (tv.id) await locals.pb.collection("tv_state").update(tv.id, { next: code });
     return { picked: code };
+  },
+
+  // Keep the tournament, results and all, but put it away so a new one can
+  // start. The TV goes back to rotating, as after a reset.
+  archive: async ({ locals }) => {
+    const t = await getActiveTournament(locals.pb);
+    if (t) await archiveTournament(locals.pb, t.id);
+    const tv = await loadTvState(locals.pb);
+    if (tv.id) await locals.pb.collection("tv_state").update(tv.id, { mode: "auto", next: "" });
+    return { archived: true };
   },
 
   reset: async ({ locals }) => {
