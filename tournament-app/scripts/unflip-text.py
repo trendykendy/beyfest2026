@@ -16,6 +16,10 @@ usage: unflip-text.py in.png out.png ax ay bx by halfwidth [preview.png]
 The Cheatseeker's "RULE BOOK" (its crest is left mirrored; the hand covers
 part of it, and it reads fine either way):
   python scripts/unflip-text.py web/static/starter-fighters/cheatseeker.png     web/static/starter-fighters/cheatseeker-mirrored.png 1010 55 1057 180 55
+
+The Torque Warden's "T.W" coat badge (the shield's symmetric, so the whole
+badge is turned):
+  python scripts/unflip-text.py web/static/starter-fighters/torquewarden.png     web/static/starter-fighters/torquewarden-mirrored.png 747 258 747 310 22
 """
 import sys
 import cv2
