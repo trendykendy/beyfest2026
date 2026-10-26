@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import { planInWords, planRoyale, royaleView, SPACES_MAX, SPACES_MIN, type Battle, type PBRoyale } from "$lib/royale";
+  import { untrack } from "svelte";
   import Trophy from "./Trophy.svelte";
 
   // The admin's battle royale, after the main tournament: set it up (who's in,
@@ -23,6 +24,37 @@
   // The battle on the card: one being fixed, else the next to play.
   let fixing = $state("");
   const card = $derived(view?.battles.find((b) => b.key === fixing && b.status === "done") ?? view?.next ?? null);
+
+  // The card's picks, checked here before they're sent (the server checks
+  // again): a winner, a runner-up who isn't the winner, or for the sudden
+  // death exactly its number of places. Reset whenever the card changes.
+  let winner = $state("");
+  let runnerUp = $state("");
+  let advancing = $state<string[]>([]);
+  const cardId = $derived(card ? `${card.key}|${card.status}|${card.entrants.join()}` : "");
+  $effect(() => {
+    cardId;
+    untrack(() => {
+      winner = card?.result.winner ?? "";
+      runnerUp = card?.result.runnerUp ?? "";
+      advancing = [...(card?.result.advancing ?? [])];
+    });
+  });
+  // What's still missing, or "" when the result can be recorded.
+  const problem = $derived.by(() => {
+    if (!card) return "";
+    if (card.kind === "sudden") {
+      const left = card.places - advancing.length;
+      return left > 0 ? `Tick ${left} more.` : "";
+    }
+    if (!winner) return "Pick the winner.";
+    if (card.entrants.length > 1 && !runnerUp) return "Pick the runner-up.";
+    return "";
+  });
+  // A new winner who was the runner-up: the runner-up needs picking again.
+  function pickWinner(n: string) {
+    if (runnerUp === n) runnerUp = "";
+  }
 
   const STATUS: Record<Battle["status"], string> = { waiting: "Waiting", ready: "Ready", live: "Playing", done: "Done" };
   const afterSave = () => {
@@ -103,8 +135,15 @@
               <p class="ask">Tick the {card.places} still spinning at the end: they go through to the final.</p>
               <div class="chips">
                 {#each card.entrants as n (n)}
+                  <!-- Once the places are filled, the rest can't be ticked. -->
                   <label class="chip">
-                    <input type="checkbox" name="advancing" value={n} checked={card.result.advancing?.includes(n)} />
+                    <input
+                      type="checkbox"
+                      name="advancing"
+                      value={n}
+                      bind:group={advancing}
+                      disabled={!advancing.includes(n) && advancing.length >= card.places}
+                    />
                     <span>{n}</span>
                   </label>
                 {/each}
@@ -114,7 +153,7 @@
               <div class="chips">
                 {#each card.entrants as n (n)}
                   <label class="chip gold">
-                    <input type="radio" name="winner" value={n} checked={card.result.winner === n} required />
+                    <input type="radio" name="winner" value={n} bind:group={winner} onchange={() => pickWinner(n)} required />
                     <span>{n}</span>
                   </label>
                 {/each}
@@ -123,16 +162,18 @@
                 <p class="ask">Runner-up (the last one out before them)</p>
                 <div class="chips">
                   {#each card.entrants as n (n)}
+                    <!-- The winner can't be the runner-up too. -->
                     <label class="chip">
-                      <input type="radio" name="runnerUp" value={n} checked={card.result.runnerUp === n} required />
+                      <input type="radio" name="runnerUp" value={n} bind:group={runnerUp} disabled={n === winner} required />
                       <span>{n}</span>
                     </label>
                   {/each}
                 </div>
               {/if}
             {/if}
+            {#if problem}<p class="missing">{problem}</p>{/if}
             <div class="row">
-              <button class="big-action" type="submit">{fixing ? "Save the fix" : "Record result"}</button>
+              <button class="big-action" type="submit" disabled={!!problem}>{fixing ? "Save the fix" : "Record result"}</button>
               {#if fixing}<button class="btn" type="button" onclick={() => (fixing = "")}>Cancel</button>{/if}
             </div>
           </form>
@@ -326,6 +367,14 @@
   .chip.gold input:checked + span {
     background: var(--gold);
     color: var(--ink);
+  }
+  .chip input:disabled + span {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .missing {
+    color: var(--gold);
+    font-weight: 700;
   }
   .chip input:focus-visible + span {
     outline: 3px solid var(--wb);
