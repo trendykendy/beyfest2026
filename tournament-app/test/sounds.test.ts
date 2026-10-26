@@ -4,11 +4,6 @@ import { join } from "node:path";
 import {
   CALLS_GAP,
   CALLS_START,
-  CALLS_TAIL,
-  STINGER_HIT_MS,
-  WINNER_OUT,
-  WINNER_OUT_MAX,
-  WINNER_SLAM,
   INTRO_OUT,
   MUSIC,
   STINGER,
@@ -20,7 +15,6 @@ import {
   pickOther,
   stingerDelay,
   titleClip,
-  winnerOut,
   winsCall,
 } from "../web/src/lib/sounds";
 import { FINISHES } from "../web/src/lib/finishes";
@@ -132,24 +126,5 @@ describe("stingerDelay", () => {
   });
   test("hits straight away when nobody's talking", () => {
     expect(stingerDelay(0)).toBe(0);
-  });
-});
-
-describe("winnerOut", () => {
-  test("leaves on the stinger's last hit", () => {
-    // "[name] wins!" from the slam (1000 + 150 + 880 ms), then the stinger.
-    const stingerAt = stingerDelay(WINNER_SLAM + 1000 + CALLS_GAP + 880);
-    expect(winnerOut(stingerAt - CALLS_GAP, stingerAt)).toBe(stingerAt + STINGER_HIT_MS);
-  });
-  test("with no stinger, leaves a beat after the call", () => {
-    expect(winnerOut(5000, null)).toBe(5000 + CALLS_TAIL);
-  });
-  test("never leaves sooner than its own exit time", () => {
-    expect(winnerOut(0, null)).toBe(WINNER_OUT);
-    expect(winnerOut(0, 0)).toBe(WINNER_OUT); // a walkover: the stinger hits at once
-    expect(winnerOut(1200, null)).toBe(WINNER_OUT);
-  });
-  test("a long queue of calls can't hold it for ever", () => {
-    expect(winnerOut(20_000, 20_150)).toBe(WINNER_OUT_MAX);
   });
 });

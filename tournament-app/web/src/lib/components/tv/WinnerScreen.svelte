@@ -1,19 +1,18 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import FighterSilhouette from "./FighterSilhouette.svelte";
 
-  // The winner screen, after every match result: the VS intro's band comes
-  // back, the winner's half charges across and knocks the loser's half off
-  // the screen, then 勝者 / WINNER slams in over gold rays with the final
-  // score, the winner's name tag and who they beat. Short and punchy: the
-  // "[name] wins!" call starts with the slam (WINNER_SLAM in sounds.ts) and
-  // the screen leaves on the stinger's last hit (winnerOut).
+  // The winner screen, after a match result: the winner's picture slams in
+  // across a full-width banner through the middle of the screen, with the
+  // match title and 勝者 / WINNER above it and the name tag, final score and
+  // who they beat below. The "[name] wins!" call starts with the slam
+  // (WINNER_SLAM in sounds.ts). It then holds, with the rays turning, until
+  // `leaving` is set (the next match starting), plays its exit, and calls
+  // ondone.
   //
   // Same conventions as VsIntro: a fixed 1920×1080 canvas, scaled to fit;
   // pure CSS keyframes, every duration and delay multiplied by --k (`slow`).
-  // The winner keeps the colour (and side) they had in the intro: p1 red from
-  // the left, p2 blue from the right. Everything is laid out for a winner
-  // from the left; .from-r mirrors the band (not the text) for the right.
+  // The banner takes the colour the winner had in the intro (p1 red, p2
+  // blue), and the name tag sits on that side, as it did in the intro.
   //
   // img: the cut-out's URL ("" for the silhouette); cut-outs face left, and
   // mirror flips one that faces the other way. victory: the victory pose, shown
@@ -28,9 +27,8 @@
     tier = "group", // bracket tier, colours the title's end caps
     walkover = false, // a no-show: WALKOVER instead of a score
     slow = 1, // timing multiplier: 2 = half speed (lab only)
-    hold = false, // stay on the held frame instead of leaving (lab only)
     lite = false, // Pi-safe: no blur or drop-shadow filters, fewer streaks and shards
-    out = 4900, // ms: when it leaves (later while the announcer talks, see winnerOut)
+    leaving = false, // set to play the exit; ondone fires when it's over
     ondone,
   }: {
     winner: Fighter;
@@ -41,52 +39,44 @@
     tier?: "wb" | "mb" | "lb" | "gf" | "group";
     walkover?: boolean;
     slow?: number;
-    hold?: boolean;
     lite?: boolean;
-    out?: number;
+    leaving?: boolean;
     ondone?: () => void;
   } = $props();
 
   // Timeline (ms at normal speed). Keep in step with the CSS delays below:
-  //   0     the two halves, as the intro left them
-  //   0–450 the winner's half charges across
-  //   450   slam: flash, shake, rings, shards; the loser's half is knocked off
-  //   640   勝者, then WINNER letter by letter (700–975)
+  //   0–430 the banner charges in from the winner's side
+  //   450   slam: flash, shake, rings, shards
+  //   600   勝者, then WINNER letter by letter (660–935)
   //   860   name tag; 1150 score; 1400 "defeats …"
-  //   OUT   everything leaves; END gone, ondone fires
-  // Fixed for the screen's life: it's timed once, when it starts.
-  // svelte-ignore state_referenced_locally
-  const OUT = out;
-  const END = OUT + 600;
-  // svelte-ignore state_referenced_locally
-  const fromR = side === "blue";
-
+  //   then it holds until `leaving`; the exit takes EXIT ms.
+  const EXIT = 600;
   const LETTERS = [..."WINNER"];
 
-  // Light streaks across the band. Random once per mount; transform-only loops.
+  // Light streaks across the banner. Random once per mount; transform-only loops.
   // svelte-ignore state_referenced_locally
-  const streaks = Array.from({ length: lite ? 12 : 24 }, () => ({
-    top: Math.round(Math.random() * 1080),
+  const streaks = Array.from({ length: lite ? 10 : 20 }, () => ({
+    top: Math.round(Math.random() * 520),
     len: Math.round(150 + Math.random() * 550),
-    thick: Math.round(2 + Math.random() * 7),
+    thick: Math.round(2 + Math.random() * 6),
     dur: Math.round(350 + Math.random() * 550),
     delay: -Math.round(Math.random() * 900),
-    alpha: (0.35 + Math.random() * 0.65).toFixed(2),
+    alpha: (0.3 + Math.random() * 0.5).toFixed(2),
     tint: Math.random() < 0.35,
   }));
 
-  // Gold shards bursting out of the slam.
+  // Gold shards bursting out of the slam, from the middle of the banner.
   const SHARD_COLOURS = ["var(--gold)", "var(--gold)", "var(--paper)", "#ffe27a", "var(--c4)"];
   // svelte-ignore state_referenced_locally
-  const shards = Array.from({ length: lite ? 12 : 28 }, (_, i) => {
+  const shards = Array.from({ length: lite ? 12 : 30 }, (_, i) => {
     const a = Math.random() * Math.PI * 2;
-    const r = 380 + Math.random() * 520;
+    const r = 420 + Math.random() * 600;
     return {
       w: Math.round(12 + Math.random() * 22),
       h: Math.round(6 + Math.random() * 12),
       colour: SHARD_COLOURS[i % SHARD_COLOURS.length],
       dx: Math.round(Math.cos(a) * r),
-      dy: Math.round(Math.sin(a) * r * 0.75),
+      dy: Math.round(Math.sin(a) * r * 0.6),
       rot: Math.round((Math.random() - 0.5) * 1080),
       dur: Math.round(700 + Math.random() * 700),
     };
@@ -95,97 +85,91 @@
   let w = $state(1920);
   const scale = $derived(w / 1920);
 
-  onMount(() => {
-    if (hold) return;
-    const t = setTimeout(() => ondone?.(), END * slow);
+  $effect(() => {
+    if (!leaving) return;
+    const t = setTimeout(() => ondone?.(), EXIT * slow);
     return () => clearTimeout(t);
   });
 </script>
 
 <div
   class="win side-{side}"
-  class:from-r={fromR}
-  class:hold
+  class:from-r={side === "blue"}
+  class:leaving
   class:lite
   bind:clientWidth={w}
   style:--k={slow}
-  style:--out="{OUT}ms"
 >
   <div class="canvas" style:transform="scale({scale})">
     <div class="backdrop"></div>
+    <div class="rays-wrap"><div class="rays"></div></div>
     <div class="shake">
-      <!-- The band and the picture: mirrored for a winner from the right. -->
-      <div class="go">
-        <div class="mirror">
-          <div class="half lose">
-            <div class="lose-bg"><div class="edge top"></div><div class="edge bot"></div></div>
-            <div class="lname"><span>{loser.name}</span></div>
-          </div>
-          <div class="band">
-            <div class="rays"></div>
-            <div class="focus"></div>
-            <div class="streaks">
-              {#each streaks as s}
-                <i
-                  class:tint={s.tint}
-                  style:top="{s.top}px"
-                  style:width="{s.len}px"
-                  style:height="{s.thick}px"
-                  style:opacity={s.alpha}
-                  style:--dur="{s.dur}ms"
-                  style:--delay="{s.delay}ms"
-                ></i>
-              {/each}
-            </div>
-            <div class="edge top"></div>
-            <div class="edge bot"></div>
-          </div>
-          <div class="panel">
-            <div class="rim"></div>
-            <div class="rim2"></div>
-            <div class="pic">
-              <div class="push">
-                {#if winner.victory}
-                  <img src={winner.victory} alt="" class:flip={fromR} />
-                {:else if winner.img}
-                  <img src={winner.img} alt="" class:flip={!winner.mirror} />
-                {:else}
-                  <!-- Un-mirrored, so the "?" reads the right way round. -->
-                  <div class="sil"><FighterSilhouette flip={!fromR} /></div>
-                {/if}
-              </div>
-            </div>
-          </div>
-          <div class="ring r1"></div>
-          <div class="ring r2"></div>
-          <div class="shards">
-            {#each shards as s}
-              <i
-                style:--w="{s.w}px"
-                style:--h="{s.h}px"
-                style:--col={s.colour}
-                style:--dx="{s.dx}px"
-                style:--dy="{s.dy}px"
-                style:--rot="{s.rot}deg"
-                style:--dur="{s.dur}ms"
-              ></i>
-            {/each}
-          </div>
+      <!-- The banner: the winner's picture, full width, cropped to the band. -->
+      <div class="banner">
+        <div class="pic">
+          {#if winner.victory}
+            <img src={winner.victory} alt="" />
+          {:else if winner.img}
+            <!-- Cut-outs face left: turned to face right for p1, as in the intro. -->
+            <img src={winner.img} alt="" class:flip={(side === "red") !== !!winner.mirror} />
+          {:else}
+            <div class="sil"><FighterSilhouette flip={side === "red"} /></div>
+          {/if}
+        </div>
+        <div class="tint"></div>
+        <div class="focus"></div>
+        <div class="streaks">
+          {#each streaks as s}
+            <i
+              class:tint={s.tint}
+              style:top="{s.top}px"
+              style:width="{s.len}px"
+              style:height="{s.thick}px"
+              style:opacity={s.alpha}
+              style:--dur="{s.dur}ms"
+              style:--delay="{s.delay}ms"
+            ></i>
+          {/each}
+        </div>
+        <div class="edge top"></div>
+        <div class="edge bot"></div>
+      </div>
+
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="shards">
+        {#each shards as s}
+          <i
+            style:--w="{s.w}px"
+            style:--h="{s.h}px"
+            style:--col={s.colour}
+            style:--dx="{s.dx}px"
+            style:--dy="{s.dy}px"
+            style:--rot="{s.rot}deg"
+            style:--dur="{s.dur}ms"
+          ></i>
+        {/each}
+      </div>
+
+      <!-- Above the banner: 勝者 / WINNER. -->
+      <div class="mark">
+        <div class="shosha" lang="ja"><span>勝者</span></div>
+        <div class="word">
+          {#each LETTERS as c, i}
+            <span class="ch" style:--at="{660 + i * 55}ms">
+              <i class="g1">{c}</i><i class="g2">{c}</i><b>{c}</b>
+            </span>
+          {/each}
         </div>
       </div>
 
-      <!-- The words: never mirrored, laid out on the other side from the picture. -->
-      <div class="fly">
-        <div class="mark">
-          <div class="shosha" lang="ja"><span>勝者</span></div>
-          <div class="word">
-            {#each LETTERS as c, i}
-              <span class="ch" style:--at="{700 + i * 55}ms">
-                <i class="g1">{c}</i><i class="g2">{c}</i><b>{c}</b>
-              </span>
-            {/each}
-          </div>
-        </div>
+      <!-- Below the banner: the name tag on the winner's side, the score and
+           who they beat on the other. -->
+      <div class="nametag">
+        {#if winner.kana}<div class="kana" lang="ja"><span>{winner.kana}</span></div>{/if}
+        <div class="name" class:long={winner.name.length > 10}><span>{winner.name}</span></div>
+      </div>
+      <div class="result">
         {#if walkover}
           <div class="score"><div class="wo"><span>Walkover</span></div></div>
         {:else if score}
@@ -194,11 +178,7 @@
             <div class="num ln"><span>{score[1]}</span></div>
           </div>
         {/if}
-        <div class="def" class:solo={!walkover && !score}><s>{walkover ? "over" : "defeats"}</s>{loser.name}</div>
-        <div class="nametag">
-          {#if winner.kana}<div class="kana" lang="ja"><span>{winner.kana}</span></div>{/if}
-          <div class="name" class:long={winner.name.length > 10}><span>{winner.name}</span></div>
-        </div>
+        <div class="def"><s>{walkover ? "over" : "defeats"}</s>{loser.name}</div>
       </div>
     </div>
     {#if title}
@@ -222,8 +202,7 @@
     height: 1080px;
     transform-origin: 0 0;
   }
-  /* The winner's colours: the side they had in the VS intro. --l* are the
-     loser's half, the other side's colours. */
+  /* The winner's colours: the side they had in the VS intro. */
   .side-red {
     --c1: #5a0309;
     --c2: #b5121b;
@@ -231,9 +210,6 @@
     --c4: #ff7a3d;
     --lite: #ffb199;
     --kana: #ff6b5e;
-    --l1: #020a4a;
-    --l2: #0b2fb8;
-    --l3: #3fd0ff;
   }
   .side-blue {
     --c1: #020a4a;
@@ -242,11 +218,10 @@
     --c4: #3fd0ff;
     --lite: #9fe6ff;
     --kana: #5fc4ff;
-    --l1: #5a0309;
-    --l2: #b5121b;
-    --l3: #ff7a3d;
   }
 
+  /* Layout (canvas px): title 22–110, 勝者 / WINNER 118–330, the banner
+     345–805 (BAND_TOP–BAND_BOT), name tag / score / "defeats" 815–1060. */
   .backdrop {
     position: absolute;
     inset: 0;
@@ -254,11 +229,6 @@
       repeating-linear-gradient(-60deg, rgb(255 255 255 / 0.035) 0 2px, transparent 2px 16px),
       var(--field-deep);
     animation: fade-in calc(160ms * var(--k)) linear both;
-  }
-  .win:not(.hold) .backdrop {
-    animation:
-      fade-in calc(160ms * var(--k)) linear both,
-      fade-out calc(250ms * var(--k)) linear calc(var(--out) * var(--k) + 350ms * var(--k)) forwards;
   }
   @keyframes fade-in {
     from {
@@ -271,122 +241,120 @@
     }
   }
 
-  .go,
-  .mirror,
-  .fly {
-    position: absolute;
-    inset: 0;
-  }
-  .from-r .mirror {
-    transform: scaleX(-1);
-  }
-
-  /* The band's borders, as in the VS intro: ink outside, white inside. */
-  .edge {
+  /* ── The banner ── */
+  .banner {
     position: absolute;
     left: 0;
     right: 0;
-    height: 20px;
-  }
-  .edge.top {
-    top: 150px;
-    background: linear-gradient(var(--ink) 0 7px, var(--paper) 7px 100%);
-  }
-  .edge.bot {
-    top: 910px;
-    background: linear-gradient(var(--paper) 0 13px, var(--ink) 13px 100%);
-  }
-
-  /* ── Opening: the loser's half, as the intro left it, knocked off ── */
-  .half {
-    position: absolute;
-    inset: 0;
-  }
-  .lose {
-    animation:
-      fade-in calc(120ms * var(--k)) linear both,
-      knocked calc(520ms * var(--k)) cubic-bezier(0.3, 0.6, 0.6, 1) calc(430ms * var(--k)) forwards;
-  }
-  .lose-bg {
-    position: absolute;
-    inset: 0;
-    clip-path: polygon(1080px 150px, 1920px 150px, 1920px 930px, 840px 930px);
-    background: linear-gradient(255deg, var(--l1) 0%, var(--l2) 60%, var(--l3) 100%);
-  }
-  /* It dims as it's hit. */
-  .lose-bg::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: #000;
-    opacity: 0;
-    animation: dim calc(300ms * var(--k)) linear calc(430ms * var(--k)) forwards;
-  }
-  @keyframes dim {
-    to {
-      opacity: 0.6;
-    }
-  }
-  @keyframes knocked {
-    to {
-      transform: translate(2100px, 160px) rotate(14deg);
-      visibility: hidden;
-    }
-  }
-  .lname {
-    position: absolute;
-    right: 70px;
-    bottom: 80px;
-    transform: skewX(-12deg);
-    background: var(--paper);
-    border: 5px solid var(--ink);
-    border-right: 26px solid var(--l3);
-    box-shadow: 10px 10px 0 var(--ink);
-    padding: 4px 40px 10px;
-    font-family: var(--font-display);
-    font-stretch: 85%;
-    font-size: 132px;
-    line-height: 1;
-    text-transform: uppercase;
-    color: var(--ink);
-    white-space: nowrap;
-  }
-  .lname span {
-    display: block;
-    transform: skewX(12deg);
-  }
-  .from-r .lname span {
-    transform: scaleX(-1) skewX(12deg);
-  }
-
-  /* ── The winner's band: charges across and takes the screen ── */
-  /* Wider than the screen, so its slanted front shows while it charges. */
-  .band {
-    position: absolute;
-    inset: 0 -300px 0 0;
-    clip-path: polygon(0 150px, 2200px 150px, 1960px 930px, 0 930px);
+    top: 345px;
+    height: 460px;
+    overflow: hidden;
     background: linear-gradient(105deg, var(--c1) 0%, var(--c2) 35%, var(--c3) 70%, var(--c4) 100%);
-    animation: charge calc(450ms * var(--k)) cubic-bezier(0.5, 0, 0.75, 0.4) both;
+    animation: charge calc(450ms * var(--k)) cubic-bezier(0.2, 0.9, 0.25, 1.05) both;
+  }
+  .from-r .banner {
+    background: linear-gradient(255deg, var(--c1) 0%, var(--c2) 35%, var(--c3) 70%, var(--c4) 100%);
+    animation-name: charge-right;
   }
   @keyframes charge {
     0% {
-      transform: translateX(-1120px);
+      transform: translateX(-2000px) skewX(-14deg);
     }
-    60% {
-      transform: translateX(-1030px);
+    75% {
+      transform: translateX(30px) skewX(3deg);
     }
     100% {
       transform: none;
     }
   }
+  @keyframes charge-right {
+    0% {
+      transform: translateX(2000px) skewX(-14deg);
+    }
+    75% {
+      transform: translateX(-30px) skewX(3deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  /* The picture, centred in the band; it arrives a beat behind the banner,
+     then pulls out slowly. */
+  .pic {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 40%;
+    animation:
+      pic-in calc(650ms * var(--k)) cubic-bezier(0.15, 0.85, 0.3, 1) both,
+      push calc(5000ms * var(--k)) cubic-bezier(0.2, 0.6, 0.4, 1) calc(450ms * var(--k)) both;
+  }
+  /* Sized so a face (about a quarter of the way down the picture) sits well
+     inside the band, with the rest of the figure cropped off the bottom; its
+     sides fade into the banner's colour. */
+  .pic img {
+    position: absolute;
+    left: 50%;
+    top: -40px;
+    width: 1080px;
+    height: 720px;
+    margin-left: -540px;
+    object-fit: cover;
+    mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%);
+  }
+  .pic img.flip {
+    transform: scaleX(-1);
+  }
+  @keyframes pic-in {
+    from {
+      translate: -500px 0;
+    }
+  }
+  .from-r .pic {
+    animation-name: pic-in-right, push;
+  }
+  @keyframes pic-in-right {
+    from {
+      translate: 500px 0;
+    }
+  }
+  @keyframes push {
+    from {
+      transform: scale(1.14);
+    }
+    to {
+      transform: scale(1.03);
+    }
+  }
+  .sil {
+    position: absolute;
+    left: 50%;
+    top: 30px;
+    width: 600px;
+    margin-left: -300px;
+  }
+  /* The winner's colour washes in from the banner's ends, so the picture
+     sits in it. */
+  .tint {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      var(--c2) 0%,
+      color-mix(in srgb, var(--c3) 45%, transparent) 14%,
+      transparent 32% 68%,
+      color-mix(in srgb, var(--c3) 45%, transparent) 86%,
+      var(--c2) 100%
+    );
+  }
+  /* Manga focus lines, clear of the middle where the face is. */
   .focus {
     position: absolute;
     width: 2600px;
     height: 2600px;
-    left: -900px;
-    top: -760px;
-    background: repeating-conic-gradient(rgb(255 255 255 / 0.13) 0deg 1.2deg, transparent 1.2deg 6deg);
-    mask-image: radial-gradient(circle, transparent 0 300px, #000 560px);
+    left: -340px;
+    top: -1070px;
+    background: repeating-conic-gradient(rgb(255 255 255 / 0.12) 0deg 1.2deg, transparent 1.2deg 6deg);
+    mask-image: radial-gradient(circle, transparent 0 520px, #000 820px);
     animation: focus-flicker calc(240ms * var(--k)) steps(1) infinite;
   }
   @keyframes focus-flicker {
@@ -402,8 +370,8 @@
   }
   .streaks {
     position: absolute;
-    inset: -200px;
-    transform: rotate(-7deg);
+    inset: -60px -200px;
+    transform: rotate(-4deg);
   }
   .streaks i {
     position: absolute;
@@ -415,6 +383,13 @@
   .streaks i.tint {
     background: linear-gradient(90deg, transparent, var(--lite));
   }
+  .from-r .streaks i {
+    animation-name: streak-rev;
+    background: linear-gradient(270deg, transparent, #fff);
+  }
+  .from-r .streaks i.tint {
+    background: linear-gradient(270deg, transparent, var(--lite));
+  }
   @keyframes streak {
     from {
       transform: translateX(-800px);
@@ -423,97 +398,59 @@
       transform: translateX(2400px);
     }
   }
-  /* Gold rays turning behind WINNER. */
-  .rays {
-    position: absolute;
-    left: 1420px;
-    top: 400px;
-    width: 2000px;
-    height: 2000px;
-    margin: -1000px 0 0 -1000px;
-    background: repeating-conic-gradient(rgb(255 226 122 / 0.32) 0deg 6deg, transparent 6deg 15deg);
-    mask-image: radial-gradient(circle, #000 12%, transparent 48%);
-    opacity: 0;
-    animation:
-      rays-in calc(500ms * var(--k)) ease-out calc(450ms * var(--k)) forwards,
-      spin calc(24000ms * var(--k)) linear infinite;
+  @keyframes streak-rev {
+    from {
+      transform: translateX(2400px);
+    }
+    to {
+      transform: translateX(-800px);
+    }
   }
-  @keyframes rays-in {
+  /* The band's borders, as in the VS intro: ink outside, white inside. */
+  .edge {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+  }
+  .edge.top {
+    top: 0;
+    background: linear-gradient(var(--ink) 0 7px, var(--paper) 7px 100%);
+  }
+  .edge.bot {
+    bottom: 0;
+    background: linear-gradient(var(--paper) 0 13px, var(--ink) 13px 100%);
+  }
+
+  /* Gold rays turning behind WINNER: the idle motion while it holds. */
+  .rays-wrap {
+    position: absolute;
+    left: 960px;
+    top: 230px;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    animation: fade-in-to calc(500ms * var(--k)) ease-out calc(450ms * var(--k)) forwards;
+  }
+  @keyframes fade-in-to {
     to {
       opacity: 1;
     }
+  }
+  .rays {
+    position: absolute;
+    left: -1100px;
+    top: -1100px;
+    width: 2200px;
+    height: 2200px;
+    background: repeating-conic-gradient(rgb(255 226 122 / 0.3) 0deg 6deg, transparent 6deg 15deg);
+    mask-image: radial-gradient(circle, #000 10%, transparent 42%);
+    animation: spin calc(24000ms * var(--k)) linear infinite;
   }
   @keyframes spin {
     to {
       rotate: 360deg;
     }
-  }
-
-  /* ── The winner's picture, in a slanted manga panel ── */
-  .panel {
-    position: absolute;
-    inset: 0;
-    animation: panel-in calc(560ms * var(--k)) cubic-bezier(0.15, 0.85, 0.3, 1.05) calc(200ms * var(--k)) both;
-  }
-  @keyframes panel-in {
-    from {
-      transform: translateX(-700px);
-    }
-  }
-  .rim,
-  .rim2,
-  .pic {
-    position: absolute;
-    inset: 0;
-  }
-  .rim {
-    background: var(--ink);
-    clip-path: polygon(0 170px, 1172px 170px, 948px 910px, 0 910px);
-  }
-  .rim2 {
-    background: var(--paper);
-    clip-path: polygon(0 170px, 1160px 170px, 936px 910px, 0 910px);
-  }
-  .pic {
-    overflow: hidden;
-    clip-path: polygon(0 170px, 1138px 170px, 914px 910px, 0 910px);
-    background: radial-gradient(circle at 40% 45%, var(--c4), var(--c2) 55%, var(--c1));
-  }
-  /* A slow pull-out from the slam on. */
-  .push {
-    position: absolute;
-    left: -40px;
-    top: 140px;
-    width: 1200px;
-    height: 800px;
-    transform-origin: 50% 60%;
-    animation: push calc(4400ms * var(--k)) linear calc(450ms * var(--k)) both;
-  }
-  @keyframes push {
-    from {
-      transform: scale(1.12);
-    }
-    to {
-      transform: scale(1.02);
-    }
-  }
-  .push img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .push img.flip {
-    transform: scaleX(-1);
-  }
-  .sil {
-    position: absolute;
-    left: 100px;
-    top: 90px;
-    width: 860px;
-  }
-  .from-r .sil {
-    transform: scaleX(-1);
   }
 
   /* ── Slam ── */
@@ -534,8 +471,8 @@
   }
   .ring {
     position: absolute;
-    left: 1060px;
-    top: 540px;
+    left: 960px;
+    top: 575px;
     width: 300px;
     height: 300px;
     margin: -150px 0 0 -150px;
@@ -559,7 +496,7 @@
       opacity: 1;
     }
     100% {
-      transform: scale(4.6);
+      transform: scale(5);
       opacity: 0;
     }
   }
@@ -581,8 +518,8 @@
   }
   .shards {
     position: absolute;
-    left: 1060px;
-    top: 540px;
+    left: 960px;
+    top: 575px;
   }
   .shards i {
     position: absolute;
@@ -608,28 +545,29 @@
     }
   }
 
-  /* ── 勝者 / WINNER ── */
+  /* ── 勝者 / WINNER, above the banner ── */
   /* 勝者 is in the kana font subset already (theme.css header). */
   .mark {
     position: absolute;
-    left: 1010px;
-    top: 196px;
-  }
-  .from-r .mark {
-    left: 50px;
+    left: 0;
+    right: 0;
+    top: 116px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 34px;
   }
   .shosha {
-    display: inline-block;
-    margin-left: 40px;
     transform: skewX(-12deg);
     background: var(--ink);
     color: var(--gold);
-    padding: 4px 30px 10px;
+    border: 4px solid var(--gold);
+    padding: 6px 26px 12px;
     font-family: var(--font-display);
-    font-size: 64px;
+    font-size: 76px;
     line-height: 1;
-    letter-spacing: 0.14em;
-    animation: tag-pop calc(300ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.3) calc(640ms * var(--k)) both;
+    letter-spacing: 0.12em;
+    animation: tag-pop calc(300ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.3) calc(600ms * var(--k)) both;
   }
   .shosha span {
     display: block;
@@ -642,7 +580,6 @@
   }
   .word {
     display: flex;
-    margin-top: -6px;
   }
   /* Each letter slams down from oversize, a beat after the last, with a
      side-colour and a gold ghost snapping together behind it (as VS does). */
@@ -650,7 +587,7 @@
     position: relative;
     font-family: var(--font-display);
     font-stretch: 85%;
-    font-size: 236px;
+    font-size: 214px;
     line-height: 1;
     opacity: 0;
     animation:
@@ -723,116 +660,16 @@
     }
   }
 
-  /* ── Score ── */
-  /* The winner's points big and gold on black; the loser's smaller and dim. */
-  .score {
-    position: absolute;
-    left: 1210px;
-    top: 516px;
-    display: flex;
-    transform: skewX(-12deg);
-    animation: score-in calc(340ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.2) calc(1150ms * var(--k)) both;
-  }
-  .from-r .score {
-    left: auto;
-    right: 1210px;
-  }
-  @keyframes score-in {
-    from {
-      transform: translateY(80px) skewX(-12deg) scale(0.4);
-      opacity: 0;
-    }
-  }
-  .num {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-display);
-    font-stretch: 85%;
-    font-size: 220px;
-    line-height: 1;
-    padding: 0 30px 14px;
-  }
-  .num span,
-  .wo span {
-    display: block;
-    transform: skewX(12deg);
-  }
-  .wn {
-    background: var(--ink);
-    color: var(--gold);
-    border: 6px solid var(--gold);
-    box-shadow: 10px 10px 0 var(--ink);
-  }
-  .ln {
-    background: #262a40;
-    color: #8d93b5;
-    border: 6px solid var(--ink);
-    border-left: 0;
-    font-size: 150px;
-    padding-bottom: 8px;
-  }
-  .wo {
-    font-family: var(--font-display);
-    font-stretch: 75%;
-    font-size: 150px;
-    line-height: 1;
-    text-transform: uppercase;
-    padding: 6px 40px 16px;
-    background: var(--ink);
-    color: var(--gold);
-    border: 6px solid var(--gold);
-    box-shadow: 10px 10px 0 var(--ink);
-  }
-  .def {
-    position: absolute;
-    left: 1200px;
-    top: 786px;
-    max-width: 680px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: var(--font-display);
-    font-stretch: 75%;
-    font-size: 52px;
-    line-height: 1.1;
-    color: rgb(255 255 255 / 0.85);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    animation: def-in calc(300ms * var(--k)) ease-out calc(1400ms * var(--k)) both;
-  }
-  .def.solo {
-    top: 560px;
-    font-size: 72px;
-  }
-  .from-r .def {
-    left: auto;
-    right: 1200px;
-    text-align: right;
-  }
-  .def s {
-    text-decoration: none;
-    color: rgb(255 255 255 / 0.55);
-    font-size: 0.77em;
-    margin-right: 12px;
-  }
-  @keyframes def-in {
-    from {
-      opacity: 0;
-      transform: translateX(40px);
-    }
-  }
-
-  /* ── Name tag, where the intro had it ── */
+  /* ── Below the banner: name tag (winner's side), result (other side) ── */
   .nametag {
     position: absolute;
-    bottom: 80px;
     left: 70px;
+    bottom: 36px;
     display: flex;
     flex-direction: column;
     gap: 10px;
     align-items: flex-start;
-    max-width: 900px;
+    max-width: 1000px;
   }
   .from-r .nametag {
     left: auto;
@@ -896,11 +733,110 @@
     }
   }
 
+  .result {
+    position: absolute;
+    right: 70px;
+    top: 825px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+  .from-r .result {
+    right: auto;
+    left: 70px;
+    flex-direction: row-reverse;
+  }
+  /* The winner's points big and gold on black; the loser's smaller and dim. */
+  .score {
+    display: flex;
+    transform: skewX(-12deg);
+    animation: score-in calc(340ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.2) calc(1150ms * var(--k)) both;
+  }
+  @keyframes score-in {
+    from {
+      transform: translateY(80px) skewX(-12deg) scale(0.4);
+      opacity: 0;
+    }
+  }
+  .num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-stretch: 85%;
+    font-size: 170px;
+    line-height: 1;
+    padding: 0 28px 12px;
+  }
+  .num span,
+  .wo span {
+    display: block;
+    transform: skewX(12deg);
+  }
+  .wn {
+    background: var(--ink);
+    color: var(--gold);
+    border: 6px solid var(--gold);
+    box-shadow: 10px 10px 0 var(--ink);
+  }
+  .ln {
+    background: #262a40;
+    color: #8d93b5;
+    border: 6px solid var(--ink);
+    border-left: 0;
+    font-size: 116px;
+    padding-bottom: 8px;
+  }
+  .wo {
+    font-family: var(--font-display);
+    font-stretch: 75%;
+    font-size: 120px;
+    line-height: 1;
+    text-transform: uppercase;
+    padding: 10px 40px 18px;
+    background: var(--ink);
+    color: var(--gold);
+    border: 6px solid var(--gold);
+    box-shadow: 10px 10px 0 var(--ink);
+  }
+  /* "DEFEATS STORM", beside the score, reading towards it. */
+  .def {
+    order: -1;
+    max-width: 560px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+    font-family: var(--font-display);
+    font-stretch: 75%;
+    font-size: 64px;
+    line-height: 1.1;
+    color: rgb(255 255 255 / 0.9);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    animation: def-in calc(300ms * var(--k)) ease-out calc(1400ms * var(--k)) both;
+  }
+  .from-r .def {
+    text-align: left;
+  }
+  .def s {
+    display: block;
+    text-decoration: none;
+    color: rgb(255 255 255 / 0.55);
+    font-size: 0.66em;
+  }
+  @keyframes def-in {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+  }
+
   /* ── Match title: already up from the intro, so no entrance ── */
   .title {
     position: absolute;
     left: 50%;
-    top: 34px;
+    top: 22px;
     translate: -50% 0;
     transform: skewX(-12deg);
     background: var(--paper);
@@ -943,34 +879,40 @@
     box-shadow: 8px 8px 0 var(--gold);
   }
 
-  /* ── Leaving: the band and words go the way the winner came from ── */
-  .win:not(.hold) .go,
-  .win:not(.hold) .fly {
-    animation: leave calc(450ms * var(--k)) cubic-bezier(0.6, 0, 0.9, 0.5) calc(var(--out) * var(--k)) forwards;
+  /* ── Leaving: when the next match starts ── */
+  .leaving .shake {
+    animation: leave calc(450ms * var(--k)) cubic-bezier(0.6, 0, 0.9, 0.5) forwards;
   }
-  .win.from-r:not(.hold) .go,
-  .win.from-r:not(.hold) .fly {
+  .leaving.from-r .shake {
     animation-name: leave-right;
   }
   @keyframes leave {
     to {
-      transform: translateX(-1300px) skewX(-10deg);
+      transform: translateX(-1400px) skewX(-10deg);
+      opacity: 0;
     }
   }
   @keyframes leave-right {
     to {
-      transform: translateX(1300px) skewX(-10deg);
+      transform: translateX(1400px) skewX(-10deg);
+      opacity: 0;
     }
   }
-  .win:not(.hold) .title {
-    animation:
-      fade-in calc(160ms * var(--k)) linear both,
-      title-out calc(300ms * var(--k)) cubic-bezier(0.6, 0, 0.9, 0.5) calc(var(--out) * var(--k)) forwards;
+  .leaving .title {
+    animation: title-out calc(300ms * var(--k)) cubic-bezier(0.6, 0, 0.9, 0.5) forwards;
   }
   @keyframes title-out {
     to {
       transform: translateY(-160px) skewX(-12deg);
     }
+  }
+  .leaving .backdrop,
+  .leaving .rays-wrap {
+    animation: fade-out calc(250ms * var(--k)) linear calc(350ms * var(--k)) both;
+  }
+  .leaving .rays-wrap {
+    opacity: 1; /* its fade-in held it there; fade out from it */
+    animation-delay: 0ms;
   }
 
   /* ── Lite (Pi-safe) ── */
@@ -980,9 +922,6 @@
   .lite .focus,
   .lite .rays {
     animation: none;
-  }
-  .lite .rays {
-    opacity: 1;
   }
   .lite .r1 {
     box-shadow: none;
@@ -1001,21 +940,19 @@
 
   /* ── Reduced motion ── */
   /* No charge, slam, shake, flash or flying shards: the finished frame fades
-     in, holds, and fades out. */
+     in, holds still, and fades out. */
   @media (prefers-reduced-motion: reduce) {
     .flash,
     .ring,
     .shards,
     .streaks,
-    .lose,
     .ch i {
       display: none;
     }
     .shake,
     .focus,
-    .band,
-    .panel,
-    .push,
+    .banner,
+    .pic,
     .shosha,
     .ch,
     .ch b,
@@ -1025,17 +962,21 @@
     .name {
       animation: fade-in calc(300ms * var(--k)) linear both;
     }
-    .rays {
+    .rays-wrap {
       animation: none;
       opacity: 1;
+    }
+    .rays {
+      animation: none;
     }
     .ch {
       opacity: 1;
     }
-    .win:not(.hold) .go,
-    .win:not(.hold) .fly,
-    .win:not(.hold) .title {
-      animation: fade-out calc(300ms * var(--k)) linear calc(var(--out) * var(--k)) forwards;
+    .leaving .shake,
+    .leaving .title,
+    .leaving .backdrop,
+    .leaving .rays-wrap {
+      animation: fade-out calc(300ms * var(--k)) linear both;
     }
   }
 </style>
