@@ -1,39 +1,48 @@
 <script lang="ts">
   import WinnerScreen from "$lib/components/tv/WinnerScreen.svelte";
-  import { WINNER_OUT } from "$lib/sounds";
+  import { Announcer } from "$lib/components/tv/announcer";
+  import { STINGER, WINNER_SLAM, WINS, winsCall } from "$lib/sounds";
   import { page } from "$app/state";
-  import { tick } from "svelte";
+  import { onMount, tick } from "svelte";
 
   // Lab page for the winner screen. Not linked from anywhere. Uses the
-  // starter fighters' pictures (static/starter-fighters).
+  // starter fighters' pictures and voices (static/starter-fighters).
+  const SF = "/starter-fighters/";
   const FIGHTERS = {
-    picture: { name: "The Buzzsaw", kana: "ザ・バズソー", img: "/starter-fighters/buzzsaw.png" },
+    picture: { name: "The Buzzsaw", kana: "ザ・バズソー", img: SF + "buzzsaw.png", voice: SF + "the-buzzsaw.mp3" },
     victory: {
       name: "The Buzzsaw",
       kana: "ザ・バズソー",
-      img: "/starter-fighters/buzzsaw.png",
-      victory: "/starter-fighters/victory-buzzsaw.png",
+      img: SF + "buzzsaw.png",
+      victory: SF + "victory-buzzsaw.png",
+      voice: SF + "the-buzzsaw.mp3",
     },
-    "no picture": { name: "The Modsmith", kana: "ザ・モッドスミス", img: "" },
-    "long name": { name: "The Torque Warden", kana: "ザ・トルクウォーデン", img: "/starter-fighters/torquewarden.png" },
-    "no fighter": { name: "Ronan", kana: "", img: "" },
+    "no picture": { name: "The Modsmith", kana: "ザ・モッドスミス", img: "", voice: SF + "the-modsmith.mp3" },
+    "long name": {
+      name: "The Torque Warden",
+      kana: "ザ・トルクウォーデン",
+      img: SF + "torquewarden.png",
+      voice: SF + "the-torque-warden.mp3",
+    },
+    "no fighter": { name: "Ronan", kana: "", img: "", voice: "" },
   };
   type Pick = keyof typeof FIGHTERS;
   const LOSERS = ["The Breycist", "Storm", "The Fairy Dancer"];
 
-  // Match titles as the TV words them, each with its bracket tier.
+  // Match titles as the TV words them, each with its bracket tier. (No grand
+  // final: it goes straight to the Champion scene instead.)
   type Tier = "wb" | "mb" | "lb" | "gf" | "group";
   const TITLES: [string, Tier][] = [
     ["Group 1, match 4 of 6", "group"],
     ["Winners semi-final", "wb"],
     ["Mid bracket round 2", "mb"],
     ["Losers semi-final", "lb"],
-    ["Grand final", "gf"],
   ];
 
   const q = page.url.searchParams;
   // ?f=<pick> starts on a given fighter: picture, victory, "no picture", "long name", "no fighter".
-  let pick = $state<Pick>((q.get("f") as Pick) in FIGHTERS ? (q.get("f") as Pick) : "picture");
+  const qf = q.get("f") as Pick;
+  let pick = $state<Pick>(qf in FIGHTERS ? qf : "picture");
   // ?noimg: the silhouette whatever the pick.
   let noImg = $state(q.has("noimg"));
   let loser = $state(LOSERS[0]);
@@ -47,13 +56,11 @@
   let losses = $state(3);
   // ?lite: the Pi-safe version.
   let lite = $state(q.has("lite"));
-  // ?out=<ms>: when it leaves (the TV times this to the stinger's last hit).
-  let out = $state(Number(q.get("out") ?? WINNER_OUT));
 
   let run = $state(0); // bump to replay
   let slow = $state(1);
-  let hold = $state(q.has("hold"));
-  let loop = $state(false);
+  let leaving = $state(false); // the next match starting
+  let gone = $state(false); // it has left; Replay brings it back
   // ?clean hides the controls from the start (for screenshots).
   let showControls = $state(!q.has("clean"));
 
@@ -77,15 +84,72 @@
     );
   });
 
-  function replay() {
-    run++;
+  // ── Sound ──
+  // The TV's own Announcer and timing: the match music plays for LEAD_IN (as
+  // it does through a match), then the result goes in and the screen starts;
+  // "[name] wins!" starts with its slam (WINNER_SLAM), and the music cuts to
+  // the stinger when the call ends, exactly as endMatch does on the TV.
+  // Off by default: ticking the box is the click the browser wants first.
+  const LEAD_IN = 2000;
+  const announcer = new Announcer();
+  let sound = $state(false);
+  let waiting = $state(false); // the music's lead-in, before the result
+  let leadTimer: ReturnType<typeof setTimeout> | undefined;
+  onMount(() => {
+    announcer.setEnabled(false);
+    return () => {
+      clearTimeout(leadTimer);
+      announcer.setEnabled(false);
+    };
+  });
+  const calls = $derived(winsCall(winner.voice, walkover));
+  const file = (u: string) => u.split("/").pop();
+  const soundNote = $derived(
+    `match music (a random track) for ${LEAD_IN / 1000} s → ` +
+      (calls.length ? `"${winner.name} wins!" (${calls.map(file).join(" + ")}) from the slam → ` : "no call (walkover or no voice) → ") +
+      `stinger (${file(STINGER)})` +
+      (slow !== 1 ? " · sound is always 1× speed" : ""),
+  );
+
+  function toggleSound() {
+    announcer.setEnabled(sound);
+    if (sound) {
+      [WINS, STINGER, ...Object.values(FIGHTERS).map((f) => f.voice)].forEach((u) => announcer.preload(u));
+      replay();
+    } else {
+      clearTimeout(leadTimer);
+      waiting = false;
+    }
   }
-  function done() {
-    if (loop) setTimeout(replay, 600);
+
+  function replay() {
+    clearTimeout(leadTimer);
+    leaving = false;
+    gone = false;
+    if (!sound) {
+      waiting = false;
+      run++;
+      return;
+    }
+    // Start the match music (a VS intro with no calls), then the result.
+    announcer.silenceMatch(0);
+    announcer.intro([]);
+    waiting = true;
+    leadTimer = setTimeout(() => {
+      waiting = false;
+      run++;
+      announcer.endMatch(calls, true, WINNER_SLAM);
+    }, LEAD_IN);
+  }
+  function leave() {
+    if (gone || waiting) return;
+    leaving = true;
+    if (sound) announcer.silenceMatch(300); // a new intro fades the stinger out like this
   }
   function onkey(e: KeyboardEvent) {
     if ((e.target as HTMLElement).tagName === "INPUT") return;
     if (e.key === "h" || e.key === "H") showControls = !showControls;
+    if (e.key === "l" || e.key === "L") leave();
     if (e.key === " " || e.key === "r" || e.key === "R") {
       e.preventDefault();
       replay();
@@ -98,27 +162,34 @@
 
 <div class="page">
   <div class="stage">
-    {#key run}
-      <WinnerScreen
-        {winner}
-        loser={{ name: loser }}
-        score={[wins, losses]}
-        {side}
-        {title}
-        {tier}
-        {walkover}
-        {slow}
-        {hold}
-        {lite}
-        {out}
-        ondone={done}
-      />
-    {/key}
+    {#if waiting}
+      <div class="waiting">Match music… the result goes in shortly</div>
+    {:else if !gone}
+      {#key run}
+        <WinnerScreen
+          {winner}
+          loser={{ name: loser }}
+          score={[wins, losses]}
+          {side}
+          {title}
+          {tier}
+          {walkover}
+          {slow}
+          {lite}
+          {leaving}
+          ondone={() => (gone = true)}
+        />
+      {/key}
+    {:else}
+      <div class="waiting">Next match starting (the VS intro takes over here)</div>
+    {/if}
   </div>
 
   {#if showControls}
     <div class="controls">
       <button onclick={replay}>Replay</button>
+      <button onclick={leave} disabled={gone || waiting}>Next match starts (leave)</button>
+      <label class="snd"><input type="checkbox" bind:checked={sound} onchange={toggleSound} /> Sound</label>
       <span class="group">
         Speed
         {#each [1, 2, 4] as k}
@@ -149,18 +220,13 @@
       <label><input type="checkbox" bind:checked={walkover} onchange={replay} /> Walkover</label>
       <label><input type="checkbox" bind:checked={noImg} onchange={replay} /> No images</label>
       <label><input type="checkbox" bind:checked={lite} onchange={replay} /> Lite (Pi)</label>
-      <label><input type="checkbox" bind:checked={hold} onchange={replay} /> Hold at end</label>
-      <label><input type="checkbox" bind:checked={loop} /> Loop</label>
-      <span class="group">
-        Leave at
-        <input class="out" type="number" step="100" bind:value={out} onchange={replay} /> ms
-      </span>
       <span class="group">
         {#each TITLES as [t, tr]}
           <button class:on={title === t} onclick={() => ((title = t), (tier = tr), replay())}>{t}</button>
         {/each}
       </span>
-      <span class="hint">R / space replays · H hides this</span>
+      <span class="note">{sound ? "Sound: " + soundNote : "Sound off (tick Sound to hear the TV's sequence)"}</span>
+      <span class="hint">R / space replays · L leaves · H hides this</span>
     </div>
   {/if}
 </div>
@@ -180,6 +246,14 @@
     aspect-ratio: 16 / 9;
     background: var(--field-deep);
     overflow: hidden;
+  }
+  .waiting {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--on-field-soft);
+    font: 600 2vw var(--font-text);
   }
   .controls {
     position: fixed;
@@ -209,15 +283,24 @@
     border: 1px solid #555;
     cursor: pointer;
   }
+  button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
   button.on {
     background: var(--gold);
     color: #000;
   }
+  .snd {
+    font-weight: 700;
+    color: var(--gold);
+  }
   input.num {
     width: 52px;
   }
-  input.out {
-    width: 80px;
+  .note {
+    flex-basis: 100%;
+    opacity: 0.85;
   }
   .hint {
     opacity: 0.6;
