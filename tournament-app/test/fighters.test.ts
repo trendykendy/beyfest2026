@@ -8,6 +8,7 @@ const f = (id: string, name: string, player: string, image = "", voice = ""): PB
   kana: "",
   image,
   victory: "",
+  royaleVictory: "",
   voice,
   mirror: false,
   face: null,

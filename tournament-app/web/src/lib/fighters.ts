@@ -1,5 +1,5 @@
 // The fighter library (PocketBase `fighters`, migrations 1710001100,
-// 1710001200, 1710001400 and 1710001700): the combat name, katakana, cut-out
+// 1710001200, 1710001400, 1710001700 and 1710001800): the combat name, katakana, cut-out
 // image (and where the face is in it) and announcer voice the TV's VS intro uses for a blader, and the victory pose
 // the Champion scene shows. Fighters aren't tied to a tournament;
 // a player is matched to one by the fighter's player name.
@@ -11,6 +11,7 @@ export interface PBFighter {
   kana: string;
   image: string; // file name in PocketBase storage, "" if none
   victory: string; // victory pose for the Champion scene, "" if none
+  royaleVictory: string; // the battle royale champion's pose, "" if none
   voice: string; // file name in PocketBase storage, "" if none
   mirror: boolean;
   face: Face | null; // where the face is in the image, null if not set
@@ -94,6 +95,13 @@ export function fighterImageUrl(pbUrl: string, f: PBFighter | null, thumb = "0x9
 export function fighterVictoryUrl(pbUrl: string, f: PBFighter | null, thumb = ""): string {
   if (!f?.victory) return "";
   return fileUrl(pbUrl, f, f.victory) + (thumb ? `?thumb=${thumb}` : "");
+}
+
+// The battle royale victory pose's URL, or "" if the fighter has none (the
+// Champion scene then falls back to fighterVictoryUrl). Same sizes as that.
+export function fighterRoyaleVictoryUrl(pbUrl: string, f: PBFighter | null, thumb = ""): string {
+  if (!f?.royaleVictory) return "";
+  return fileUrl(pbUrl, f, f.royaleVictory) + (thumb ? `?thumb=${thumb}` : "");
 }
 
 // The announcer clip's URL, or "" if the fighter has no voice.

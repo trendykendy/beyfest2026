@@ -9,7 +9,8 @@ import { readStarters } from "$lib/server/starterFiles";
 // The fighter library: who the TV's VS intro shows, with their katakana,
 // cut-out, announcer voice and victory pose. Not tied to a tournament (see
 // migrations 1710001100_fighters, 1710001200_fighter_player_voice,
-// 1710001400_fighter_victory and 1710001700_fighter_face).
+// 1710001400_fighter_victory, 1710001700_fighter_face and
+// 1710001800_fighter_royale_victory).
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const view = await loadTournamentView(locals.pb);
@@ -100,12 +101,14 @@ export const actions: Actions = {
     if (problem) return fail(400, { error: problem });
     const image = fileFrom(data, "image");
     const victory = fileFrom(data, "victory");
+    const royaleVictory = fileFrom(data, "royaleVictory");
     const voice = fileFrom(data, "voice");
     try {
       await locals.pb.collection("fighters").create({
         ...fields,
         ...(image ? { image } : {}),
         ...(victory ? { victory } : {}),
+        ...(royaleVictory ? { royaleVictory } : {}),
         ...(voice ? { voice } : {}),
       });
     } catch (e) {
@@ -124,6 +127,7 @@ export const actions: Actions = {
     if (problem) return fail(400, { error: problem, editing: id });
     const image = fileFrom(data, "image");
     const victory = fileFrom(data, "victory");
+    const royaleVictory = fileFrom(data, "royaleVictory");
     const voice = fileFrom(data, "voice");
     // A new picture's face is somewhere else, so the old point goes with it.
     const face = image || data.get("removeImage") === "on" ? null : faceFrom(data);
@@ -134,6 +138,11 @@ export const actions: Actions = {
         // a new upload replaces the file; "remove" clears it
         ...(image ? { image } : data.get("removeImage") === "on" ? { image: null } : {}),
         ...(victory ? { victory } : data.get("removeVictory") === "on" ? { victory: null } : {}),
+        ...(royaleVictory
+          ? { royaleVictory }
+          : data.get("removeRoyaleVictory") === "on"
+            ? { royaleVictory: null }
+            : {}),
         ...(voice ? { voice } : data.get("removeVoice") === "on" ? { voice: null } : {}),
       });
     } catch (e) {
@@ -169,6 +178,7 @@ export const actions: Actions = {
             face: s.face ?? null,
             ...(s.image ? { image: await file(s.image) } : {}),
             ...(s.victory ? { victory: await file(s.victory) } : {}),
+            ...(s.royaleVictory ? { royaleVictory: await file(s.royaleVictory) } : {}),
             ...(s.voice ? { voice: await file(s.voice) } : {}),
           });
           added++;

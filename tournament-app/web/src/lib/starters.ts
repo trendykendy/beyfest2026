@@ -15,6 +15,7 @@ export interface Starter {
   kana?: string;
   image?: string; // file name in static/starter-fighters/
   victory?: string; // file name in static/starter-fighters/
+  royaleVictory?: string; // file name in static/starter-fighters/
   voice?: string; // file name in static/starter-fighters/
   mirror?: boolean;
   face?: Face; // where the face is in `image` (scripts/find-faces.py)
@@ -25,7 +26,7 @@ export type StarterStep =
   // fields: the text fields to set; files: which files to upload
   | { kind: "fill"; id: string; starter: Starter; fields: Partial<Pick<PBFighter, "player" | "kana" | "face">>; files: StarterFile[] };
 
-export type StarterFile = "image" | "victory" | "voice";
+export type StarterFile = "image" | "victory" | "royaleVictory" | "voice";
 
 const key = (s: string | undefined) => (s ?? "").trim().toLowerCase();
 
@@ -64,6 +65,7 @@ export function planStarters(starters: Starter[], library: PBFighter[], pictures
     const files: StarterFile[] = [];
     if (!f.image && s.image) files.push("image");
     if (!f.victory && s.victory) files.push("victory");
+    if (!f.royaleVictory && s.royaleVictory) files.push("royaleVictory");
     if (!f.voice && s.voice) files.push("voice");
     if (Object.keys(fields).length || files.length) steps.push({ kind: "fill", id: f.id, starter: s, fields, files });
   }

@@ -9,6 +9,7 @@ const fighter = (over: Partial<PBFighter>): PBFighter => ({
   kana: "",
   image: "",
   victory: "",
+  royaleVictory: "",
   voice: "",
   mirror: false,
   face: null,
@@ -72,6 +73,15 @@ describe("planStarters", () => {
     // A picture uploaded on the admin page, or a face already set, is left alone.
     expect(planStarters([faced], [{ ...loaded, image: "mine_abc123.png" }])).toEqual([]);
     expect(planStarters([faced], [{ ...loaded, image: "breycist_x8k2p9q1zz.png", face: { x: 0.5, y: 0.5, h: 0.2 } }])).toEqual([]);
+  });
+
+  test("gives a fighter already loaded the battle royale pose, keeping one uploaded by hand", () => {
+    const posed: Starter = { ...breycist, victory: "victory-breycist.png", royaleVictory: "royale-victory-breycist.png" };
+    const loaded = fighter({ id: "a", name: "The Breycist", player: "Conor", kana: "k", image: "i.png", victory: "v.png", voice: "v.mp3" });
+    expect(planStarters([posed], [loaded])).toEqual([
+      { kind: "fill", id: "a", starter: posed, fields: {}, files: ["royaleVictory"] },
+    ]);
+    expect(planStarters([posed], [{ ...loaded, royaleVictory: "mine.png" }])).toEqual([]);
   });
 
   test("doesn't give a player name that another fighter already has", () => {

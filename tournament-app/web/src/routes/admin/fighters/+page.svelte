@@ -1,7 +1,14 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import FacePicker from "$lib/components/FacePicker.svelte";
-  import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl, type PBFighter } from "$lib/fighters";
+  import {
+    fighterFor,
+    fighterImageUrl,
+    fighterRoyaleVictoryUrl,
+    fighterVictoryUrl,
+    fighterVoiceUrl,
+    type PBFighter,
+  } from "$lib/fighters";
 
   let { data, form } = $props();
 
@@ -9,6 +16,7 @@
   // port 8090 of whichever address served this page.
   const img = (f: PBFighter) => fighterImageUrl(data.pbUrl, f);
   const victoryImg = (f: PBFighter) => fighterVictoryUrl(data.pbUrl, f, "300x200");
+  const royaleVictoryImg = (f: PBFighter) => fighterRoyaleVictoryUrl(data.pbUrl, f, "300x200");
 
   // One clip at a time: a new Play stops the last one.
   let playing: HTMLAudioElement | null = null;
@@ -48,7 +56,8 @@
     an MP3 of the combat name, with no silence at the start. Face: click the face on the picture so
     screens that crop it (the battle royale, the phone) keep it in view; a new image needs it set
     again. Victory pose: a full 3:2 picture
-    (background and all) for the Champion scene, shown as it is, never mirrored.
+    (background and all) for the Champion scene, shown as it is, never mirrored. Royale pose: the
+    same, for the battle royale champion; without one the normal victory pose is used.
   </p>
 
   {#if form?.error && !editing}
@@ -89,6 +98,7 @@
       <label>Katakana <input type="text" name="kana" placeholder="Optional, e.g. ラッシュ" /></label>
       <label>Image <input type="file" name="image" accept="image/png,image/webp,image/jpeg" /></label>
       <label>Victory pose <input type="file" name="victory" accept="image/png,image/webp,image/jpeg" /></label>
+      <label>Royale pose <input type="file" name="royaleVictory" accept="image/png,image/webp,image/jpeg" /></label>
       <label>Voice <input type="file" name="voice" accept="audio/*" /></label>
       <label class="check"><input type="checkbox" name="mirror" /> Mirror</label>
       <button class="btn primary" type="submit">Add fighter</button>
@@ -120,6 +130,9 @@
           {#if f.victory}
             <div class="preview victory" title="Victory pose"><img src={victoryImg(f)} alt="" /></div>
           {/if}
+          {#if f.royaleVictory}
+            <div class="preview victory" title="Battle royale victory pose"><img src={royaleVictoryImg(f)} alt="" /></div>
+          {/if}
         </div>
 
         <form method="POST" action="?/update" enctype="multipart/form-data" use:enhance class="fields">
@@ -129,6 +142,7 @@
           <label>Katakana <input type="text" name="kana" value={f.kana} /></label>
           <label>{f.image ? "Replace image" : "Image"} <input type="file" name="image" accept="image/png,image/webp,image/jpeg" /></label>
           <label>{f.victory ? "Replace victory pose" : "Victory pose"} <input type="file" name="victory" accept="image/png,image/webp,image/jpeg" /></label>
+          <label>{f.royaleVictory ? "Replace royale pose" : "Royale pose"} <input type="file" name="royaleVictory" accept="image/png,image/webp,image/jpeg" /></label>
           <label>{f.voice ? "Replace voice" : "Voice"} <input type="file" name="voice" accept="audio/*" /></label>
           {#if f.image}
             <!-- Keyed on the saved point, so it resets once a save comes back. -->
@@ -146,6 +160,9 @@
             {/if}
             {#if f.victory}
               <label class="check"><input type="checkbox" name="removeVictory" /> Remove victory pose</label>
+            {/if}
+            {#if f.royaleVictory}
+              <label class="check"><input type="checkbox" name="removeRoyaleVictory" /> Remove royale pose</label>
             {/if}
             {#if f.voice}
               <label class="check"><input type="checkbox" name="removeVoice" /> Remove voice</label>

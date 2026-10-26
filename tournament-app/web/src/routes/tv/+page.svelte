@@ -3,7 +3,14 @@
   import { invalidateAll } from "$app/navigation";
   import { liveUpdates } from "$lib/pbBrowser";
   import { EVENT, browserPbUrl } from "$lib/config";
-  import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl, type Face } from "$lib/fighters";
+  import {
+    fighterFor,
+    fighterImageUrl,
+    fighterRoyaleVictoryUrl,
+    fighterVictoryUrl,
+    fighterVoiceUrl,
+    type Face,
+  } from "$lib/fighters";
   import {
     AND,
     GRAND_CHAMPION,
@@ -601,9 +608,12 @@
   type RoyaleIntroShow = { id: string; fighters: IntroFighter[]; label: string; out: number };
   let royaleIntro = $state<RoyaleIntroShow | null>(null);
   // The champion scene's fighters by name (battle royale entrants needn't be
-  // tournament players): combat name, katakana, picture and victory pose.
+  // tournament players): combat name, katakana, picture and victory pose:
+  // the battle royale one if they have it, else their normal one.
   function royaleSceneFighter(name: string) {
-    return { ...introFighter(name), player: name, victory: fighterVictoryUrl(browserPbUrl(), fighterFor(name, data.fighters)) };
+    const f = fighterFor(name, data.fighters);
+    const victory = fighterRoyaleVictoryUrl(browserPbUrl(), f) || fighterVictoryUrl(browserPbUrl(), f);
+    return { ...introFighter(name), player: name, victory };
   }
 
   function startRoyaleIntro(b: Battle) {
@@ -680,6 +690,11 @@
   // royale champion!" (while it's news, as for the main champion).
   let royaleChampSeen = $state<{ name: string; at: number } | null>(null);
   let royaleChampCalled = "";
+  // The pose is full size, so fetch it once the champion's known.
+  $effect(() => {
+    const pose = royaleChamp ? royaleSceneFighter(royaleChamp).victory : "";
+    if (pose) new Image().src = pose;
+  });
   $effect(() => {
     if (scene !== "royaleChampion" || !royaleChamp) return;
     const name = royaleChamp;
