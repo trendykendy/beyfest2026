@@ -13,7 +13,6 @@
     championCallFresh,
     finishClip,
     titleClip,
-    winnerOut,
     winsCall,
   } from "$lib/sounds";
   import { Announcer } from "$lib/components/tv/announcer";
@@ -362,6 +361,7 @@
   function endIntro() {
     const next = introShow?.then ?? null;
     introShow = null;
+    winnerShow = null; // it held under the intro until now
     if (next) drawShow = next;
   }
   // The Champion scene's fighters: the intro's combat name, katakana and
@@ -372,12 +372,15 @@
     return { ...introFighter(player), player, victory };
   }
   // ── Winner screen ───────────────────────────────────────────────────
-  // Every result gets the winner screen (WinnerScreen) over the whole screen,
-  // started from the sound effect below so it's timed with "[name] wins!" and
-  // the stinger; Match centre (the cut to the result) carries on under it.
-  // It only plays where the cut to Match centre would happen (not while the
-  // organiser has locked another scene, or one was picked at the TV). A new
-  // intro or draw, picking a scene at the TV, or the Champion scene ends it.
+  // Every result but the grand final's (the Champion scene has that) gets the
+  // winner screen (WinnerScreen) over the whole screen, started from the sound
+  // effect below so it's timed with "[name] wins!". It only starts where the
+  // cut to Match centre would happen (not while the organiser has locked
+  // another scene, or one was picked at the TV). Then it HOLDS, over the
+  // rotation and any cut to Match centre, until the next match starts: a
+  // match going live that wasn't live when it came up (Start match; its
+  // intro then plays over it). Picking a scene at the TV or the Champion
+  // scene ends it at once. A reload drops it (it's only seen as news).
   type WinnerShow = {
     id: string;
     winner: ReturnType<typeof sceneFighter>;
@@ -387,11 +390,14 @@
     title: string;
     tier: ReturnType<typeof tierOf>;
     walkover: boolean;
-    out: number; // when it leaves: on the stinger's last hit (winnerOut)
+    live: string[]; // the matches already live when it came up (another table)
   };
   let winnerShow = $state<WinnerShow | null>(null);
-  function showWinner(m: PBMatch, out: number) {
+  let winnerLeaving = $state(false);
+  const liveKey = (m: PBMatch) => `${m.code}@${m.startedAt}`;
+  function showWinner(m: PBMatch) {
     const p1Won = m.winner === m.p1;
+    winnerLeaving = false;
     winnerShow = {
       id: `${m.code}@${Date.now()}`,
       winner: sceneFighter(m.winner),
@@ -401,9 +407,15 @@
       title: matchContext(m, data.matches),
       tier: tierOf(m.stage),
       walkover: m.walkover,
-      out,
+      live: liveMatches(data.matches).map(liveKey),
     };
   }
+  // The next match starting: play the exit (ondone clears it).
+  $effect(() => {
+    const w = winnerShow;
+    if (!w || untrack(() => winnerLeaving)) return;
+    if (liveMatches(data.matches).some((m) => !w.live.includes(liveKey(m)))) winnerLeaving = true;
+  });
   $effect(() => {
     if (winnerShow && scene === "champion") winnerShow = null;
   });
@@ -503,11 +515,12 @@
       if (withMusic) musicFor = "";
       const voice = fighterVoiceUrl(browserPbUrl(), fighterFor(names.get(m.winner) ?? "", data.fighters));
       // With the winner screen, the call starts with its slam (a walkover gets
-      // the screen but no call), and the screen leaves on the stinger's last
-      // hit. Without it (another scene is locked or picked), as before.
-      const screen = !!m.winner && untrack(() => scene === "spotlight" && spotMatch?.code === m.code);
-      const t = announcer.endMatch(winsCall(voice, m.walkover), withMusic, screen ? WINNER_SLAM : 0);
-      if (screen) showWinner(m, winnerOut(t.quietAt, t.stingerAt));
+      // the screen but no call). Without it (the grand final, or another scene
+      // locked or picked), as before.
+      const screen =
+        !!m.winner && m.stage !== "gf" && untrack(() => scene === "spotlight" && spotMatch?.code === m.code);
+      announcer.endMatch(winsCall(voice, m.walkover), withMusic, screen ? WINNER_SLAM : 0);
+      if (screen) showWinner(m);
     }
     statusPrimed = true;
     // The music's match has gone (a reset), or finished without being seen
@@ -569,7 +582,7 @@
     const look = pool[Math.floor(Math.random() * pool.length)];
     lastLook = look;
     endDraw();
-    winnerShow = null; // a new match's build-up takes over
+    if (winnerShow) winnerLeaving = true; // a new match's build-up takes over
     drawHold = ev.code;
     blank = ev.kind === "launch";
     const show: DrawShow = { ...ev, id: key, look };
@@ -1014,6 +1027,27 @@
     {/if}
   </main>
 
+  <!-- The winner screen covers the whole screen after a result, and holds
+       until the next match starts; that match's intro plays over it. -->
+  {#if winnerShow}
+    {#key winnerShow.id}
+      <div class="intro-layer">
+        <WinnerScreen
+          winner={winnerShow.winner}
+          loser={winnerShow.loser}
+          score={winnerShow.score}
+          side={winnerShow.side}
+          title={winnerShow.title}
+          tier={winnerShow.tier}
+          walkover={winnerShow.walkover}
+          leaving={winnerLeaving}
+          lite={fxLite}
+          ondone={() => (winnerShow = null)}
+        />
+      </div>
+    {/key}
+  {/if}
+
   <!-- The VS intro covers the whole screen (header and all) before a launch. -->
   {#if introShow}
     {#key introShow.id}
@@ -1026,27 +1060,6 @@
           out={introShow.out}
           lite={fxLite}
           ondone={endIntro}
-        />
-      </div>
-    {/key}
-  {/if}
-
-  <!-- The winner screen covers the whole screen too, after a result. A new
-       intro always wins. -->
-  {#if winnerShow && !introShow}
-    {#key winnerShow.id}
-      <div class="intro-layer">
-        <WinnerScreen
-          winner={winnerShow.winner}
-          loser={winnerShow.loser}
-          score={winnerShow.score}
-          side={winnerShow.side}
-          title={winnerShow.title}
-          tier={winnerShow.tier}
-          walkover={winnerShow.walkover}
-          out={winnerShow.out}
-          lite={fxLite}
-          ondone={() => (winnerShow = null)}
         />
       </div>
     {/key}

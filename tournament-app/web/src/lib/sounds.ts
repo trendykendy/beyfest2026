@@ -105,23 +105,11 @@ export function stingerDelay(talkingFor: number): number {
 }
 
 // ── Winner screen ────────────────────────────────────────────────────
-// The TV's winner screen (WinnerScreen.svelte) plays on every result. The
-// "[name] wins!" call starts with its slam, and it leaves on the stinger's
-// last hit; with no stinger (sound off, or the music wasn't this match's) it
-// leaves a beat after the call, and never sooner than WINNER_OUT.
-export const WINNER_SLAM = 450; // the winner's half lands
-export const WINNER_OUT = 4900; // WinnerScreen's own exit time (5.5 s in all)
-export const WINNER_OUT_MAX = 9000; // a long queue of calls can't hold it for ever
-// The stinger's last big hit, in ms from its start (measured from the file:
-// a gap at 3.25–3.55 s, then the hit at ~3.6 s, decaying from 4 s).
-export const STINGER_HIT_MS = 3_550;
-
-// When the winner screen leaves, in ms from its start, given when the
-// announcer goes quiet and when the stinger starts (null: no stinger).
-export function winnerOut(quietAt: number, stingerAt: number | null): number {
-  const t = stingerAt !== null ? stingerAt + STINGER_HIT_MS : quietAt > 0 ? quietAt + CALLS_TAIL : 0;
-  return Math.min(WINNER_OUT_MAX, Math.max(WINNER_OUT, Math.round(t)));
-}
+// The TV's winner screen (WinnerScreen.svelte) plays on every result but the
+// grand final's. The "[name] wins!" call starts with its slam; the stinger
+// follows the call as usual (Announcer.endMatch). The screen then holds until
+// the next match starts.
+export const WINNER_SLAM = 450; // the winner's banner lands
 
 // ── Champion ─────────────────────────────────────────────────────────
 // The Champion scene's music, and its one-off call: the champion's name

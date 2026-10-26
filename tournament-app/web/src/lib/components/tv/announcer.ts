@@ -124,17 +124,14 @@ export class Announcer {
   // The match's result is in: call the winner (after any call still going),
   // then, if this match's music is playing, cut it and hit the stinger. The
   // music stays ducked under the calls right up to the cut.
-  // `from`: don't start the call before this (ms from now), so it can land
-  // with the winner screen's slam. Returns when it goes quiet and when the
-  // stinger starts (null if it doesn't play), in ms from now.
-  endMatch(calls: string[], withMusic: boolean, from = 0): { quietAt: number; stingerAt: number | null } {
-    if (!this.enabled) return { quietAt: 0, stingerAt: null };
+  // `from`: don't start the call before this (ms from now), so it lands with
+  // the winner screen's slam.
+  endMatch(calls: string[], withMusic: boolean, from = 0) {
+    if (!this.enabled) return;
     const talking = this.queue(calls, from);
-    if (!withMusic) return { quietAt: talking, stingerAt: null };
+    if (!withMusic) return;
     clearTimeout(this.unduck);
-    const stingerAt = stingerDelay(talking);
-    this.timers.push(setTimeout(() => this.hitStinger(), stingerAt));
-    return { quietAt: talking, stingerAt };
+    this.timers.push(setTimeout(() => this.hitStinger(), stingerDelay(talking)));
   }
 
   // Hand the room over to something else (the Champion scene): drop any match
