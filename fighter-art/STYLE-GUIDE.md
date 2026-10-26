@@ -50,7 +50,9 @@ card. Polished, bright and clean, not gritty.
 - **No lettering or numbers** on clothes, launchers or props. Screens mirror
   cut-outs with `scaleX(-1)`, so text reads backwards. This is why the Cheatseeker
   and the Torque Warden needed hand-made mirror images. Emblems must be symmetric.
-  The Cheatseeker's rule book is the one approved exception.
+  The two approved exceptions are the Cheatseeker's "RULE BOOK" and the Torque
+  Warden's "T.W" badge. Each new version of those two gets a hand-made mirror
+  image (`scripts/unflip-text.py`).
 - **One person, no extra limbs or launchers.** Hands holding the launcher and
   ripcord should be checked closely.
 

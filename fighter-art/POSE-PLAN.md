@@ -50,7 +50,7 @@ twelve versions of one shot.
 - **Pose:** standing tall, rule book held up beside his face in one hand like a badge, launcher pointed down at his feet in the other. The Beyblade spins at his feet. A knowing squint.
 - **Camera:** slightly low, front.
 - **Mood:** "I've read the rules. Have you?"
-- **Note:** the book cover should carry a symbol, not words, so no hand-made mirror image is needed. See decision 3.
+- **Note:** the "RULE BOOK" lettering stays. It needs a hand-made mirror image (`scripts/unflip-text.py`), as before.
 
 **6. The Fairy Dancer** (Steve): cap, pink and purple camo jacket
 - **Pose:** mid-pirouette on one foot, the launch arm extended, the ripcord trailing in a spiral. The Beyblade's glow follows the spin like a ribbon.
@@ -83,7 +83,7 @@ twelve versions of one shot.
 - **Pose:** standing completely still while everything moves around him. The coat billows, the launcher hangs at his side just after launching, and the Beyblade grinds at his feet throwing sparks. A stern stare from under the hat brim.
 - **Camera:** low, front.
 - **Mood:** the guardian who doesn't move *(assumed)*.
-- **Note:** drop the "T.W" lettering on the coat badge (use a symbol instead), so no hand-made mirror image is needed.
+- **Note:** the "T.W" coat badge stays. It needs a hand-made mirror image, as before.
 
 **12. The Underdogger** (Mark): long blond hair, waistcoat, bronze and orange
 - **Pose:** pushing up off one knee mid-launch, off-balance but grinning, hair flying. A comeback in progress.
@@ -94,4 +94,4 @@ twelve versions of one shot.
 
 1. ~~**The lunge**~~ **Settled:** the Pugilist keeps the fist-at-camera lunge; the Buzzsaw gets the discus spin.
 2. **Personalities:** correct any *(assumed)* mood above. One line per fighter about the real person (how they play, a catchphrase, a habit) makes the pose sharper.
-3. **Lettering:** swap the rule book cover and the coat badge for symbols, so the hand-made mirror images aren't needed? (Recommended.)
+3. ~~**Lettering**~~ **Settled:** keep "RULE BOOK" and "T.W"; make hand-made mirror images for both, as before.
