@@ -65,6 +65,7 @@
   import WinnerScreen from "$lib/components/tv/WinnerScreen.svelte";
   import RoyaleBoard from "$lib/components/tv/RoyaleBoard.svelte";
   import RoyaleIntro from "$lib/components/tv/RoyaleIntro.svelte";
+  import RoyaleDraw from "$lib/components/tv/RoyaleDraw.svelte";
   import QualifiedScreen from "$lib/components/tv/QualifiedScreen.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
   import LiveQr from "$lib/components/tv/LiveQr.svelte";
@@ -618,8 +619,30 @@
     return { ...introFighter(name), player: name, victory };
   }
 
+  // The draw: when the heats are generated, the wheel of everyone in it,
+  // heat by heat, with "Battle royale!" as the hub slams in. The board is
+  // held underneath, so it's what's left when the draw clears. Seen by
+  // comparing reloads, so a page load never replays it.
+  type RoyaleDrawShow = { id: string; fighters: IntroFighter[] };
+  let royaleDraw = $state<RoyaleDrawShow | null>(null);
+  let royaleIdSeen: string | null | undefined = undefined; // undefined: not loaded yet
+  $effect(() => {
+    const r = data.royale;
+    untrack(() => {
+      const was = royaleIdSeen;
+      royaleIdSeen = r?.id ?? null;
+      if (was === undefined || !r || r.id === was) return;
+      // Old news (no date counts as old: NaN fails the test).
+      if (!(Date.now() - Date.parse(r.createdAt ?? "") <= CALLOUT_FRESH_MS)) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      royaleDraw = { id: r.id, fighters: r.entrants.map(introFighter) };
+      announcer.call([ROYALE]);
+    });
+  });
+
   function startRoyaleIntro(b: Battle) {
     if (Date.now() - Date.parse(b.result.startedAt ?? "") > CALLOUT_FRESH_MS) return; // old news
+    royaleDraw = null; // the first heat's intro takes over
     if (qualifiedShow) qualifiedLeaving = true; // the next battle's build-up takes over
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const out = announcer.intro([ROYALE, royaleLabelClip(b.key)]);
@@ -782,6 +805,7 @@
       scene !== "royaleChampion" &&
       !introShow &&
       !royaleIntro &&
+      !royaleDraw &&
       !drawShow &&
       !blank &&
       !winnerShow &&
@@ -1275,6 +1299,22 @@
           out={introShow.out}
           lite={fxLite}
           ondone={endIntro}
+        />
+      </div>
+    {/key}
+  {/if}
+
+  <!-- The battle royale draw: the heats, as a wheel, over everything. -->
+  {#if royaleDraw && royale}
+    {#key royaleDraw.id}
+      <div class="intro-layer">
+        <RoyaleDraw
+          fighters={royaleDraw.fighters}
+          heats={royale.plan.heats}
+          finalSize={royale.plan.finalSize}
+          sudden={royale.plan.sudden}
+          lite={fxLite}
+          ondone={() => (royaleDraw = null)}
         />
       </div>
     {/key}

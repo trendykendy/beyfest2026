@@ -27,6 +27,7 @@ export interface PBRoyale {
   spaces: number;
   entrants: string[]; // names, in drawn order: heat 1's first, then heat 2's…
   battles: Record<string, BattleResult>; // keyed H1…Hn, SD, F
+  createdAt?: string; // ISO: when the heats were drawn (the TV plays the draw)
 }
 
 export type RoyalePlan = {

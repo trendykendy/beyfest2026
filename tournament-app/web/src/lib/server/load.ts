@@ -154,13 +154,20 @@ export async function loadBetting(pb: PocketBase, tournamentId: string): Promise
   }
 }
 
+// PocketBase writes dates as "2026-10-26 15:48:33.234Z"; not every browser
+// parses that, so hand them on as ISO ("" if missing).
+function isoDate(v: unknown): string {
+  const t = typeof v === "string" ? Date.parse(v.replace(" ", "T")) : NaN;
+  return Number.isFinite(t) ? new Date(t).toISOString() : "";
+}
+
 // The tournament's battle royale (see migration 1710001600_royale), or null
 // before it starts (or before the migration has run).
 async function loadRoyale(pb: PocketBase, tournamentId: string): Promise<PBRoyale | null> {
   try {
     const list = await pb.collection("royales").getFullList({ filter: pb.filter("tournament = {:id}", { id: tournamentId }) });
     const r = list[0];
-    return r ? { id: r.id, spaces: r.spaces, entrants: r.entrants ?? [], battles: r.battles ?? {} } : null;
+    return r ? { id: r.id, spaces: r.spaces, entrants: r.entrants ?? [], battles: r.battles ?? {}, createdAt: isoDate(r.createdAt) } : null;
   } catch {
     return null;
   }
