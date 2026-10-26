@@ -37,14 +37,23 @@
   const mine = $derived(me ? all.find((b) => b.bettor.id === me.id) : undefined);
   const board = $derived(leaderboard(all));
   const myRow = $derived(board.find((r) => r.bettor.id === me?.id));
-  // Live first, then the TV's call order; only those still taking bets.
-  const open = $derived([...liveMatches(matches), ...upNext(matches, nextCode)].filter(bettingOpen).slice(0, 6));
+  // Live first, then the TV's call order. A live match on match point stays
+  // in the list, marked closed, until its result is in (then it drops out).
+  const open = $derived([...liveMatches(matches), ...upNext(matches, nextCode)].slice(0, 6));
   const byId = $derived(new Map(matches.map((m) => [m.id, m])));
 
   // ── The bet slip: one open at a time ────────────────────────────────
   let slip = $state<{ match: string; pick: string; stake: number; odds: number | null } | null>(null);
   let busy = $state(false);
   let say = $state<{ text: string; good: boolean } | null>(null);
+
+  // Betting closed on the slip's match (match point, or the result went in
+  // while it was open): put the slip away.
+  $effect(() => {
+    if (!slip) return;
+    const m = byId.get(slip.match);
+    if (!m || !bettingOpen(m)) slip = null;
+  });
 
   function choose(m: PBMatch, pick: string) {
     say = null;
@@ -124,7 +133,8 @@
     {#each open as m (m.id)}
       {@const o = matchOdds(m, matches)}
       {@const live = isLive(m)}
-      <div class="lv-slab card tier-{tierOf(m.stage)}">
+      {@const closed = !bettingOpen(m)}
+      <div class="lv-slab card tier-{tierOf(m.stage)}" class:closed>
         <div class="cap">
           <span>{matchContext(m, matches)}</span>
           {#if live}<span class="live"><span class="lv-dot"></span>{m.liveP1}–{m.liveP2}</span>{/if}
@@ -132,13 +142,16 @@
         <div class="sides">
           {#each [{ id: m.p1, odds: o.p1 }, { id: m.p2, odds: o.p2 }] as s (s.id)}
             {@const on = slip?.match === m.id && slip.pick === s.id}
-            <button class="side" class:on aria-pressed={on} onclick={() => choose(m, s.id)}>
+            <button class="side" class:on aria-pressed={on} disabled={closed} onclick={() => choose(m, s.id)}>
               <span class="nm">{names.get(s.id)}</span>
-              <span class="od">{oddsText(s.odds)}</span>
+              {#if !closed}<span class="od">{oddsText(s.odds)}</span>{/if}
             </button>
           {/each}
         </div>
-        {#if slip?.match === m.id}
+        {#if closed}
+          <p class="shut" role="status">Betting closed · waiting for the result</p>
+        {/if}
+        {#if slip?.match === m.id && !closed}
           {@const odds = slipOdds(m)}
           <div class="slip">
             <div class="chips">
@@ -325,6 +338,7 @@
     text-transform: uppercase;
     max-width: 100%;
     overflow: hidden;
+    padding-right: 0.15em; /* italic overhang: the clip would cut the last letter */
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -336,6 +350,25 @@
     font-variant-numeric: tabular-nums;
   }
   .side.on .od {
+    color: var(--gold);
+  }
+  /* On match point: the bladers stay up, greyed, until the result is in. */
+  .side:disabled {
+    cursor: default;
+    color: #8a90ad;
+    border-color: #c5c9dc;
+    min-height: 48px;
+  }
+  .shut {
+    margin: 0 12px 12px;
+    padding: 8px 10px;
+    text-align: center;
+    font-stretch: 75%;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.85rem;
+    background: var(--ink);
     color: var(--gold);
   }
 
@@ -416,6 +449,7 @@
     text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
+    padding-right: 0.15em; /* italic overhang: the clip would cut the last letter */
     text-overflow: ellipsis;
   }
   .b-sub {
@@ -455,6 +489,7 @@
     font-stretch: 62%;
     text-transform: uppercase;
     overflow: hidden;
+    padding-right: 0.15em; /* italic overhang: the clip would cut the last letter */
     text-overflow: ellipsis;
     white-space: nowrap;
   }
