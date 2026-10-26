@@ -45,6 +45,7 @@ const toFighter = (r: RecordModel): PBFighter => ({
   player: r.player || "",
   kana: r.kana || "",
   image: r.image || "",
+  imageMirrored: r.imageMirrored || "",
   victory: r.victory || "",
   royaleVictory: r.royaleVictory || "",
   voice: r.voice || "",

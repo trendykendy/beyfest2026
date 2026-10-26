@@ -9,8 +9,8 @@ import { readStarters } from "$lib/server/starterFiles";
 // The fighter library: who the TV's VS intro shows, with their katakana,
 // cut-out, announcer voice and victory pose. Not tied to a tournament (see
 // migrations 1710001100_fighters, 1710001200_fighter_player_voice,
-// 1710001400_fighter_victory, 1710001700_fighter_face and
-// 1710001800_fighter_royale_victory).
+// 1710001400_fighter_victory, 1710001700_fighter_face,
+// 1710001800_fighter_royale_victory and 1710001900_fighter_image_mirrored).
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const view = await loadTournamentView(locals.pb);
@@ -51,9 +51,10 @@ function faceFrom(data: FormData) {
   return toFace({ x: n("faceX"), y: n("faceY"), h: n("faceH") });
 }
 
-// Which fighters without a face point have a starter's picture, byte for
-// byte: fighter id → the picture's file name. Those can take the starter's
-// face point even if the picture was uploaded by hand under another name.
+// Which fighters still missing a face point or mirror image have a starter's
+// picture, byte for byte: fighter id → the picture's file name. Those can
+// take what goes with the starter's picture even if it was uploaded by hand
+// under another name.
 async function starterPictures(
   pb: App.Locals["pb"],
   library: PBFighter[],
@@ -61,8 +62,8 @@ async function starterPictures(
   file: (name: string) => Promise<File>,
 ): Promise<Map<string, string>> {
   const found = new Map<string, string>();
-  const wanted = library.filter((f) => f.image && !f.face);
-  const faced = starters.filter((s) => s.image && s.face);
+  const wanted = library.filter((f) => f.image && (!f.face || !f.imageMirrored));
+  const faced = starters.filter((s) => s.image && (s.face || s.imageMirrored));
   if (!wanted.length || !faced.length) return found;
   const sizes = new Map<number, string[]>(); // by size first, so few are compared in full
   const bytes = new Map<string, Uint8Array>();
@@ -100,6 +101,7 @@ export const actions: Actions = {
     const problem = await clash(locals.pb, name, fields.player);
     if (problem) return fail(400, { error: problem });
     const image = fileFrom(data, "image");
+    const imageMirrored = fileFrom(data, "imageMirrored");
     const victory = fileFrom(data, "victory");
     const royaleVictory = fileFrom(data, "royaleVictory");
     const voice = fileFrom(data, "voice");
@@ -107,6 +109,7 @@ export const actions: Actions = {
       await locals.pb.collection("fighters").create({
         ...fields,
         ...(image ? { image } : {}),
+        ...(imageMirrored ? { imageMirrored } : {}),
         ...(victory ? { victory } : {}),
         ...(royaleVictory ? { royaleVictory } : {}),
         ...(voice ? { voice } : {}),
@@ -126,6 +129,7 @@ export const actions: Actions = {
     const problem = await clash(locals.pb, name, fields.player, id);
     if (problem) return fail(400, { error: problem, editing: id });
     const image = fileFrom(data, "image");
+    const imageMirrored = fileFrom(data, "imageMirrored");
     const victory = fileFrom(data, "victory");
     const royaleVictory = fileFrom(data, "royaleVictory");
     const voice = fileFrom(data, "voice");
@@ -137,6 +141,12 @@ export const actions: Actions = {
         face,
         // a new upload replaces the file; "remove" clears it
         ...(image ? { image } : data.get("removeImage") === "on" ? { image: null } : {}),
+        // The mirror image goes with its picture: a new or removed picture drops it.
+        ...(imageMirrored
+          ? { imageMirrored }
+          : image || data.get("removeImage") === "on" || data.get("removeImageMirrored") === "on"
+            ? { imageMirrored: null }
+            : {}),
         ...(victory ? { victory } : data.get("removeVictory") === "on" ? { victory: null } : {}),
         ...(royaleVictory
           ? { royaleVictory }
@@ -177,6 +187,7 @@ export const actions: Actions = {
             mirror: !!s.mirror,
             face: s.face ?? null,
             ...(s.image ? { image: await file(s.image) } : {}),
+            ...(s.imageMirrored ? { imageMirrored: await file(s.imageMirrored) } : {}),
             ...(s.victory ? { victory: await file(s.victory) } : {}),
             ...(s.royaleVictory ? { royaleVictory: await file(s.royaleVictory) } : {}),
             ...(s.voice ? { voice: await file(s.voice) } : {}),

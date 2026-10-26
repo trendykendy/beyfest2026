@@ -1,5 +1,6 @@
 <script lang="ts">
   import Trophy from "$lib/components/Trophy.svelte";
+  import { artFor } from "$lib/fighters";
   import FighterSilhouette from "./FighterSilhouette.svelte";
   import { FINISHES } from "$lib/finishes";
   import type { ChampionRun } from "$lib/view";
@@ -12,7 +13,7 @@
   // `lite` drops the turning rays and most of the confetti.
   // victory: the fighter's victory pose, if they have one: shown in the frame
   // instead of the cut-out, and never flipped (it has writing on it).
-  type Fighter = { name: string; player: string; kana: string; img: string; victory?: string; mirror?: boolean };
+  type Fighter = { name: string; player: string; kana: string; img: string; imgMirrored?: string; victory?: string; mirror?: boolean };
   // An award for the ticker, names already filled in.
   type TickerAward = { key: string; title: string; name: string; detail: string };
   let {
@@ -88,7 +89,8 @@
           {#if champion.victory}
             <img src={champion.victory} alt="" />
           {:else if champion.img}
-            <img src={champion.img} alt="" class:flip={!champion.mirror} />
+            {@const art = artFor(champion, !champion.mirror)}
+            <img src={art.src} alt="" class:flip={art.flip} />
           {:else}
             <div class="sil"><FighterSilhouette flip /></div>
           {/if}

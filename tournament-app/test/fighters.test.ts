@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { faceCrop, facePan, fighterFor, fighterImageUrl, fighterVoiceUrl, toFace, type PBFighter } from "../web/src/lib/fighters";
+import { artFor, faceCrop, facePan, fighterFor, fighterImageUrl, fighterVoiceUrl, toFace, type PBFighter } from "../web/src/lib/fighters";
 
 const f = (id: string, name: string, player: string, image = "", voice = ""): PBFighter => ({
   id,
@@ -7,6 +7,7 @@ const f = (id: string, name: string, player: string, image = "", voice = ""): PB
   player,
   kana: "",
   image,
+  imageMirrored: "",
   victory: "",
   royaleVictory: "",
   voice,
@@ -110,5 +111,20 @@ describe("faceCrop", () => {
   });
   test("is empty without a face, so the old crop stays", () => {
     expect(faceCrop(null)).toBe("");
+  });
+});
+
+describe("artFor", () => {
+  const plain = { img: "a.png" };
+  const lettered = { img: "c.png", imgMirrored: "c-mirrored.png" };
+  test("shows the hand-made mirror image, unflipped, where it'd be mirrored", () => {
+    expect(artFor(lettered, true)).toEqual({ src: "c-mirrored.png", flip: false });
+  });
+  test("shows the cut-out the right way round as it is", () => {
+    expect(artFor(lettered, false)).toEqual({ src: "c.png", flip: false });
+  });
+  test("flips the cut-out when there's no mirror image", () => {
+    expect(artFor(plain, true)).toEqual({ src: "a.png", flip: true });
+    expect(artFor({ img: "a.png", imgMirrored: "" }, true)).toEqual({ src: "a.png", flip: true });
   });
 });

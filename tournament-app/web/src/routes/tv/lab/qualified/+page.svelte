@@ -12,6 +12,7 @@
   // ?noimg, ?noface (the old centred crop), ?lite, ?clean, ?t=<ms> freezes.
   const SF = "/starter-fighters/";
   const STARTERS = [
+    ["The Cheatseeker", "ザ・チートシーカー", "cheatseeker", "the-cheatseeker"],
     ["The Buzzsaw", "ザ・バズソー", "buzzsaw", "the-buzzsaw"],
     ["The Torque Warden", "ザ・トルクウォーデン", "torquewarden", "the-torque-warden"],
     ["The Modsmith", "ザ・モッドスミス", "modsmith", "the-modsmith"],
@@ -25,9 +26,13 @@
   let label = $state(q.get("label") ?? LABELS[0]);
   let noImg = $state(q.has("noimg"));
   let noFace = $state(q.has("noface"));
-  // The starters' face points (fighters.json), by picture name.
-  const faceOf = (img: string) =>
-    noFace ? null : toFace(starterList.find((s: { image?: string }) => s.image === `${img}.png`)?.face);
+  // The starters' face points and mirror images (fighters.json), by picture name.
+  const starterOf = (img: string) => starterList.find((s: { image?: string }) => s.image === `${img}.png`);
+  const faceOf = (img: string) => (noFace ? null : toFace(starterOf(img)?.face));
+  const mirroredOf = (img: string) => {
+    const m = (starterOf(img) as { imageMirrored?: string } | undefined)?.imageMirrored;
+    return m ? `/starter-fighters/${m}` : "";
+  };
   let lite = $state(q.has("lite"));
   let slow = $state(1);
   let leaving = $state(false);
@@ -36,7 +41,7 @@
   let run = $state(0);
 
   const fighters = $derived(
-    STARTERS.slice(0, n).map(([name, kana, img]) => ({ name, kana, img: noImg || !img ? "" : `${SF}${img}.png`, face: faceOf(img) })),
+    STARTERS.slice(0, n).map(([name, kana, img]) => ({ name, kana, img: noImg || !img ? "" : `${SF}${img}.png`, face: faceOf(img), imgMirrored: noImg ? "" : mirroredOf(img) })),
   );
   const voices = $derived(STARTERS.slice(0, n).map(([, , , v]) => (v ? `${SF}${v}.mp3` : "")));
 

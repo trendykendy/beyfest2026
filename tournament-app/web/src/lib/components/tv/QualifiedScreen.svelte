@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { facePan, type Face } from "$lib/fighters";
+  import { artFor, facePan, type Face } from "$lib/fighters";
   import FighterSilhouette from "./FighterSilhouette.svelte";
 
   // The battle royale's Qualified screen, after a heat or the sudden death:
@@ -15,7 +15,7 @@
   // `lite` drops the drop-shadow filters for the Pi.
   // face: where the face is in the cut-out; it's slid sideways so the face
   // sits in the middle of its narrow panel.
-  type Fighter = { name: string; kana: string; img: string; mirror?: boolean; face?: Face | null };
+  type Fighter = { name: string; kana: string; img: string; imgMirrored?: string; mirror?: boolean; face?: Face | null };
   let {
     fighters,
     label = "", // "Heat 1", "Sudden death"
@@ -74,10 +74,11 @@
                 {#if f.img}
                   {@const flip = (i < n / 2) !== !!f.mirror}
                   <!-- Cut-outs face left: the left half turn to face the middle. -->
+                  {@const art = artFor(f, flip)}
                   <img
-                    src={f.img}
+                    src={art.src}
                     alt=""
-                    style:transform="translateX({facePan(f.face ?? null, flip)}%){flip ? ' scaleX(-1)' : ''}"
+                    style:transform="translateX({facePan(f.face ?? null, flip)}%){art.flip ? ' scaleX(-1)' : ''}"
                   />
                 {:else}
                   <div class="sil"><FighterSilhouette flip={i < n / 2} /></div>

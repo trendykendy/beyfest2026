@@ -1,5 +1,5 @@
 // The fighter library (PocketBase `fighters`, migrations 1710001100,
-// 1710001200, 1710001400, 1710001700 and 1710001800): the combat name, katakana, cut-out
+// 1710001200, 1710001400, 1710001700, 1710001800 and 1710001900): the combat name, katakana, cut-out
 // image (and where the face is in it) and announcer voice the TV's VS intro uses for a blader, and the victory pose
 // the Champion scene shows. Fighters aren't tied to a tournament;
 // a player is matched to one by the fighter's player name.
@@ -10,6 +10,7 @@ export interface PBFighter {
   player: string; // the name typed in for the tournament, e.g. "Conor"
   kana: string;
   image: string; // file name in PocketBase storage, "" if none
+  imageMirrored: string; // a hand-made mirror image of `image` (fixed lettering), "" if none
   victory: string; // victory pose for the Champion scene, "" if none
   royaleVictory: string; // the battle royale champion's pose, "" if none
   voice: string; // file name in PocketBase storage, "" if none
@@ -88,6 +89,20 @@ export function fighterImageUrl(pbUrl: string, f: PBFighter | null, thumb = "0x9
   if (!f?.image) return "";
   const q = thumb ? `?thumb=${thumb}` : "";
   return fileUrl(pbUrl, f, f.image) + q;
+}
+
+// The hand-made mirror image's URL, at the cut-out's size, or "" if the
+// fighter has none.
+export function fighterMirroredUrl(pbUrl: string, f: PBFighter | null, thumb = "0x900"): string {
+  if (!f?.imageMirrored) return "";
+  return fileUrl(pbUrl, f, f.imageMirrored) + (thumb ? `?thumb=${thumb}` : "");
+}
+
+// What a screen shows for a cut-out it wants mirrored or not: the hand-made
+// mirror image (as it is) when it wants it mirrored and there is one, else
+// the cut-out, flipped with CSS if `flip`.
+export function artFor(f: { img: string; imgMirrored?: string }, flip: boolean): { src: string; flip: boolean } {
+  return flip && f.imgMirrored ? { src: f.imgMirrored, flip: false } : { src: f.img, flip };
 }
 
 // The victory pose's URL, or "" if the fighter has none. Full size by default

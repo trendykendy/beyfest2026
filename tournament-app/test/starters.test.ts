@@ -8,6 +8,7 @@ const fighter = (over: Partial<PBFighter>): PBFighter => ({
   player: "",
   kana: "",
   image: "",
+  imageMirrored: "",
   victory: "",
   royaleVictory: "",
   voice: "",
@@ -82,6 +83,18 @@ describe("planStarters", () => {
       { kind: "fill", id: "a", starter: posed, fields: {}, files: ["royaleVictory"] },
     ]);
     expect(planStarters([posed], [{ ...loaded, royaleVictory: "mine.png" }])).toEqual([]);
+  });
+
+  test("gives the mirror image only to the starter's own picture", () => {
+    const lettered: Starter = { ...breycist, imageMirrored: "breycist-mirrored.png" };
+    const loaded = fighter({ id: "a", name: "The Breycist", player: "Conor", kana: "k", voice: "v.mp3" });
+    expect(planStarters([lettered], [{ ...loaded, image: "breycist_x8k2p9q1zz.png" }])).toEqual([
+      { kind: "fill", id: "a", starter: lettered, fields: {}, files: ["imageMirrored"] },
+    ]);
+    expect(planStarters([lettered], [loaded])).toEqual([
+      { kind: "fill", id: "a", starter: lettered, fields: {}, files: ["image", "imageMirrored"] },
+    ]);
+    expect(planStarters([lettered], [{ ...loaded, image: "mine_abc123.png" }])).toEqual([]);
   });
 
   test("doesn't give a player name that another fighter already has", () => {

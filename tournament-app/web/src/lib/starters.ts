@@ -14,6 +14,7 @@ export interface Starter {
   player?: string;
   kana?: string;
   image?: string; // file name in static/starter-fighters/
+  imageMirrored?: string; // file name in static/starter-fighters/: `image` mirrored by hand
   victory?: string; // file name in static/starter-fighters/
   royaleVictory?: string; // file name in static/starter-fighters/
   voice?: string; // file name in static/starter-fighters/
@@ -26,7 +27,7 @@ export type StarterStep =
   // fields: the text fields to set; files: which files to upload
   | { kind: "fill"; id: string; starter: Starter; fields: Partial<Pick<PBFighter, "player" | "kana" | "face">>; files: StarterFile[] };
 
-export type StarterFile = "image" | "victory" | "royaleVictory" | "voice";
+export type StarterFile = "image" | "imageMirrored" | "victory" | "royaleVictory" | "voice";
 
 const key = (s: string | undefined) => (s ?? "").trim().toLowerCase();
 
@@ -64,6 +65,8 @@ export function planStarters(starters: Starter[], library: PBFighter[], pictures
     if (!f.face && s.face && ownPicture) fields.face = s.face;
     const files: StarterFile[] = [];
     if (!f.image && s.image) files.push("image");
+    // Like the face point, the mirror image only goes with the starter's own picture.
+    if (!f.imageMirrored && s.imageMirrored && ownPicture) files.push("imageMirrored");
     if (!f.victory && s.victory) files.push("victory");
     if (!f.royaleVictory && s.royaleVictory) files.push("royaleVictory");
     if (!f.voice && s.voice) files.push("voice");

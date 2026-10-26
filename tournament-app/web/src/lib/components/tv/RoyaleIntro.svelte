@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { facePan, type Face } from "$lib/fighters";
+  import { artFor, facePan, type Face } from "$lib/fighters";
   import FighterSilhouette from "./FighterSilhouette.svelte";
 
   // The battle royale's intro, in the VS intro's style, for 2–8 fighters at
@@ -15,7 +15,7 @@
   // the left half turn to face the middle; mirror flips one the other way.
   // face: where the face is in the cut-out; it's slid sideways so the face
   // sits in the middle of its narrow panel.
-  type Fighter = { name: string; kana: string; img: string; mirror?: boolean; face?: Face | null };
+  type Fighter = { name: string; kana: string; img: string; imgMirrored?: string; mirror?: boolean; face?: Face | null };
   let {
     fighters,
     label = "",
@@ -76,10 +76,11 @@
               <div class="pic">
                 {#if f.img}
                   {@const flip = (i < n / 2) !== !!f.mirror}
+                  {@const art = artFor(f, flip)}
                   <img
-                    src={f.img}
+                    src={art.src}
                     alt=""
-                    style:transform="translateX({facePan(f.face ?? null, flip)}%){flip ? ' scaleX(-1)' : ''}"
+                    style:transform="translateX({facePan(f.face ?? null, flip)}%){art.flip ? ' scaleX(-1)' : ''}"
                   />
                 {:else}
                   <div class="sil"><FighterSilhouette flip={i < n / 2} /></div>

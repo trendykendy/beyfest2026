@@ -6,6 +6,7 @@
   import {
     fighterFor,
     fighterImageUrl,
+    fighterMirroredUrl,
     fighterRoyaleVictoryUrl,
     fighterVictoryUrl,
     fighterVoiceUrl,
@@ -371,7 +372,7 @@
   // Start match plays the fighter intro first (VsIntro), then the launch
   // draw. Each blader's katakana and cut-out come from the fighter library,
   // matched by name; anyone not in it gets the mystery silhouette.
-  type IntroFighter = { name: string; kana: string; img: string; mirror: boolean; face: Face | null };
+  type IntroFighter = { name: string; kana: string; img: string; imgMirrored: string; mirror: boolean; face: Face | null };
   type IntroShow = {
     id: string;
     p1: IntroFighter;
@@ -385,7 +386,7 @@
   function introFighter(name: string): IntroFighter {
     const f = fighterFor(name, data.fighters);
     // The intro shows the combat name; players without a fighter keep their own.
-    return { name: f?.name || name, kana: f?.kana ?? "", img: fighterImageUrl(browserPbUrl(), f), mirror: !!f?.mirror, face: f?.face ?? null };
+    return { name: f?.name || name, kana: f?.kana ?? "", img: fighterImageUrl(browserPbUrl(), f), imgMirrored: fighterMirroredUrl(browserPbUrl(), f), mirror: !!f?.mirror, face: f?.face ?? null };
   }
   function endIntro() {
     const next = introShow?.then ?? null;
@@ -486,8 +487,9 @@
   // half-loaded image. (Browsers cache them; the list is at most a few dozen.)
   $effect(() => {
     for (const f of data.fighters) {
-      const url = fighterImageUrl(browserPbUrl(), f);
-      if (url) new Image().src = url;
+      for (const url of [fighterImageUrl(browserPbUrl(), f), fighterMirroredUrl(browserPbUrl(), f)]) {
+        if (url) new Image().src = url;
+      }
     }
   });
 

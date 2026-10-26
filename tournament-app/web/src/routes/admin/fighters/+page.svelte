@@ -4,9 +4,11 @@
   import {
     fighterFor,
     fighterImageUrl,
+    fighterMirroredUrl,
     fighterRoyaleVictoryUrl,
     fighterVictoryUrl,
     fighterVoiceUrl,
+    artFor,
     type PBFighter,
   } from "$lib/fighters";
 
@@ -15,6 +17,9 @@
   // Images and voices are served by PocketBase, which the browser reaches on
   // port 8090 of whichever address served this page.
   const img = (f: PBFighter) => fighterImageUrl(data.pbUrl, f);
+  // A preview side: the hand-made mirror image where it'd be flipped, if there is one.
+  const sideArt = (f: PBFighter, side: string) =>
+    artFor({ img: img(f), imgMirrored: fighterMirroredUrl(data.pbUrl, f) }, (side === "left") !== f.mirror);
   const victoryImg = (f: PBFighter) => fighterVictoryUrl(data.pbUrl, f, "300x200");
   const royaleVictoryImg = (f: PBFighter) => fighterRoyaleVictoryUrl(data.pbUrl, f, "300x200");
 
@@ -57,7 +62,9 @@
     screens that crop it (the battle royale, the phone) keep it in view; a new image needs it set
     again. Victory pose: a full 3:2 picture
     (background and all) for the Champion scene, shown as it is, never mirrored. Royale pose: the
-    same, for the battle royale champion; without one the normal victory pose is used.
+    same, for the battle royale champion; without one the normal victory pose is used. Mirrored
+    image: only for a cut-out with writing on it, the whole cut-out flipped by hand with the writing
+    put right; it's shown wherever the cut-out would be mirrored (the left preview).
   </p>
 
   {#if form?.error && !editing}
@@ -99,6 +106,7 @@
       <label>Image <input type="file" name="image" accept="image/png,image/webp,image/jpeg" /></label>
       <label>Victory pose <input type="file" name="victory" accept="image/png,image/webp,image/jpeg" /></label>
       <label>Royale pose <input type="file" name="royaleVictory" accept="image/png,image/webp,image/jpeg" /></label>
+      <label>Mirrored image <input type="file" name="imageMirrored" accept="image/png,image/webp,image/jpeg" /></label>
       <label>Voice <input type="file" name="voice" accept="audio/*" /></label>
       <label class="check"><input type="checkbox" name="mirror" /> Mirror</label>
       <button class="btn primary" type="submit">Add fighter</button>
@@ -117,11 +125,8 @@
             <!-- Left (red) is mirrored by the intro so it faces right; Mirror flips both. -->
             <div class="preview {side}">
               {#if f.image}
-                <img
-                  src={img(f)}
-                  alt=""
-                  style:transform="scaleX({(side === 'left') !== f.mirror ? -1 : 1})"
-                />
+                {@const art = sideArt(f, side)}
+                <img src={art.src} alt="" style:transform="scaleX({art.flip ? -1 : 1})" />
               {:else}
                 <span class="none">Silhouette</span>
               {/if}
@@ -142,6 +147,9 @@
           <label>Katakana <input type="text" name="kana" value={f.kana} /></label>
           <label>{f.image ? "Replace image" : "Image"} <input type="file" name="image" accept="image/png,image/webp,image/jpeg" /></label>
           <label>{f.victory ? "Replace victory pose" : "Victory pose"} <input type="file" name="victory" accept="image/png,image/webp,image/jpeg" /></label>
+          {#if f.image}
+            <label>{f.imageMirrored ? "Replace mirrored image" : "Mirrored image"} <input type="file" name="imageMirrored" accept="image/png,image/webp,image/jpeg" /></label>
+          {/if}
           <label>{f.royaleVictory ? "Replace royale pose" : "Royale pose"} <input type="file" name="royaleVictory" accept="image/png,image/webp,image/jpeg" /></label>
           <label>{f.voice ? "Replace voice" : "Voice"} <input type="file" name="voice" accept="audio/*" /></label>
           {#if f.image}
@@ -163,6 +171,9 @@
             {/if}
             {#if f.royaleVictory}
               <label class="check"><input type="checkbox" name="removeRoyaleVictory" /> Remove royale pose</label>
+            {/if}
+            {#if f.imageMirrored}
+              <label class="check"><input type="checkbox" name="removeImageMirrored" /> Remove mirrored image</label>
             {/if}
             {#if f.voice}
               <label class="check"><input type="checkbox" name="removeVoice" /> Remove voice</label>

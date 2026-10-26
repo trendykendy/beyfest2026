@@ -9,12 +9,12 @@
   // ?n=<2–8> fighters, ?label=…, ?noimg, ?noface (the old centred crop), ?lite, ?clean, ?t=<ms> freezes.
   const STARTERS = [
     ["The Buzzsaw", "ザ・バズソー", "buzzsaw"],
+    ["The Cheatseeker", "ザ・チートシーカー", "cheatseeker"],
     ["The Breycist", "ザ・ブレイシスト", "breycist"],
     ["The Torque Warden", "ザ・トルクウォーデン", "torquewarden"],
     ["The Modsmith", "ザ・モッドスミス", "modsmith"],
     ["The Joyzerker", "ザ・ジョイザーカー", "joyzerker"],
     ["The Pugilist", "ザ・ピュージリスト", "pugilist"],
-    ["The Underdogger", "ザ・アンダードッガー", "underdogger"],
     ["Walk-in Wendy", "", ""],
   ];
   const LABELS = ["Heat 1", "Heat 2", "Sudden death", "Final"];
@@ -23,9 +23,13 @@
   let label = $state(page.url.searchParams.get("label") ?? LABELS[0]);
   let noImg = $state(page.url.searchParams.has("noimg"));
   let noFace = $state(page.url.searchParams.has("noface"));
-  // The starters' face points (fighters.json), by picture name.
-  const faceOf = (img: string) =>
-    noFace ? null : toFace(starterList.find((s: { image?: string }) => s.image === `${img}.png`)?.face);
+  // The starters' face points and mirror images (fighters.json), by picture name.
+  const starterOf = (img: string) => starterList.find((s: { image?: string }) => s.image === `${img}.png`);
+  const faceOf = (img: string) => (noFace ? null : toFace(starterOf(img)?.face));
+  const mirroredOf = (img: string) => {
+    const m = (starterOf(img) as { imageMirrored?: string } | undefined)?.imageMirrored;
+    return m ? `/starter-fighters/${m}` : "";
+  };
   let lite = $state(page.url.searchParams.has("lite"));
   let slow = $state(1);
   let hold = $state(false);
@@ -38,6 +42,7 @@
       kana,
       img: noImg || !img ? "" : `/starter-fighters/${img}.png`,
       face: faceOf(img),
+      imgMirrored: noImg ? "" : mirroredOf(img),
     })),
   );
 
