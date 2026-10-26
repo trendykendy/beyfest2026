@@ -1044,6 +1044,12 @@
           champion={sceneFighter(champ)}
           runnerUp={champRun.final ? sceneFighter(champRun.final.opponent) : null}
           run={champRun}
+          awards={awards.map((a) => ({
+            key: a.key,
+            title: a.title,
+            name: a.winners.map((id) => names.get(id)).join(" & "),
+            detail: a.opponent ? `${a.detail} against ${names.get(a.opponent)}` : a.detail,
+          }))}
           lite={fxLite}
         />
       {/if}
