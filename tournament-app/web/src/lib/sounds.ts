@@ -115,6 +115,26 @@ export function stingerDelay(talkingFor: number): number {
 // the next match starts.
 export const WINNER_SLAM = 450; // the winner's banner lands
 
+// ── Battle royale ────────────────────────────────────────────────────
+// Clips the organiser provides, dropped into static/sounds/royale/. Until a
+// file is there its call is simply skipped (the intro's timing allows for it).
+//   battle-royale.mp3    "Battle royale!" (each battle's intro, first)
+//   heat-1.mp3 … heat-4  "Heat one!" … (then the battle's name)
+//   sudden-death.mp3     "Sudden death!"
+//   final.mp3            "The final!"
+//   royale-champion.mp3  "Battle royale champion!" (after the champion's name)
+export const ROYALE = "/sounds/royale/battle-royale.mp3";
+export const ROYALE_CHAMPION = "/sounds/royale/royale-champion.mp3";
+
+// The call for a battle's name, from its key (H1…H4, SD, F); "" for none.
+export function royaleLabelClip(key: string): string {
+  const heat = /^H([1-4])$/.exec(key);
+  if (heat) return `/sounds/royale/heat-${heat[1]}.mp3`;
+  if (key === "SD") return "/sounds/royale/sudden-death.mp3";
+  if (key === "F") return "/sounds/royale/final.mp3";
+  return "";
+}
+
 // ── Champion ─────────────────────────────────────────────────────────
 // The Champion scene's music, and its one-off call: the champion's name
 // clip, then "Beyfest 2026 Grand Champion!".

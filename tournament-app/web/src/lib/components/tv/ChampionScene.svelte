@@ -18,13 +18,15 @@
   let {
     champion,
     runnerUp = null,
-    run,
+    run = null,
+    kicker = "Beyfest 2026 champion",
     awards = [],
     lite = false,
   }: {
     champion: Fighter; // name: combat name (or the player's own); player: as typed for the tournament
     runnerUp?: Fighter | null;
-    run: ChampionRun;
+    run?: ChampionRun | null; // their tournament, for the stat tiles (none: no tiles, e.g. the battle royale)
+    kicker?: string;
     awards?: TickerAward[]; // the awards ticker along the bottom (none: no ticker)
     lite?: boolean;
   } = $props();
@@ -38,6 +40,7 @@
   // Stat tiles. Rounds and the favourite finish only exist when matches were
   // scored round by round.
   const tiles = $derived.by(() => {
+    if (!run) return [];
     const out: { value: string; label: string; word?: boolean }[] = [
       { value: `${run.wins}–${run.losses}`, label: "Won–lost" },
       { value: `${run.pointDiff > 0 ? "+" : ""}${run.pointDiff}`, label: "Point difference" },
@@ -50,7 +53,7 @@
   });
 
   const finalScore = $derived(
-    !run.final ? "" : run.final.walkover ? "W/O" : `${run.final.score[0]}–${run.final.score[1]}`,
+    !run?.final ? "" : run.final.walkover ? "W/O" : `${run.final.score[0]}–${run.final.score[1]}`,
   );
 
   // Long combat names step down in size so the slab fits its column.
@@ -95,7 +98,7 @@
     </div>
 
     <div class="info">
-      <div class="kicker"><span>Beyfest 2026 champion</span></div>
+      <div class="kicker"><span>{kicker}</span></div>
       {#if champion.kana}<div class="kana" lang="ja">{champion.kana}</div>{/if}
       <div class="name-slab {nameSize(champion.name)}">
         <span>{champion.name}</span>
@@ -103,14 +106,16 @@
       </div>
       {#if showPlayer(champion)}<div class="player">{champion.player}</div>{/if}
 
-      <div class="stats">
-        {#each tiles as t, i (t.label)}
-          <div class="tile" class:word={t.word} style:--i={i}>
-            <b>{t.value}</b>
-            <span>{t.label}</span>
-          </div>
-        {/each}
-      </div>
+      {#if tiles.length}
+        <div class="stats">
+          {#each tiles as t, i (t.label)}
+            <div class="tile" class:word={t.word} style:--i={i}>
+              <b>{t.value}</b>
+              <span>{t.label}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
 
       {#if runnerUp}
         <div class="runner">

@@ -81,7 +81,7 @@
   };
 
   // Scenes the organiser can put on the TV right now.
-  const tvScenes = $derived(availableScenes(!!data.tournament, data.matches).filter((s) => s !== "standby"));
+  const tvScenes = $derived(availableScenes(!!data.tournament, data.matches, data.royale).filter((s) => s !== "standby"));
 
   // Realtime: any change made anywhere refreshes this page.
   onMount(() => liveUpdates(["tournaments", "groups", "players", "matches", "tv_state", "royales"], () => invalidateAll()));

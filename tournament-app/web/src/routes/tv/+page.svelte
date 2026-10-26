@@ -6,15 +6,19 @@
   import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl } from "$lib/fighters";
   import {
     GRAND_CHAMPION,
+    ROYALE,
+    ROYALE_CHAMPION,
     STINGER,
     VERSUS,
     WINNER_SLAM,
     WINS,
     championCallFresh,
     finishClip,
+    royaleLabelClip,
     titleClip,
     winsCall,
   } from "$lib/sounds";
+  import { royaleView, type Battle } from "$lib/royale";
   import { Announcer } from "$lib/components/tv/announcer";
   import { FINISHES } from "$lib/finishes";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
@@ -47,6 +51,8 @@
   import VsIntro from "$lib/components/tv/VsIntro.svelte";
   import ChampionScene from "$lib/components/tv/ChampionScene.svelte";
   import WinnerScreen from "$lib/components/tv/WinnerScreen.svelte";
+  import RoyaleBoard from "$lib/components/tv/RoyaleBoard.svelte";
+  import RoyaleIntro from "$lib/components/tv/RoyaleIntro.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
   import LiveQr from "$lib/components/tv/LiveQr.svelte";
 
@@ -71,9 +77,11 @@
     spotlight: "マッチセンター",
     awards: "アワード",
     champion: "チャンピオン",
+    royale: "バトルロイヤル",
+    royaleChampion: "チャンピオン",
   };
 
-  const scenes = $derived(availableScenes(!!data.tournament, data.matches));
+  const scenes = $derived(availableScenes(!!data.tournament, data.matches, data.royale));
   const awards = $derived(computeAwards(data.matches));
   const tournamentOver = $derived(data.matches.some((m) => m.stage === "gf" && m.matchStatus === "done"));
 
@@ -88,7 +96,7 @@
   //   5. auto rotation, each scene for its DWELL
   // A result doesn't cut to Match centre: the winner screen plays over
   // whatever is on (WINNER_SECONDS), then the rotation carries on.
-  const DWELL: Record<Scene, number> = { standby: 60, groups: 25, rr: 20, bracket: 25, spotlight: 15, awards: 20, champion: 30 };
+  const DWELL: Record<Scene, number> = { standby: 60, groups: 25, rr: 20, bracket: 25, spotlight: 15, awards: 20, champion: 30, royale: 25, royaleChampion: 30 };
   const REACT_SECONDS = 20;
   const LOCAL_SECONDS = 60;
   const WINNER_SECONDS = 15;
@@ -101,7 +109,7 @@
 
   const localActive = $derived(!!local && local.until > now && scenes.includes(local.scene));
   const reacting = $derived(!!react && react.until > now && scenes.includes("spotlight"));
-  const hold = $derived(tvHold(data.matches, scenes));
+  const hold = $derived(tvHold(data.matches, scenes, data.royale));
   const scene = $derived.by<Scene>(() => {
     if (localActive) return local!.scene;
     if (!data.tournament) return "standby";
@@ -400,6 +408,7 @@
     tier: ReturnType<typeof tierOf>;
     walkover: boolean;
     live: string[]; // the matches already live when it came up (another table)
+    royale?: boolean; // a battle royale battle: "Last bey standing", loser is the runner-up
   };
   let winnerShow = $state<WinnerShow | null>(null);
   let winnerLeaving = $state(false);
@@ -488,7 +497,7 @@
   }
   // Load every clip the next intros could need, so each one's length is known
   // when an intro is timed and it plays on cue.
-  onMount(() => [...VERSUS, ...FINISHES.map((f) => finishClip(f.key)), WINS, STINGER].forEach((u) => announcer.preload(u)));
+  onMount(() => [...VERSUS, ...FINISHES.map((f) => finishClip(f.key)), WINS, STINGER, ROYALE].forEach((u) => announcer.preload(u)));
   // The admin page's TV panel sets these, live.
   $effect(() => {
     announcer.setEnabled(!data.tv.soundOff);
@@ -545,7 +554,7 @@
     statusPrimed = true;
     // The music's match has gone (a reset), or finished without being seen
     // to: just fade the music out.
-    if (musicFor && !data.matches.some((x) => x.code === musicFor && x.matchStatus !== "done")) {
+    if (musicFor && !musicFor.startsWith("royale:") && !data.matches.some((x) => x.code === musicFor && x.matchStatus !== "done")) {
       musicFor = "";
       announcer.stopMusic();
     }
@@ -568,6 +577,112 @@
           calls = [voice, GRAND_CHAMPION];
         }
       }
+      announcer.startChampion(calls);
+    });
+    return () => announcer.stopChampion();
+  });
+
+  // ── Battle royale ───────────────────────────────────────────────────
+  // After the main event (lib/royale.ts). Start on the admin page plays the
+  // battle's intro over the match music ("Battle royale!", then its name);
+  // a heat or final result gets "[name] wins!" and the stinger, a heat the
+  // winner screen too; the sudden death just the stinger (the board shows
+  // who's through). The final's result brings up the battle royale champion
+  // scene (held), with the champion theme and the champion's call.
+  const royale = $derived(data.royale ? royaleView(data.royale) : null);
+  const royaleChamp = $derived(royale?.champion ?? "");
+  const royaleRunnerUp = $derived(royale?.runnerUp ?? "");
+  type RoyaleIntroShow = { id: string; fighters: IntroFighter[]; label: string; out: number };
+  let royaleIntro = $state<RoyaleIntroShow | null>(null);
+  // The champion scene's fighters by name (battle royale entrants needn't be
+  // tournament players): combat name, katakana, picture and victory pose.
+  function royaleSceneFighter(name: string) {
+    return { ...introFighter(name), player: name, victory: fighterVictoryUrl(browserPbUrl(), fighterFor(name, data.fighters)) };
+  }
+
+  function startRoyaleIntro(b: Battle) {
+    if (Date.now() - Date.parse(b.result.startedAt ?? "") > CALLOUT_FRESH_MS) return; // old news
+    if (winnerShow) winnerLeaving = true; // the next battle's build-up takes over
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const out = announcer.intro([ROYALE, royaleLabelClip(b.key)]);
+    musicFor = `royale:${b.key}`;
+    royaleIntro = { id: `${b.key}@${b.result.startedAt}`, fighters: b.entrants.map(introFighter), label: b.label, out };
+  }
+
+  function royaleResult(b: Battle) {
+    const withMusic = musicFor === `royale:${b.key}`;
+    if (withMusic) musicFor = "";
+    royaleIntro = null;
+    // The final: the champion scene (held) has the sound from here.
+    if (b.kind === "final") {
+      royaleChampSeen = { name: b.result.winner ?? "", at: Date.now() };
+      return;
+    }
+    if (b.kind === "sudden") return void announcer.endMatch([], withMusic);
+    const winner = b.result.winner ?? "";
+    const voice = fighterVoiceUrl(browserPbUrl(), fighterFor(winner, data.fighters));
+    const screen = !localActive && data.tv.mode !== "locked";
+    announcer.endMatch(winsCall(voice, false), withMusic, screen ? WINNER_SLAM : 0);
+    if (!screen) return;
+    winnerLeaving = false;
+    react = null;
+    clearTimeout(winnerTimer);
+    winnerTimer = setTimeout(() => (winnerLeaving = true), WINNER_SECONDS * 1000);
+    winnerShow = {
+      id: `${b.key}@${Date.now()}`,
+      winner: introFighter(winner),
+      loser: { name: b.result.runnerUp ? introFighter(b.result.runnerUp).name : "" },
+      score: [0, 0],
+      side: "red",
+      title: `Battle royale · ${b.label}`,
+      tier: "mb",
+      walkover: false,
+      live: liveMatches(data.matches).map(liveKey),
+      royale: true,
+    };
+  }
+
+  // Seen by comparing reloads, like the match results, so a page load never
+  // replays an old start or result.
+  let royaleSeen = new Map<string, string>();
+  $effect(() => {
+    const battles = royale?.battles ?? [];
+    untrack(() => {
+      for (const b of battles) {
+        const was = royaleSeen.get(b.key);
+        const is = `${b.status}|${b.result.startedAt ?? ""}|${b.result.resultAt ?? ""}`;
+        royaleSeen.set(b.key, is);
+        if (was === undefined || was === is) continue;
+        if (b.status === "live" && !was.startsWith("live")) startRoyaleIntro(b);
+        else if (b.status === "done" && !was.startsWith("done")) royaleResult(b);
+        else if (b.status === "ready" && was.startsWith("live") && musicFor === `royale:${b.key}`) {
+          // Start cancelled: no music for a battle that isn't on.
+          musicFor = "";
+          royaleIntro = null;
+          announcer.stopMusic();
+        }
+      }
+    });
+  });
+
+  // The battle royale champion scene: the theme while it's up, and the
+  // first time after the final's result, the champion's name then "Battle
+  // royale champion!" (while it's news, as for the main champion).
+  let royaleChampSeen = $state<{ name: string; at: number } | null>(null);
+  let royaleChampCalled = "";
+  $effect(() => {
+    if (scene !== "royaleChampion" || !royaleChamp) return;
+    const name = royaleChamp;
+    untrack(() => {
+      const seen = royaleChampSeen;
+      let calls: string[] = [];
+      if (seen && seen.name === name && `${seen.name}@${seen.at}` !== royaleChampCalled) {
+        royaleChampCalled = `${seen.name}@${seen.at}`;
+        if (championCallFresh(seen.at, Date.now())) {
+          calls = [fighterVoiceUrl(browserPbUrl(), fighterFor(name, data.fighters)), ROYALE_CHAMPION];
+        }
+      }
+      winnerShow = null;
       announcer.startChampion(calls);
     });
     return () => announcer.stopChampion();
@@ -634,7 +749,14 @@
   // The phone page's QR in the corner: not on Standby (it has a big one),
   // Champion, or while the intro / stadium draw / blank build-up is on.
   const cornerQr = $derived(
-    scene !== "standby" && scene !== "champion" && !introShow && !drawShow && !blank && !winnerShow,
+    scene !== "standby" &&
+      scene !== "champion" &&
+      scene !== "royaleChampion" &&
+      !introShow &&
+      !royaleIntro &&
+      !drawShow &&
+      !blank &&
+      !winnerShow,
   );
 
   // ── Operator control (keyboard / mouse at the TV) ───────────────────
@@ -700,7 +822,7 @@
 
   onMount(() => {
     poke();
-    const stopLive = liveUpdates(["tournaments", "groups", "players", "matches", "tv_state", "fighters"], () => invalidateAll(), {
+    const stopLive = liveUpdates(["tournaments", "groups", "players", "matches", "tv_state", "fighters", "royales"], () => invalidateAll(), {
       onStatus: (up) => (online = up),
       everyMs: 30_000,
     });
@@ -1053,6 +1175,21 @@
           lite={fxLite}
         />
       {/if}
+
+    {:else if scene === "royale"}
+      {#if data.royale && mounted}
+        <RoyaleBoard royale={data.royale} fighter={introFighter} />
+      {/if}
+
+    {:else if scene === "royaleChampion"}
+      {#if royaleChamp && mounted}
+        <ChampionScene
+          champion={royaleSceneFighter(royaleChamp)}
+          runnerUp={royaleRunnerUp ? royaleSceneFighter(royaleRunnerUp) : null}
+          kicker="Battle royale champion"
+          lite={fxLite}
+        />
+      {/if}
     {/if}
   </main>
 
@@ -1069,8 +1206,9 @@
           title={winnerShow.title}
           tier={winnerShow.tier}
           walkover={winnerShow.walkover}
+          royale={winnerShow.royale}
           leaving={winnerLeaving}
-          next={winnerNext}
+          next={winnerShow.royale ? null : winnerNext}
           lite={fxLite}
           ondone={() => (winnerShow = null)}
         />
@@ -1090,6 +1228,24 @@
           out={introShow.out}
           lite={fxLite}
           ondone={endIntro}
+        />
+      </div>
+    {/key}
+  {/if}
+
+  <!-- The battle royale's intro: everyone in the battle, over everything. -->
+  {#if royaleIntro}
+    {#key royaleIntro.id}
+      <div class="intro-layer">
+        <RoyaleIntro
+          fighters={royaleIntro.fighters}
+          label={royaleIntro.label}
+          out={royaleIntro.out}
+          lite={fxLite}
+          ondone={() => {
+            royaleIntro = null;
+            winnerShow = null; // it held under the intro until now
+          }}
         />
       </div>
     {/key}

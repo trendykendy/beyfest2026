@@ -38,6 +38,14 @@ describe("tvHold", () => {
     expect(tvHold(ms, [...ALL, "champion"])).toBe("champion");
   });
 
+  test("the battle royale takes over from the champion: its board, then its champion", () => {
+    const ms = [match("G1", "group", "done"), match("GF", "gf", "done")];
+    const royale = { id: "r", spaces: 5, entrants: ["A", "B", "C"], battles: {} };
+    expect(tvHold(ms, [...ALL, "champion", "royale"], royale)).toBe("royale");
+    const done = { ...royale, battles: { F: { winner: "A", runnerUp: "B" } } };
+    expect(tvHold(ms, [...ALL, "champion", "royale", "royaleChampion"], done)).toBe("royaleChampion");
+  });
+
   test("no matches at all: no hold", () => {
     expect(tvHold([], ["groups", "spotlight"])).toBeNull();
   });
