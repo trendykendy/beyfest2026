@@ -13,17 +13,25 @@
   // victory: the fighter's victory pose, if they have one: shown in the frame
   // instead of the cut-out, and never flipped (it has writing on it).
   type Fighter = { name: string; player: string; kana: string; img: string; victory?: string; mirror?: boolean };
+  // An award for the ticker, names already filled in.
+  type TickerAward = { key: string; title: string; name: string; detail: string };
   let {
     champion,
     runnerUp = null,
     run,
+    awards = [],
     lite = false,
   }: {
     champion: Fighter; // name: combat name (or the player's own); player: as typed for the tournament
     runnerUp?: Fighter | null;
     run: ChampionRun;
+    awards?: TickerAward[]; // the awards ticker along the bottom (none: no ticker)
     lite?: boolean;
   } = $props();
+
+  // The ticker scrolls at a steady speed whatever the number of awards: the
+  // list is drawn twice and slides by one copy's width per loop.
+  const tickerSeconds = $derived(Math.max(12, awards.length * 7));
 
   const finishLabel = (key: string) => FINISHES.find((f) => f.key === key)?.label ?? key;
 
@@ -133,6 +141,27 @@
       ></i>
     {/each}
   </div>
+  {#if awards.length}
+    <!-- The awards, scrolling along the bottom once the reveal has settled. -->
+    <div class="ticker" style:--loop="{tickerSeconds}s">
+      <span class="ticker-tag"><span lang="ja">アワード</span>Awards</span>
+      <div class="ticker-window">
+        <div class="ticker-run">
+          {#each [0, 1] as copy (copy)}
+            <div class="ticker-list" aria-hidden={copy === 1 ? "true" : undefined}>
+              {#each awards as a (a.key)}
+                <span class="tick">
+                  <b>{a.title}</b>
+                  <span class="tick-name">{a.name}</span>
+                  <span class="tick-detail">{a.detail}</span>
+                </span>
+              {/each}
+            </div>
+          {/each}
+        </div>
+      </div>
+    </div>
+  {/if}
   <div class="flash" aria-hidden="true"></div>
 </div>
 
@@ -554,6 +583,89 @@
     }
     to {
       opacity: 0;
+    }
+  }
+
+  /* ── Awards ticker ─────────────────────────────────────── */
+  /* Fades in 10 s after the scene comes up, then scrolls on a loop. */
+  .ticker {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    display: flex;
+    align-items: stretch;
+    height: 74px;
+    background: var(--ink);
+    border-top: 5px solid var(--gold);
+    animation: fade-in 800ms ease-out 10s both;
+  }
+  .ticker-tag {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 34px 0 22px;
+    background: var(--gold);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 2rem;
+    line-height: 1;
+    text-transform: uppercase;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+  }
+  .ticker-tag span {
+    font-size: 0.5em;
+    letter-spacing: 0.1em;
+  }
+  .ticker-window {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+  .ticker-run {
+    display: flex;
+    width: max-content;
+    animation: ticker var(--loop) linear 10s infinite;
+  }
+  .ticker-list {
+    display: flex;
+  }
+  .tick {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 0 40px;
+    white-space: nowrap;
+    color: var(--paper);
+    font-size: 1.7rem;
+  }
+  /* A gold diamond between awards. */
+  .tick::after {
+    content: "◆";
+    color: var(--gold);
+    font-size: 0.7em;
+    margin-left: 24px;
+  }
+  .tick b {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    color: var(--gold);
+    padding-right: 0.15em; /* italic overhang */
+  }
+  .tick-name {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    padding-right: 0.15em; /* italic overhang */
+  }
+  .tick-detail {
+    font-weight: 600;
+    color: var(--on-field-soft);
+  }
+  @keyframes ticker {
+    to {
+      transform: translateX(-50%);
     }
   }
 

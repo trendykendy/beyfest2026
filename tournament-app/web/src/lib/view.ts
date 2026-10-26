@@ -260,6 +260,26 @@ export function availableScenes(hasTournament: boolean, matches: PBMatch[]): Sce
   return s;
 }
 
+// Between stages the TV holds one scene instead of rotating:
+// - every group match is done but the knockout isn't generated yet → Groups
+//   (the final tables, while the organiser checks them and generates it);
+// - the knockout is generated but none of it has been played → the Bracket
+//   (or the mini round-robins, if there's no bracket scene), until a match is
+//   started (Start match cuts to Match centre as usual, which ends the hold);
+// - the grand final is done → the Champion, for good (the tournament's over).
+// null the rest of the time.
+export function tvHold(matches: PBMatch[], scenes: Scene[]): Scene | null {
+  if (scenes.includes("champion") && matches.some((m) => m.stage === "gf" && m.matchStatus === "done")) return "champion";
+  const groups = matches.filter((m) => m.stage === "group");
+  const knockout = matches.filter((m) => m.stage !== "group");
+  if (!knockout.length) {
+    return groups.length && groups.every((m) => m.matchStatus === "done") ? "groups" : null;
+  }
+  if (knockout.some((m) => m.matchStatus === "done" || isLive(m))) return null;
+  if (scenes.includes("bracket")) return "bracket";
+  return scenes.includes("rr") ? "rr" : null;
+}
+
 // ─── Awards ─────────────────────────────────────────────────────────
 // Built from the round logs kept on finished matches. Only logs that add up to
 // the recorded score count (a corrected result's log is dropped, and older

@@ -32,6 +32,13 @@
   };
   // Results typed in as final scores only: no rounds, no favourite finish.
   const UNLOGGED: ChampionRun = { ...LOGGED, roundsWon: 0, topFinish: null };
+  // The awards ticker (?noawards hides it, like a tournament with none).
+  const AWARDS = [
+    { key: "knockout", title: "Knockout king", name: "Sean", detail: "6 knockouts" },
+    { key: "dominant", title: "Dominator", name: "Aoife & Cuffe", detail: "3 dominant finishes" },
+    { key: "wall", title: "Iron wall", name: "Ronan", detail: "1.4 points let in a match" },
+    { key: "comeback", title: "Comeback kid", name: "Mchale", detail: "won from 1–4 down against Steve" },
+  ];
 
   let pick = $state<Pick>((page.url.searchParams.get("f") as Pick) ?? "picture");
   let logged = $state(!page.url.searchParams.has("unlogged"));
@@ -83,6 +90,7 @@
           champion={FIGHTERS[pick]}
           runnerUp={RUNNER_UP}
           run={logged ? LOGGED : UNLOGGED}
+          awards={page.url.searchParams.has("noawards") ? [] : AWARDS}
           {lite}
         />
       {/key}

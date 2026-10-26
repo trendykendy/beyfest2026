@@ -29,6 +29,7 @@
     hasStage,
     roundName,
     availableScenes,
+    tvHold,
     isLive,
     liveMatches,
     upNext,
@@ -80,11 +81,17 @@
   // First match wins:
   //   1. a key pressed at the TV itself (holds for LOCAL_SECONDS)
   //   2. the organiser locked a scene from the admin page
-  //   3. a score just changed / a result went in → Match centre (REACT_SECONDS)
-  //   4. auto rotation, each scene for its DWELL
+  //   3. a match started or its score changed → Match centre (REACT_SECONDS)
+  //   4. between stages, a held scene (tvHold: the final groups, then the
+  //      new bracket until its first match starts; Champion once the grand
+  //      final is done)
+  //   5. auto rotation, each scene for its DWELL
+  // A result doesn't cut to Match centre: the winner screen plays over
+  // whatever is on (WINNER_SECONDS), then the rotation carries on.
   const DWELL: Record<Scene, number> = { standby: 60, groups: 25, rr: 20, bracket: 25, spotlight: 15, awards: 20, champion: 30 };
   const REACT_SECONDS = 20;
   const LOCAL_SECONDS = 60;
+  const WINNER_SECONDS = 15;
 
   let now = $state(Date.now());
   let autoScene = $state<Scene>("groups");
@@ -94,11 +101,13 @@
 
   const localActive = $derived(!!local && local.until > now && scenes.includes(local.scene));
   const reacting = $derived(!!react && react.until > now && scenes.includes("spotlight"));
+  const hold = $derived(tvHold(data.matches, scenes));
   const scene = $derived.by<Scene>(() => {
     if (localActive) return local!.scene;
     if (!data.tournament) return "standby";
     if (data.tv.mode === "locked" && scenes.includes(data.tv.scene)) return data.tv.scene;
     if (reacting) return "spotlight";
+    if (hold) return hold;
     return scenes.includes(autoScene) ? autoScene : scenes[0];
   });
 
@@ -112,8 +121,9 @@
     }
   }
 
-  // Watch for a running score changing or a result being recorded, and cut to
-  // that match. Knockout slots filling in (pending → ready) don't count.
+  // Watch for a match starting or its running score changing, and cut to
+  // that match. A result doesn't (the winner screen has it), nor do knockout
+  // slots filling in (pending → ready).
   let lastSeen = new Map<string, string>();
   let primed = false;
   $effect(() => {
@@ -125,8 +135,7 @@
       for (const m of data.matches) {
         const before = lastSeen.get(m.code);
         if (before === undefined || before === snap.get(m.code)) continue;
-        const justDone = m.matchStatus === "done" && !before.startsWith("done");
-        if (isLive(m) || justDone) hit = m;
+        if (isLive(m)) hit = m;
       }
       if (hit) react = { code: hit.code, until: Date.now() + REACT_SECONDS * 1000 };
     }
@@ -374,13 +383,13 @@
   // ── Winner screen ───────────────────────────────────────────────────
   // Every result but the grand final's (the Champion scene has that) gets the
   // winner screen (WinnerScreen) over the whole screen, started from the sound
-  // effect below so it's timed with "[name] wins!". It only starts where the
-  // cut to Match centre would happen (not while the organiser has locked
-  // another scene, or one was picked at the TV). Then it HOLDS, over the
-  // rotation and any cut to Match centre, until the next match starts: a
-  // match going live that wasn't live when it came up (Start match; its
-  // intro then plays over it). Picking a scene at the TV or the Champion
-  // scene ends it at once. A reload drops it (it's only seen as news).
+  // effect below so it's timed with "[name] wins!". Not while the organiser
+  // has locked a scene, or one was picked at the TV. It stays up for
+  // WINNER_SECONDS over whatever was on, then the rotation (or a hold)
+  // carries on underneath; the next match starting (a match going live that
+  // wasn't live when it came up) ends it sooner, its intro playing over it.
+  // Picking a scene at the TV or the Champion scene ends it at once. A
+  // reload drops it (it's only seen as news).
   type WinnerShow = {
     id: string;
     winner: IntroFighter; // the cut-out, never the victory pose (the Champion scene's)
@@ -395,9 +404,13 @@
   let winnerShow = $state<WinnerShow | null>(null);
   let winnerLeaving = $state(false);
   const liveKey = (m: PBMatch) => `${m.code}@${m.startedAt}`;
+  let winnerTimer: ReturnType<typeof setTimeout>;
   function showWinner(m: PBMatch) {
     const p1Won = m.winner === m.p1;
     winnerLeaving = false;
+    react = null; // the final point's cut to Match centre mustn't show up after it
+    clearTimeout(winnerTimer);
+    winnerTimer = setTimeout(() => (winnerLeaving = true), WINNER_SECONDS * 1000);
     winnerShow = {
       id: `${m.code}@${Date.now()}`,
       winner: introFighter(names.get(m.winner) ?? ""),
@@ -516,12 +529,16 @@
       if (!statusPrimed || before === undefined || before === "done" || m.matchStatus !== "done") continue;
       const withMusic = m.code === playingFor;
       if (withMusic) musicFor = "";
+      // The grand final going straight to the Champion scene: that scene's
+      // theme and "[name]… Grand Champion!" call take over the sound (and
+      // fade the match music out), so no "[name] wins!" or stinger under it.
+      if (m.stage === "gf" && untrack(() => scene === "champion")) continue;
       const voice = fighterVoiceUrl(browserPbUrl(), fighterFor(names.get(m.winner) ?? "", data.fighters));
       // With the winner screen, the call starts with its slam (a walkover gets
-      // the screen but no call). Without it (the grand final, or another scene
-      // locked or picked), as before.
+      // the screen but no call). Without it (the grand final, or a scene
+      // locked by the organiser or picked at the TV), as before.
       const screen =
-        !!m.winner && m.stage !== "gf" && untrack(() => scene === "spotlight" && spotMatch?.code === m.code);
+        !!m.winner && m.stage !== "gf" && untrack(() => !localActive && data.tv.mode !== "locked");
       announcer.endMatch(winsCall(voice, m.walkover), withMusic, screen ? WINNER_SLAM : 0);
       if (screen) showWinner(m);
     }
@@ -671,6 +688,9 @@
     if (localActive) return `Picked here, back to ${fallback} in ${Math.ceil((local!.until - now) / 1000)}s`;
     if (data.tv.mode === "locked") return "Locked by the organiser";
     if (reacting) return "Auto, showing the latest score";
+    if (hold === "champion") return "Holding on the champion: the tournament is over";
+    if (hold === "groups") return "Holding on the groups until the bracket is generated";
+    if (hold) return "Holding on the bracket until the first match starts";
     return "Auto rotation";
   });
 
@@ -1024,6 +1044,12 @@
           champion={sceneFighter(champ)}
           runnerUp={champRun.final ? sceneFighter(champRun.final.opponent) : null}
           run={champRun}
+          awards={awards.map((a) => ({
+            key: a.key,
+            title: a.title,
+            name: a.winners.map((id) => names.get(id)).join(" & "),
+            detail: a.opponent ? `${a.detail} against ${names.get(a.opponent)}` : a.detail,
+          }))}
           lite={fxLite}
         />
       {/if}
