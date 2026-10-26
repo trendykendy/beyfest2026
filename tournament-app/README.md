@@ -97,9 +97,13 @@ you start it: the TV window opens behind it.
 5. **Made a mistake?** Under Now playing, **Last result → Fix** corrects any recorded score.
    - If the winner changes, the next round is updated.
    - The fix is refused, with the reason, if a later match has already been played with the old winner or loser.
-6. **Danger zone** (bottom of the page):
-   - *Download results* saves a copy of everything as a file.
-   - *Reset tournament* deletes everything and starts again.
+6. **Keep the results** (near the bottom of the page):
+   - *Download results* saves every result as one web page that opens offline. To take it
+     home on your phone, log in to the admin page on the phone (same wifi) and tap it there.
+   - *Archive tournament* puts the tournament away, results and battle royale included, so
+     a new one can start. Archived tournaments are listed at the bottom of the admin page,
+     each with its own *Download*.
+7. **Danger zone** (bottom of the page): *Reset tournament* deletes everything and starts again.
 
 ## If something goes wrong
 

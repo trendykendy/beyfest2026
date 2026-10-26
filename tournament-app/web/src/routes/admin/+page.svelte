@@ -16,6 +16,12 @@
   import StarterPicker from "$lib/components/StarterPicker.svelte";
   import RoyalePanel from "$lib/components/RoyalePanel.svelte";
 
+  // "7 November 2026", from PocketBase's "2026-11-07 18:02:11.000Z".
+  const longDate = (v: string) => {
+    const t = Date.parse(v.replace(" ", "T"));
+    return Number.isFinite(t) ? new Date(t).toLocaleDateString("en-IE", { day: "numeric", month: "long", year: "numeric" }) : "";
+  };
+
   let { data, form } = $props();
 
   // Which match a refused "Fix result" was about (its error shows in that panel).
@@ -328,17 +334,55 @@
 
     <BladersPanel players={data.players} error={renaming ? (form?.error ?? "") : ""} errorFor={renaming} />
 
+    <!-- Finished: take the results home, then put the tournament away. -->
+    <section class="keep">
+      <div>
+        <h2>Keep the results</h2>
+        <p>
+          Download saves every result as one page that opens offline on any phone or computer. Open this page on your phone
+          to save it there.
+        </p>
+        <p>Archive puts this tournament away, results and battle royale included, so a new one can start. It stays in the list below.</p>
+      </div>
+      <div class="keep-actions">
+        <a class="btn primary" href="/admin/export" download>Download results</a>
+        <form
+          method="POST"
+          action="?/archive"
+          use:enhance={() => async ({ update }) => {
+            if (confirm("Archive this tournament? Its results are kept and can still be downloaded, and the TV goes back to standby.")) await update();
+          }}
+        >
+          <button class="btn" type="submit">Archive tournament</button>
+        </form>
+      </div>
+    </section>
+
     <!-- Kept well away from everything else: it wipes the whole tournament. -->
     <section class="danger-zone">
       <div>
         <h2>Danger zone</h2>
         <p>Reset deletes this tournament and every result. It can't be undone.</p>
-        <p>Backups are saved automatically every 10 minutes. Download a copy of the results to keep somewhere else too.</p>
+        <p>Backups are saved automatically every 10 minutes. To keep the results, archive instead.</p>
       </div>
-      <a class="btn" href="/admin/export" download>Download results</a>
       <form method="POST" action="?/reset" use:enhance={() => async ({ update }) => { if (confirm("Delete this tournament and all results? This cannot be undone.")) await update(); }}>
         <button class="btn danger" type="submit">Reset tournament</button>
       </form>
+    </section>
+  {/if}
+
+  {#if data.archived.length}
+    <section class="archived">
+      <h2>Archived tournaments</h2>
+      <ul>
+        {#each data.archived as a (a.id)}
+          <li>
+            <span class="arch-name">{a.name}</span>
+            <span class="arch-when">{longDate(a.createdAt)} · archived {longDate(a.archivedAt)}</span>
+            <a class="btn" href="/admin/export?id={a.id}" download>Download</a>
+          </li>
+        {/each}
+      </ul>
     </section>
   {/if}
 </div>
@@ -752,12 +796,58 @@
     font-size: 5rem;
     line-height: 1;
   }
+  .keep {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    margin-top: 56px;
+    padding: 18px 22px;
+    border: 2px solid var(--border-strong);
+  }
+  .keep > div:first-child {
+    flex: 1 1 320px;
+  }
+  .keep h2,
+  .archived h2 {
+    font-size: 1.4rem;
+  }
+  .keep p {
+    color: var(--on-field-soft);
+  }
+  .keep-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .archived {
+    margin-top: 40px;
+  }
+  .archived ul {
+    list-style: none;
+    margin-top: 10px;
+  }
+  .archived li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+  }
+  .arch-name {
+    font-weight: 700;
+  }
+  .arch-when {
+    flex: 1;
+    color: var(--on-field-soft);
+  }
   .danger-zone {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    margin-top: 56px;
+    margin-top: 32px;
     padding: 18px 22px;
     border: 2px dashed var(--red);
   }

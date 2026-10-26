@@ -99,9 +99,13 @@ const toMatch = (r: RecordModel): PBMatch => {
 // objects for the page. Returns nulls/empties when no tournament exists yet.
 export async function loadTournamentView(pb: PocketBase): Promise<TournamentView> {
   const tournaments = await pb.collection("tournaments").getFullList({ sort: "-createdAt" });
-  const t = tournaments[0];
+  const t = tournaments.find((r) => !r.archivedAt); // archived ones are kept, but not shown
   if (!t) return { tournament: null, groups: [], players: [], matches: [], fighters: await loadFighters(pb), royale: null };
+  return loadTournamentRecords(pb, t);
+}
 
+// One tournament (current or archived) and all its records, as above.
+export async function loadTournamentRecords(pb: PocketBase, t: RecordModel): Promise<TournamentView> {
   const filter = pb.filter("tournament = {:id}", { id: t.id });
   const [groups, players, matches, fighters, royale] = await Promise.all([
     pb.collection("groups").getFullList({ filter, sort: "index" }),
