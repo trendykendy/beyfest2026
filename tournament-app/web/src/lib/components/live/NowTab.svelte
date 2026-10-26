@@ -3,6 +3,8 @@
   import { liveMatches, matchContext, recentResults, upNext, type PBMatch } from "$lib/view";
   import LiveMatch from "./LiveMatch.svelte";
   import MatchRow from "./MatchRow.svelte";
+  import RoyaleCard from "./RoyaleCard.svelte";
+  import type { PBRoyale } from "$lib/royale";
 
   // Now & next: what's being played, the next few to be called (in the TV's
   // order) and the latest results. The champion on top once it's all over.
@@ -12,12 +14,14 @@
     groupCount,
     followId = "",
     nextCode = "",
+    royale = null,
   }: {
     matches: PBMatch[];
     names: Map<string, string>;
     groupCount: number;
     followId?: string;
     nextCode?: string; // the organiser's "Score this" pick
+    royale?: PBRoyale | null; // the battle royale after the main event
   } = $props();
 
   const live = $derived(liveMatches(matches));
@@ -25,6 +29,11 @@
   const recent = $derived(recentResults(matches, 6));
   const final = $derived(matches.find((m) => m.stage === "gf" && m.matchStatus === "done"));
 </script>
+
+<!-- After the main event, the battle royale is what's on: first. -->
+{#if royale}
+  <RoyaleCard {royale} followName={followId ? names.get(followId) : ""} />
+{/if}
 
 {#if final}
   <section class="champ">
