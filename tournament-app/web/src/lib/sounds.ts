@@ -25,6 +25,10 @@ export const STINGER = "/sounds/stinger.mp3"; // ends a match in place of a fade
 // has finished by the time it fires.
 export const STINGER_END_MS = 5_400;
 export const STINGER_END_FADE_MS = 150;
+// The stinger eases in rather than cutting in: it starts at the ducked
+// music's level and rises to full over this long, while the match music
+// fades out underneath (a crossfade).
+export const STINGER_IN_MS = 600;
 
 // The call for a round's finish ("Knockout!"), named after its key in
 // finishes.ts; "" for a key it doesn't know.
@@ -103,6 +107,13 @@ export function callSequence(durations: number[], from: number): { starts: numbe
 export function stingerDelay(talkingFor: number): number {
   return talkingFor > 0 ? talkingFor + CALLS_GAP : 0;
 }
+
+// ── Winner screen ────────────────────────────────────────────────────
+// The TV's winner screen (WinnerScreen.svelte) plays on every result but the
+// grand final's. The "[name] wins!" call starts with its slam; the stinger
+// follows the call as usual (Announcer.endMatch). The screen then holds until
+// the next match starts.
+export const WINNER_SLAM = 450; // the winner's banner lands
 
 // ── Champion ─────────────────────────────────────────────────────────
 // The Champion scene's music, and its one-off call: the champion's name

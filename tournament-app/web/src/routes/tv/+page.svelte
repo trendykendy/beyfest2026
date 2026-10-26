@@ -4,7 +4,17 @@
   import { liveUpdates } from "$lib/pbBrowser";
   import { EVENT, browserPbUrl } from "$lib/config";
   import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl } from "$lib/fighters";
-  import { GRAND_CHAMPION, STINGER, VERSUS, WINS, championCallFresh, finishClip, titleClip, winsCall } from "$lib/sounds";
+  import {
+    GRAND_CHAMPION,
+    STINGER,
+    VERSUS,
+    WINNER_SLAM,
+    WINS,
+    championCallFresh,
+    finishClip,
+    titleClip,
+    winsCall,
+  } from "$lib/sounds";
   import { Announcer } from "$lib/components/tv/announcer";
   import { FINISHES } from "$lib/finishes";
   import { pickStructure, miniRRAdvancers, pointsToWin } from "@beyfest/engine";
@@ -35,6 +45,7 @@
   import StadiumDraw from "$lib/components/tv/StadiumDraw.svelte";
   import VsIntro from "$lib/components/tv/VsIntro.svelte";
   import ChampionScene from "$lib/components/tv/ChampionScene.svelte";
+  import WinnerScreen from "$lib/components/tv/WinnerScreen.svelte";
   import Trophy from "$lib/components/Trophy.svelte";
   import LiveQr from "$lib/components/tv/LiveQr.svelte";
 
@@ -350,6 +361,7 @@
   function endIntro() {
     const next = introShow?.then ?? null;
     introShow = null;
+    winnerShow = null; // it held under the intro until now
     if (next) drawShow = next;
   }
   // The Champion scene's fighters: the intro's combat name, katakana and
@@ -359,6 +371,68 @@
     const victory = fighterVictoryUrl(browserPbUrl(), fighterFor(player, data.fighters));
     return { ...introFighter(player), player, victory };
   }
+  // ── Winner screen ───────────────────────────────────────────────────
+  // Every result but the grand final's (the Champion scene has that) gets the
+  // winner screen (WinnerScreen) over the whole screen, started from the sound
+  // effect below so it's timed with "[name] wins!". It only starts where the
+  // cut to Match centre would happen (not while the organiser has locked
+  // another scene, or one was picked at the TV). Then it HOLDS, over the
+  // rotation and any cut to Match centre, until the next match starts: a
+  // match going live that wasn't live when it came up (Start match; its
+  // intro then plays over it). Picking a scene at the TV or the Champion
+  // scene ends it at once. A reload drops it (it's only seen as news).
+  type WinnerShow = {
+    id: string;
+    winner: IntroFighter; // the cut-out, never the victory pose (the Champion scene's)
+    loser: { name: string };
+    score: [number, number];
+    side: "red" | "blue"; // the side the winner had in the intro: p1 red, p2 blue
+    title: string;
+    tier: ReturnType<typeof tierOf>;
+    walkover: boolean;
+    live: string[]; // the matches already live when it came up (another table)
+  };
+  let winnerShow = $state<WinnerShow | null>(null);
+  let winnerLeaving = $state(false);
+  const liveKey = (m: PBMatch) => `${m.code}@${m.startedAt}`;
+  function showWinner(m: PBMatch) {
+    const p1Won = m.winner === m.p1;
+    winnerLeaving = false;
+    winnerShow = {
+      id: `${m.code}@${Date.now()}`,
+      winner: introFighter(names.get(m.winner) ?? ""),
+      loser: { name: introFighter(names.get(m.loser) ?? "").name || "—" },
+      score: p1Won ? [m.p1Score ?? 0, m.p2Score ?? 0] : [m.p2Score ?? 0, m.p1Score ?? 0],
+      side: p1Won ? "red" : "blue",
+      title: matchContext(m, data.matches),
+      tier: tierOf(m.stage),
+      walkover: m.walkover,
+      live: liveMatches(data.matches).map(liveKey),
+    };
+  }
+  // The next match starting: play the exit (ondone clears it).
+  $effect(() => {
+    const w = winnerShow;
+    if (!w || untrack(() => winnerLeaving)) return;
+    if (liveMatches(data.matches).some((m) => !w.live.includes(liveKey(m)))) winnerLeaving = true;
+  });
+  $effect(() => {
+    if (winnerShow && scene === "champion") winnerShow = null;
+  });
+  // Its "Up next": the fixture the TV calls next (the organiser's "Score
+  // this" pick first, as the Next up strip and /live order it), live from
+  // the data, so a new pick or a slot this result fills in shows straight away.
+  const winnerNext = $derived(
+    nextUp
+      ? {
+          p1: sideName(nextUp, 1),
+          p2: sideName(nextUp, 2),
+          title: matchContext(nextUp, data.matches),
+          tier: tierOf(nextUp.stage),
+        }
+      : null,
+  );
+
   const champRun = $derived(champ ? championRun(data.matches, champ) : null);
   // When this TV saw the grand final's result go in (a reload after the fact
   // never does), so the champion call is only made while it's news.
@@ -443,7 +517,13 @@
       const withMusic = m.code === playingFor;
       if (withMusic) musicFor = "";
       const voice = fighterVoiceUrl(browserPbUrl(), fighterFor(names.get(m.winner) ?? "", data.fighters));
-      announcer.endMatch(winsCall(voice, m.walkover), withMusic);
+      // With the winner screen, the call starts with its slam (a walkover gets
+      // the screen but no call). Without it (the grand final, or another scene
+      // locked or picked), as before.
+      const screen =
+        !!m.winner && m.stage !== "gf" && untrack(() => scene === "spotlight" && spotMatch?.code === m.code);
+      announcer.endMatch(winsCall(voice, m.walkover), withMusic, screen ? WINNER_SLAM : 0);
+      if (screen) showWinner(m);
     }
     statusPrimed = true;
     // The music's match has gone (a reset), or finished without being seen
@@ -505,6 +585,7 @@
     const look = pool[Math.floor(Math.random() * pool.length)];
     lastLook = look;
     endDraw();
+    if (winnerShow) winnerLeaving = true; // a new match's build-up takes over
     drawHold = ev.code;
     blank = ev.kind === "launch";
     const show: DrawShow = { ...ev, id: key, look };
@@ -535,7 +616,9 @@
 
   // The phone page's QR in the corner: not on Standby (it has a big one),
   // Champion, or while the intro / stadium draw / blank build-up is on.
-  const cornerQr = $derived(scene !== "standby" && scene !== "champion" && !introShow && !drawShow && !blank);
+  const cornerQr = $derived(
+    scene !== "standby" && scene !== "champion" && !introShow && !drawShow && !blank && !winnerShow,
+  );
 
   // ── Operator control (keyboard / mouse at the TV) ───────────────────
   let barVisible = $state(true);
@@ -549,6 +632,7 @@
   function setScene(s: Scene) {
     local = { scene: s, until: Date.now() + LOCAL_SECONDS * 1000 };
     react = null;
+    winnerShow = null;
     if (s === "spotlight") spotIndex = 0; // jump to the live / next match
     poke();
   }
@@ -945,6 +1029,28 @@
       {/if}
     {/if}
   </main>
+
+  <!-- The winner screen covers the whole screen after a result, and holds
+       until the next match starts; that match's intro plays over it. -->
+  {#if winnerShow}
+    {#key winnerShow.id}
+      <div class="intro-layer">
+        <WinnerScreen
+          winner={winnerShow.winner}
+          loser={winnerShow.loser}
+          score={winnerShow.score}
+          side={winnerShow.side}
+          title={winnerShow.title}
+          tier={winnerShow.tier}
+          walkover={winnerShow.walkover}
+          leaving={winnerLeaving}
+          next={winnerNext}
+          lite={fxLite}
+          ondone={() => (winnerShow = null)}
+        />
+      </div>
+    {/key}
+  {/if}
 
   <!-- The VS intro covers the whole screen (header and all) before a launch. -->
   {#if introShow}
