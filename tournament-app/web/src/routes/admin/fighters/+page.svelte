@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import FacePicker from "$lib/components/FacePicker.svelte";
   import { fighterFor, fighterImageUrl, fighterVictoryUrl, fighterVoiceUrl, type PBFighter } from "$lib/fighters";
 
   let { data, form } = $props();
@@ -44,7 +45,9 @@
   <p class="intro hint">
     Best images: a transparent PNG cut-out at least 1000px tall, with the blader facing left. Tick
     <b>Mirror</b> if one faces the other way. The previews show how each side will look. Voice clips:
-    an MP3 of the combat name, with no silence at the start. Victory pose: a full 3:2 picture
+    an MP3 of the combat name, with no silence at the start. Face: click the face on the picture so
+    screens that crop it (the battle royale, the phone) keep it in view; a new image needs it set
+    again. Victory pose: a full 3:2 picture
     (background and all) for the Champion scene, shown as it is, never mirrored.
   </p>
 
@@ -127,6 +130,12 @@
           <label>{f.image ? "Replace image" : "Image"} <input type="file" name="image" accept="image/png,image/webp,image/jpeg" /></label>
           <label>{f.victory ? "Replace victory pose" : "Victory pose"} <input type="file" name="victory" accept="image/png,image/webp,image/jpeg" /></label>
           <label>{f.voice ? "Replace voice" : "Voice"} <input type="file" name="voice" accept="audio/*" /></label>
+          {#if f.image}
+            <!-- Keyed on the saved point, so it resets once a save comes back. -->
+            {#key JSON.stringify(f.face)}
+              <div class="face"><FacePicker src={img(f)} face={f.face} /></div>
+            {/key}
+          {/if}
           <div class="checks">
             {#if f.voice}
               <button class="btn" type="button" onclick={() => play(f)}>▶ Play voice</button>
@@ -250,6 +259,9 @@
     min-width: 0;
     flex: none;
     color: var(--text);
+  }
+  .face {
+    flex-basis: 100%;
   }
   .checks {
     display: flex;

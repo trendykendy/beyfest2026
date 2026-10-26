@@ -1,7 +1,7 @@
 import type PocketBase from "pocketbase";
 import type { RecordModel } from "pocketbase";
 import type { PBGroup, PBMatch, PBPlayer, TvState } from "$lib/view";
-import type { PBFighter } from "$lib/fighters";
+import { toFace, type PBFighter } from "$lib/fighters";
 import type { PBBet, PBBettor } from "$lib/betting";
 import type { PBRoyale } from "$lib/royale";
 
@@ -48,6 +48,7 @@ const toFighter = (r: RecordModel): PBFighter => ({
   victory: r.victory || "",
   voice: r.voice || "",
   mirror: !!r.mirror,
+  face: toFace(r.face),
 });
 
 // The fighter library. Never breaks the page: an empty list just means

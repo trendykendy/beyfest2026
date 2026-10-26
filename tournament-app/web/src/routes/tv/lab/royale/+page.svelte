@@ -1,10 +1,12 @@
 <script lang="ts">
+  import starterList from "../../../../../static/starter-fighters/fighters.json";
+  import { toFace } from "$lib/fighters";
   import RoyaleIntro from "$lib/components/tv/RoyaleIntro.svelte";
   import { page } from "$app/state";
   import { tick } from "svelte";
 
   // Lab page for the battle royale intro. Not linked from anywhere.
-  // ?n=<2–8> fighters, ?label=…, ?noimg, ?lite, ?clean, ?t=<ms> freezes.
+  // ?n=<2–8> fighters, ?label=…, ?noimg, ?noface (the old centred crop), ?lite, ?clean, ?t=<ms> freezes.
   const STARTERS = [
     ["The Buzzsaw", "ザ・バズソー", "buzzsaw"],
     ["The Breycist", "ザ・ブレイシスト", "breycist"],
@@ -20,6 +22,10 @@
   let n = $state(Math.min(8, Math.max(2, Number(page.url.searchParams.get("n") ?? 4))));
   let label = $state(page.url.searchParams.get("label") ?? LABELS[0]);
   let noImg = $state(page.url.searchParams.has("noimg"));
+  let noFace = $state(page.url.searchParams.has("noface"));
+  // The starters' face points (fighters.json), by picture name.
+  const faceOf = (img: string) =>
+    noFace ? null : toFace(starterList.find((s: { image?: string }) => s.image === `${img}.png`)?.face);
   let lite = $state(page.url.searchParams.has("lite"));
   let slow = $state(1);
   let hold = $state(false);
@@ -31,6 +37,7 @@
       name,
       kana,
       img: noImg || !img ? "" : `/starter-fighters/${img}.png`,
+      face: faceOf(img),
     })),
   );
 
@@ -89,6 +96,7 @@
       </span>
       <label><input type="checkbox" bind:checked={hold} onchange={replay} /> Hold</label>
       <label><input type="checkbox" bind:checked={noImg} onchange={replay} /> No images</label>
+      <label><input type="checkbox" bind:checked={noFace} onchange={replay} /> No face points</label>
       <label><input type="checkbox" bind:checked={lite} onchange={replay} /> Lite (Pi)</label>
       <span class="hint">R / space replays · H hides this</span>
     </div>

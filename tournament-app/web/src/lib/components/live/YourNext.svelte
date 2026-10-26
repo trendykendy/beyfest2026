@@ -1,7 +1,7 @@
 <script lang="ts">
   import { pointsToWin } from "@beyfest/engine";
   import Trophy from "$lib/components/Trophy.svelte";
-  import { fighterFor, fighterImageUrl, type PBFighter } from "$lib/fighters";
+  import { faceCrop, fighterFor, fighterImageUrl, type PBFighter } from "$lib/fighters";
   import { matchContext, nextMatchFor, playerRecord, sideName, type PBMatch, type PBPlayer } from "$lib/view";
 
   // The followed blader's next match, kept at the top of every tab: playing
@@ -51,7 +51,7 @@
   </header>
   <div class="yn-body">
     {#if image}
-      <img class="yn-img" src={image} alt="" loading="lazy" />
+      <span class="yn-pic"><img src={image} alt="" loading="lazy" style={faceCrop(fighter?.face ?? null, 0.45)} /></span>
     {/if}
     <div class="yn-text">
       <div class="yn-head">
@@ -120,15 +120,23 @@
     gap: 12px;
     padding: 10px 12px;
   }
-  /* The fighter cut-out, cropped to the head and shoulders. */
-  .yn-img {
+  /* The fighter cut-out, cropped to the head and shoulders: zoomed onto the
+     face when it has a face point (faceCrop), else from the top. */
+  .yn-pic {
+    position: relative;
     flex: none;
     width: 64px;
     height: 72px;
-    object-fit: cover;
-    object-position: top;
+    overflow: hidden;
     background: var(--field);
     border: 2px solid var(--ink);
+  }
+  .yn-pic img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
   }
   .yn-text {
     min-width: 0;

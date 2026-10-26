@@ -1,12 +1,14 @@
 <script lang="ts">
   import { royaleView, type Battle, type PBRoyale } from "$lib/royale";
+  import { faceCrop, type Face } from "$lib/fighters";
   import FighterSilhouette from "./FighterSilhouette.svelte";
 
   // The TV's battle royale scene: every battle as a white slab (heats along
   // the top, then the sudden death and the final), each fighter with their
   // picture and combat name. Winners get the gold, runners-up the silver;
   // battles still waiting on results show who'll fill them ("Heat 1 winner").
-  type Who = { name: string; kana: string; img: string; mirror?: boolean };
+  // face: where the face is in the picture; the round picture zooms onto it.
+  type Who = { name: string; kana: string; img: string; mirror?: boolean; face?: Face | null };
   let { royale, fighter }: { royale: PBRoyale; fighter: (name: string) => Who } = $props();
 
   const view = $derived(royaleView(royale));
@@ -51,7 +53,7 @@
           {@const m = mark(b, name)}
           <li class={m}>
             <span class="pic">
-              {#if f.img}<img src={f.img} alt="" />{:else}<span class="sil"><FighterSilhouette /></span>{/if}
+              {#if f.img}<img src={f.img} alt="" style={faceCrop(f.face ?? null)} />{:else}<span class="sil"><FighterSilhouette /></span>{/if}
             </span>
             <span class="nm">
               <b>{f.name}</b>
@@ -199,6 +201,7 @@
     border-top: 0;
   }
   .pic {
+    position: relative;
     flex: none;
     width: 50px;
     height: 50px;
@@ -210,6 +213,7 @@
   .pic img {
     width: 100%;
     height: 100%;
+    /* Without a face point; faceCrop() replaces this when there is one. */
     object-fit: cover;
     object-position: 60% 20%;
   }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { facePan, type Face } from "$lib/fighters";
   import FighterSilhouette from "./FighterSilhouette.svelte";
 
   // The battle royale's intro, in the VS intro's style, for 2–8 fighters at
@@ -12,7 +13,9 @@
   // `lite` drops the blur and drop-shadow filters for the Pi.
   // img: the cut-out's URL ("" for the silhouette). Cut-outs face left, so
   // the left half turn to face the middle; mirror flips one the other way.
-  type Fighter = { name: string; kana: string; img: string; mirror?: boolean };
+  // face: where the face is in the cut-out; it's slid sideways so the face
+  // sits in the middle of its narrow panel.
+  type Fighter = { name: string; kana: string; img: string; mirror?: boolean; face?: Face | null };
   let {
     fighters,
     label = "",
@@ -72,7 +75,12 @@
             <div class="panel-in">
               <div class="pic">
                 {#if f.img}
-                  <img src={f.img} alt="" class:flip={(i < n / 2) !== !!f.mirror} />
+                  {@const flip = (i < n / 2) !== !!f.mirror}
+                  <img
+                    src={f.img}
+                    alt=""
+                    style:transform="translateX({facePan(f.face ?? null, flip)}%){flip ? ' scaleX(-1)' : ''}"
+                  />
                 {:else}
                   <div class="sil"><FighterSilhouette flip={i < n / 2} /></div>
                 {/if}
@@ -180,9 +188,6 @@
     width: auto;
     max-width: none;
     filter: drop-shadow(0 10px 0 rgb(0 0 0 / 0.35));
-  }
-  .pic img.flip {
-    transform: scaleX(-1);
   }
   .sil {
     height: 80%;

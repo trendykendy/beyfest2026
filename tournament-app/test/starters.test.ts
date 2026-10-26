@@ -11,6 +11,7 @@ const fighter = (over: Partial<PBFighter>): PBFighter => ({
   victory: "",
   voice: "",
   mirror: false,
+  face: null,
   ...over,
 });
 const breycist: Starter = { name: "The Breycist", player: "Conor", kana: "ザ・ブレイシスト", image: "breycist.png", voice: "the-breycist.mp3" };
@@ -49,6 +50,28 @@ describe("planStarters", () => {
     ]);
     // ...but keeps one uploaded on the admin page.
     expect(planStarters([posed], [{ ...loaded, victory: "mine.png" }])).toEqual([]);
+  });
+
+  test("gives the starter's own picture its face point, but not someone else's", () => {
+    const face = { x: 0.27, y: 0.26, h: 0.29 };
+    const faced: Starter = { ...breycist, face };
+    const loaded = fighter({ id: "a", name: "The Breycist", player: "Conor", kana: "k", voice: "v.mp3" });
+    // PocketBase renames the upload breycist_<random>.png.
+    expect(planStarters([faced], [{ ...loaded, image: "breycist_x8k2p9q1zz.png" }])).toEqual([
+      { kind: "fill", id: "a", starter: faced, fields: { face }, files: [] },
+    ]);
+    // No picture yet: the face comes with the starter's picture.
+    expect(planStarters([faced], [loaded])).toEqual([
+      { kind: "fill", id: "a", starter: faced, fields: { face }, files: ["image"] },
+    ]);
+    // The same picture uploaded by hand under its own name (found by content).
+    const byHand = { ...loaded, image: "beyblade_rulebook_transparent_v7hlea93jj.png" };
+    expect(planStarters([faced], [byHand], new Map([["a", "breycist.png"]]))).toEqual([
+      { kind: "fill", id: "a", starter: faced, fields: { face }, files: [] },
+    ]);
+    // A picture uploaded on the admin page, or a face already set, is left alone.
+    expect(planStarters([faced], [{ ...loaded, image: "mine_abc123.png" }])).toEqual([]);
+    expect(planStarters([faced], [{ ...loaded, image: "breycist_x8k2p9q1zz.png", face: { x: 0.5, y: 0.5, h: 0.2 } }])).toEqual([]);
   });
 
   test("doesn't give a player name that another fighter already has", () => {

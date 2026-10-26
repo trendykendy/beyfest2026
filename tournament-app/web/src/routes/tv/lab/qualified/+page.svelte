@@ -1,4 +1,6 @@
 <script lang="ts">
+  import starterList from "../../../../../static/starter-fighters/fighters.json";
+  import { toFace } from "$lib/fighters";
   import QualifiedScreen from "$lib/components/tv/QualifiedScreen.svelte";
   import { Announcer } from "$lib/components/tv/announcer";
   import { AND, QUALIFIED, QUALIFIED_CALL, qualifiedCall } from "$lib/sounds";
@@ -7,7 +9,7 @@
 
   // Lab page for the battle royale's Qualified screen. Not linked from anywhere.
   // ?n=<1–4> through, ?sd (a runner-up to the sudden death), ?label=…,
-  // ?noimg, ?lite, ?clean, ?t=<ms> freezes.
+  // ?noimg, ?noface (the old centred crop), ?lite, ?clean, ?t=<ms> freezes.
   const SF = "/starter-fighters/";
   const STARTERS = [
     ["The Buzzsaw", "ザ・バズソー", "buzzsaw", "the-buzzsaw"],
@@ -22,6 +24,10 @@
   let toSudden = $state(q.has("sd"));
   let label = $state(q.get("label") ?? LABELS[0]);
   let noImg = $state(q.has("noimg"));
+  let noFace = $state(q.has("noface"));
+  // The starters' face points (fighters.json), by picture name.
+  const faceOf = (img: string) =>
+    noFace ? null : toFace(starterList.find((s: { image?: string }) => s.image === `${img}.png`)?.face);
   let lite = $state(q.has("lite"));
   let slow = $state(1);
   let leaving = $state(false);
@@ -30,7 +36,7 @@
   let run = $state(0);
 
   const fighters = $derived(
-    STARTERS.slice(0, n).map(([name, kana, img]) => ({ name, kana, img: noImg || !img ? "" : `${SF}${img}.png` })),
+    STARTERS.slice(0, n).map(([name, kana, img]) => ({ name, kana, img: noImg || !img ? "" : `${SF}${img}.png`, face: faceOf(img) })),
   );
   const voices = $derived(STARTERS.slice(0, n).map(([, , , v]) => (v ? `${SF}${v}.mp3` : "")));
 
@@ -126,6 +132,7 @@
         {/each}
       </span>
       <label><input type="checkbox" bind:checked={noImg} onchange={replay} /> No images</label>
+      <label><input type="checkbox" bind:checked={noFace} onchange={replay} /> No face points</label>
       <label><input type="checkbox" bind:checked={lite} onchange={replay} /> Lite (Pi)</label>
       <span class="hint">R / space replays · L leaves · H hides this</span>
     </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { facePan, type Face } from "$lib/fighters";
   import FighterSilhouette from "./FighterSilhouette.svelte";
 
   // The battle royale's Qualified screen, after a heat or the sudden death:
@@ -12,7 +13,9 @@
   // Same conventions as RoyaleIntro: a fixed 1920×1080 canvas scaled to fit;
   // every time is `calc(Nms * var(--k))`, so `slow` stretches it (lab only);
   // `lite` drops the drop-shadow filters for the Pi.
-  type Fighter = { name: string; kana: string; img: string; mirror?: boolean };
+  // face: where the face is in the cut-out; it's slid sideways so the face
+  // sits in the middle of its narrow panel.
+  type Fighter = { name: string; kana: string; img: string; mirror?: boolean; face?: Face | null };
   let {
     fighters,
     label = "", // "Heat 1", "Sudden death"
@@ -69,8 +72,13 @@
             <div class="panel-in">
               <div class="pic">
                 {#if f.img}
+                  {@const flip = (i < n / 2) !== !!f.mirror}
                   <!-- Cut-outs face left: the left half turn to face the middle. -->
-                  <img src={f.img} alt="" class:flip={(i < n / 2) !== !!f.mirror} />
+                  <img
+                    src={f.img}
+                    alt=""
+                    style:transform="translateX({facePan(f.face ?? null, flip)}%){flip ? ' scaleX(-1)' : ''}"
+                  />
                 {:else}
                   <div class="sil"><FighterSilhouette flip={i < n / 2} /></div>
                 {/if}
@@ -178,9 +186,6 @@
     width: auto;
     max-width: none;
     filter: drop-shadow(0 10px 0 rgb(0 0 0 / 0.35));
-  }
-  .pic img.flip {
-    transform: scaleX(-1);
   }
   .sil {
     height: 80%;
