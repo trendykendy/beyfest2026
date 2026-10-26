@@ -239,6 +239,11 @@
   .rs {
     --tier: var(--gold);
   }
+  /* Two quick taps on a finish button are two rounds, not a zoom. */
+  .rs button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
   .tier-wb {
     --tier: var(--wb);
   }
@@ -634,5 +639,105 @@
   .wo-pick:hover {
     background: var(--red);
     color: var(--paper);
+  }
+
+  /* Phones: the two bladers still side by side (left is left on the TV too),
+     name above score, with the finish buttons as big thumb targets under
+     each. The VS shrinks to a sliver between them. */
+  @media (max-width: 760px) {
+    .rs-status {
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+    .tag {
+      font-size: 1.1rem;
+      padding: 5px 12px 6px;
+    }
+    .start {
+      flex-direction: column;
+      gap: 4px;
+      min-height: 72px;
+      font-size: 1.9rem;
+      margin-bottom: 12px;
+    }
+    .start span {
+      font-size: 0.85rem;
+    }
+    .stadium {
+      margin-bottom: 12px;
+    }
+    .st-round {
+      padding: 0 8px;
+      font-size: 0.75rem;
+    }
+    .stadium .st-num,
+    .st-name {
+      font-size: 1.4rem;
+    }
+    .st-name {
+      min-width: 0;
+      padding: 8px 10px 9px;
+      white-space: normal;
+    }
+    .stadium .st-redraw {
+      margin: 0 6px;
+      padding: 6px 10px;
+    }
+    .rs-duel {
+      grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr);
+    }
+    .vs {
+      margin-top: 34px;
+      font-size: 1.3rem;
+      -webkit-text-stroke-width: 1px;
+    }
+    .side {
+      gap: 10px;
+    }
+    .card {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 2px;
+      border-top-width: 8px;
+      padding: 6px 10px 4px;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+    .pn {
+      font-size: 1.5rem;
+    }
+    .score {
+      font-size: 4rem;
+      text-align: right;
+    }
+    .fin {
+      min-height: 64px;
+      font-size: 1.25rem;
+    }
+    .fin-label {
+      padding: 0 8px;
+    }
+    .fin-pts {
+      padding: 0 8px;
+    }
+    .pill {
+      font-size: 0.9rem;
+    }
+    .pill .fin-label,
+    .pill .fin-pts {
+      padding: 3px 5px;
+    }
+    .record {
+      min-height: 80px;
+      padding: 8px 12px;
+      font-size: 1.5rem;
+    }
+    .rs-foot {
+      gap: 12px;
+    }
+    .wo-pick {
+      font-size: 1.2rem;
+    }
   }
 </style>

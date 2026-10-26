@@ -57,6 +57,9 @@
   );
   const upNext = $derived(playable.filter((m) => m.code !== current?.code));
   const waiting = $derived(data.matches.filter((m) => m.matchStatus === "pending").length);
+  // On a phone Up next shows the first few, so the TV controls aren't buried.
+  const NEXT_SHORT = 3;
+  let allNext = $state(false);
 
   // Full group-stage schedule in play order, for the read-only Fixtures panel.
   const fixtures = $derived(
@@ -245,7 +248,7 @@
         {#if !champion}
           <h2 class="kicker">Up next</h2>
           {#if upNext.length}
-            <ol class="queue-list">
+            <ol class="queue-list" class:short={!allNext}>
               {#each upNext as m (m.code)}
                 <li class="q-row tier-{tierOf(m.stage)}">
                   <div class="q-info">
@@ -261,6 +264,11 @@
                 </li>
               {/each}
             </ol>
+            {#if upNext.length > NEXT_SHORT}
+              <button type="button" class="q-more" onclick={() => (allNext = !allNext)}>
+                {allNext ? "Show fewer" : `Show all ${upNext.length}`}
+              </button>
+            {/if}
           {:else}
             <p class="q-empty">Nothing else is ready to play.</p>
           {/if}
@@ -328,6 +336,8 @@
           <div class="bracket-box">
             <BroadcastBracket matches={data.matches} players={data.players} {structure} {groupCount} />
           </div>
+          <!-- Too small to read on a phone: the phone page has it full size, swipeable. -->
+          <a class="btn bracket-phone" href="/live#bracket">Open the bracket</a>
         {/if}
       </section>
     {/if}
@@ -671,6 +681,19 @@
     background: var(--gold);
     color: var(--ink);
   }
+  /* Only on phones, where Up next is cut short. */
+  .q-more {
+    display: none;
+    margin-top: 8px;
+    background: none;
+    border: 2px solid var(--border-strong);
+    color: var(--on-field-soft);
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
   .q-empty {
     color: var(--on-field-soft);
     margin-top: 10px;
@@ -680,6 +703,9 @@
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     margin-bottom: 32px;
+  }
+  .bracket-phone {
+    display: none;
   }
   .bracket-box {
     height: 640px;
@@ -864,4 +890,100 @@
   .danger-zone p {
     color: var(--on-field-soft);
   }
+
+  /* Phones: one column. The scorer comes first, then Up next (so the next
+     match is a short scroll away), then the TV controls, then the rest. */
+  @media (max-width: 760px) {
+    .container {
+      padding: 0 12px;
+    }
+    .head {
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      margin-bottom: 16px;
+      font-size: 1rem;
+    }
+    .head-name {
+      flex: 1 1 100%;
+      order: -1;
+      font-weight: 700;
+    }
+    .fighters-link {
+      margin-left: auto;
+    }
+    .head-count {
+      display: none;
+    }
+    .head .stage {
+      font-size: 1rem;
+      padding: 5px 12px 6px;
+    }
+    .head .btn {
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }
+    .play {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 24px;
+    }
+    .queue {
+      display: flex;
+      flex-direction: column;
+    }
+    .queue .tv {
+      order: 1;
+      margin-top: 24px;
+    }
+    .queue-list {
+      max-height: none;
+      overflow: visible;
+      padding-right: 0;
+    }
+    .queue-list.short > li:nth-child(n + 4) {
+      display: none;
+    }
+    .q-more {
+      display: block;
+    }
+    .groups-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .fixtures {
+      columns: 1;
+    }
+    .fixture-row {
+      grid-template-columns: 52px 1fr 56px 1fr;
+      gap: 6px;
+      padding: 4px 8px;
+    }
+    .rr-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .bracket-box {
+      display: none;
+    }
+    .bracket-phone {
+      display: inline-block;
+    }
+    .champ {
+      gap: 14px;
+      padding: 10px 20px 12px;
+      font-size: 3rem;
+      box-shadow: 6px 6px 0 var(--ink);
+      max-width: 100%;
+    }
+    .keep,
+    .danger-zone {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 16px;
+    }
+    .keep > div:first-child {
+      flex: none;
+    }
+    .big-action {
+      font-size: 1.6rem;
+    }
+  }
+
 </style>
