@@ -10,13 +10,6 @@
   const SF = "/starter-fighters/";
   const FIGHTERS = {
     picture: { name: "The Buzzsaw", kana: "ザ・バズソー", img: SF + "buzzsaw.png", voice: SF + "the-buzzsaw.mp3" },
-    victory: {
-      name: "The Buzzsaw",
-      kana: "ザ・バズソー",
-      img: SF + "buzzsaw.png",
-      victory: SF + "victory-buzzsaw.png",
-      voice: SF + "the-buzzsaw.mp3",
-    },
     "no picture": { name: "The Modsmith", kana: "ザ・モッドスミス", img: "", voice: SF + "the-modsmith.mp3" },
     "long name": {
       name: "The Torque Warden",
@@ -40,7 +33,7 @@
   ];
 
   const q = page.url.searchParams;
-  // ?f=<pick> starts on a given fighter: picture, victory, "no picture", "long name", "no fighter".
+  // ?f=<pick> starts on a given fighter: picture, "no picture", "long name", "no fighter".
   const qf = q.get("f") as Pick;
   let pick = $state<Pick>(qf in FIGHTERS ? qf : "picture");
   // ?noimg: the silhouette whatever the pick.
@@ -66,8 +59,19 @@
 
   const winner = $derived.by(() => {
     const f = FIGHTERS[pick];
-    return noImg ? { ...f, img: "", victory: "" } : f;
+    return noImg ? { ...f, img: "" } : f;
   });
+
+  // The "Up next" fixture: ?next=tbd (a side not decided yet, shown by its
+  // slot label as the TV does) or ?next=none (waiting on other results).
+  const NEXTS = {
+    fixture: { p1: "Niamh", p2: "Aoife", title: "Group 1, match 5 of 6", tier: "group" as Tier },
+    tbd: { p1: "Conor", p2: "Winner of WB semi 2", title: "Winners final", tier: "wb" as Tier },
+    none: null,
+  };
+  type NextPick = keyof typeof NEXTS;
+  const qn = q.get("next") as NextPick;
+  let nextPick = $state<NextPick>(qn in NEXTS ? qn : "fixture");
 
   // ?t=<ms> freezes every animation at that moment (for screenshots).
   const freezeAt = q.get("t");
@@ -177,6 +181,7 @@
           {slow}
           {lite}
           {leaving}
+          next={NEXTS[nextPick]}
           ondone={() => (gone = true)}
         />
       {/key}
@@ -215,6 +220,13 @@
         Beat
         {#each LOSERS as l}
           <button class:on={loser === l} onclick={() => ((loser = l), replay())}>{l}</button>
+        {/each}
+      </span>
+      <span class="group">
+        Up next
+        <!-- No replay: on the TV the strip changes live while the screen holds. -->
+        {#each Object.keys(NEXTS) as NextPick[] as n}
+          <button class:on={nextPick === n} onclick={() => (nextPick = n)}>{n === "tbd" ? "TBD side" : n}</button>
         {/each}
       </span>
       <label><input type="checkbox" bind:checked={walkover} onchange={replay} /> Walkover</label>
