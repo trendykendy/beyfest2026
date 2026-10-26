@@ -182,14 +182,15 @@
     cursor: not-allowed;
     box-shadow: none;
   }
+  /* On the admin page's dark field, like the rest of it. */
   .hint,
   .ask {
-    color: var(--ink-soft);
+    color: var(--muted);
     font-size: 0.95rem;
   }
   .ask {
     font-weight: 700;
-    color: var(--ink);
+    color: var(--text);
   }
   .setup,
   .result {
@@ -207,7 +208,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
-    border: 2px solid #e3e6f3;
+    border: 2px solid var(--border-strong);
     font-weight: 600;
   }
   .field {
@@ -216,12 +217,6 @@
     gap: 4px;
     font-weight: 700;
     font-size: 0.9rem;
-  }
-  .field textarea,
-  .field input {
-    font: inherit;
-    padding: 8px;
-    border: 2px solid var(--ink);
   }
   .spaces input {
     width: 6em;
@@ -236,7 +231,8 @@
     list-style: none;
     display: flex;
     flex-direction: column;
-    border: 2px solid var(--ink);
+    background: var(--surface);
+    border: 2px solid var(--border-strong);
   }
   .b {
     display: grid;
@@ -244,13 +240,13 @@
     align-items: center;
     gap: 10px;
     padding: 8px 10px;
-    border-top: 2px solid #e3e6f3;
+    border-top: 2px solid var(--border);
   }
   .b:first-child {
     border-top: 0;
   }
   .b.on {
-    background: color-mix(in srgb, var(--gold) 22%, var(--paper));
+    background: color-mix(in srgb, var(--gold) 18%, transparent);
   }
   .b-label {
     font-family: var(--font-display);
@@ -258,10 +254,10 @@
   }
   .b-who {
     min-width: 0;
-    color: var(--ink-soft);
+    color: var(--muted);
   }
   .b.done .b-who {
-    color: var(--ink);
+    color: var(--text);
     font-weight: 700;
   }
   .b-status {
@@ -270,18 +266,20 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     padding: 3px 8px;
-    background: #e3e6f3;
+    background: var(--dark3);
+    color: var(--muted);
   }
   .b.live .b-status {
     background: var(--red);
     color: var(--paper);
   }
   .b.done .b-status {
-    background: var(--ink);
-    color: var(--paper);
+    background: var(--paper);
+    color: var(--ink);
   }
   .card {
-    border: 3px solid var(--ink);
+    background: var(--surface);
+    border: 3px solid var(--gold);
     box-shadow: 5px 5px 0 var(--ink);
     padding: 12px 14px;
     display: flex;
@@ -316,13 +314,14 @@
     padding: 10px 14px;
     min-width: 6em;
     text-align: center;
-    border: 2px solid var(--ink);
+    border: 2px solid var(--border-strong);
     font-weight: 700;
     cursor: pointer;
   }
   .chip input:checked + span {
-    background: var(--ink);
-    color: var(--paper);
+    background: var(--paper);
+    color: var(--ink);
+    border-color: var(--paper);
   }
   .chip.gold input:checked + span {
     background: var(--gold);
@@ -348,7 +347,7 @@
     display: block;
     font-size: 0.45em;
     letter-spacing: 0.1em;
-    color: var(--ink-soft);
+    color: var(--gold);
   }
   .link {
     background: none;
@@ -358,6 +357,7 @@
     cursor: pointer;
     font: inherit;
     font-weight: 700;
+    color: var(--text);
   }
   .link.danger {
     color: var(--red);

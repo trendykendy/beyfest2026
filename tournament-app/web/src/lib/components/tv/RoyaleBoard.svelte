@@ -33,7 +33,6 @@
     return b.result.winner === name ? "win" : b.result.runnerUp === name ? "second" : "out";
   }
   const MARK = { win: "Winner", second: "Runner-up", through: "Through", out: "", "": "" };
-  const STATUS = { waiting: "Waiting", ready: "Up next", live: "Live", done: "" };
 </script>
 
 {#snippet card(b: Battle)}
@@ -42,7 +41,7 @@
       <h3>{b.label}</h3>
       {#if b.status === "live"}<span class="chip live"><i></i>Live</span>
       {:else if b.status === "ready" && view?.next?.key === b.key}<span class="chip next">Up next</span>
-      {:else if b.status !== "done"}<span class="chip">{STATUS[b.status]}</span>{/if}
+      {:else if b.status === "waiting"}<span class="chip">Waiting</span>{/if}
       {#if b.kind === "sudden"}<span class="places">{b.places} through</span>{/if}
     </header>
     <ul>

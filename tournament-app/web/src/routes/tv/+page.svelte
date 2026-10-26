@@ -810,6 +810,8 @@
     if (localActive) return `Picked here, back to ${fallback} in ${Math.ceil((local!.until - now) / 1000)}s`;
     if (data.tv.mode === "locked") return "Locked by the organiser";
     if (reacting) return "Auto, showing the latest score";
+    if (hold === "royale") return "Holding on the battle royale";
+    if (hold === "royaleChampion") return "Holding on the battle royale champion";
     if (hold === "champion") return "Holding on the champion: the tournament is over";
     if (hold === "groups") return "Holding on the groups until the bracket is generated";
     if (hold) return "Holding on the bracket until the first match starts";
