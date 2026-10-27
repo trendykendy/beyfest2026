@@ -1,6 +1,9 @@
 <script lang="ts">
   import { artFor, facePan, type Face } from "$lib/fighters";
   import FighterSilhouette from "./FighterSilhouette.svelte";
+  import RoyaleBackdrop from "./RoyaleBackdrop.svelte";
+  import SlamBurst from "./SlamBurst.svelte";
+  import PanelStreaks from "./PanelStreaks.svelte";
 
   // The battle royale's Qualified screen, after a heat or the sudden death:
   // the battle's name, 予選突破 / QUALIFIED slamming down, then everyone it
@@ -58,7 +61,9 @@
 
 <div class="q" class:leaving class:lite class:with-strip={!!toSudden} bind:clientWidth={w} style:--k={slow} style:--n={n}>
   <div class="canvas" style:transform="scale({scale})">
-    <div class="backdrop"></div>
+    <!-- The winner screen's dressing: pinstripes, rays behind QUALIFIED, the
+         slam's rings and shards, streaks across the panels. -->
+    <RoyaleBackdrop rayY={230} {leaving} {lite} />
     <div class="shake">
       <div class="panels">
         {#each fighters as f, i (i)}
@@ -84,6 +89,8 @@
                   <div class="sil"><FighterSilhouette flip={i < n / 2} /></div>
                 {/if}
               </div>
+              <!-- Over the picture, under the name tag, as on the winner's banner. -->
+              <PanelStreaks rev={i >= n / 2} {lite} />
               <div class="tag">
                 {#if f.kana}<div class="kana" lang="ja">{f.kana}</div>{/if}
                 <div class="name"><span>{f.name}</span></div>
@@ -93,6 +100,7 @@
         {/each}
       </div>
 
+      <SlamBurst y={230} {lite} />
       <div class="mark">
         {#if label}<div class="label"><span>Battle royale · {label}</span></div>{/if}
         <div class="mark-kana" lang="ja">予選突破</div>
@@ -124,14 +132,6 @@
     width: 1920px;
     height: 1080px;
     transform-origin: 0 0;
-  }
-  .backdrop {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 60% 45% at 50% 18%, rgb(255 199 0 / 0.28), transparent 70%),
-      var(--field-deep);
-    animation: fade-in calc(200ms * var(--k)) ease-out both;
   }
   .shake {
     position: absolute;
@@ -286,13 +286,31 @@
     display: block;
     padding-right: 0.08em;
   }
-  .main {
+  /* WINNER's metallic fill over a heavy ink outline, then its glow pulse
+     while it holds. Padded so the background-clip fill covers the italic
+     lean (see VsIntro). */
+  .words .main {
     position: relative;
-    color: var(--gold);
-    -webkit-text-stroke: 6px var(--ink);
+    padding: 0.1em 0.12em;
+    margin: -0.1em -0.12em;
+    background: linear-gradient(180deg, #fff 0%, #fff 36%, #ffe27a 56%, #ff8a1f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-stroke: 10px var(--ink);
     paint-order: stroke fill;
     filter: drop-shadow(8px 8px 0 var(--ink));
-    animation: slam calc(300ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.2) calc(150ms * var(--k)) both;
+    animation:
+      slam calc(300ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.2) calc(150ms * var(--k)) both,
+      glow calc(1300ms * var(--k)) ease-in-out calc(1200ms * var(--k)) infinite alternate;
+  }
+  @keyframes glow {
+    from {
+      filter: drop-shadow(8px 8px 0 var(--ink)) drop-shadow(0 0 10px rgb(255 255 255 / 0.5)) drop-shadow(0 0 22px rgb(255 200 80 / 0.4));
+    }
+    to {
+      filter: drop-shadow(8px 8px 0 var(--ink)) drop-shadow(0 0 18px #fff) drop-shadow(0 0 44px rgb(255 200 80 / 0.9));
+    }
   }
   .ghost {
     position: absolute;
@@ -362,14 +380,14 @@
   .leaving .strip {
     animation: fade-out calc(250ms * var(--k)) ease-in both;
   }
-  .leaving .backdrop {
-    animation: fade-out calc(300ms * var(--k)) ease-in calc(300ms * var(--k)) both;
-  }
 
-  /* Pi-safe: no filters. */
+  /* Pi-safe: no filters, so no glow either. */
   .lite .main,
   .lite .pic img {
     filter: none;
+  }
+  .lite .main {
+    animation: slam calc(300ms * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1.2) calc(150ms * var(--k)) both;
   }
 
   @keyframes fade-in {
