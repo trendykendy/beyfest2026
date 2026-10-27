@@ -37,3 +37,14 @@ The round full cheeks, the small crinkly eyes, and the short spiky top.
 > he smiles; light straight low brows; straight nose with a soft rounded tip; fair
 > skin with ruddy pink cheeks; clean-shaven; ears that stand out slightly; solid,
 > stocky build with broad shoulders. No glasses.
+
+## Lessons from the generations (2026-10-27)
+
+- **Photos alone (version C):** a strong likeness, but the face came out as a realistic
+  painted portrait that didn't match the anime body.
+- **"Make the face more anime" (version D):** the style matched, but the face drifted
+  back toward a generic anime man. It got leaner and more angular, with tanned skin,
+  and the sides of the hair were shaved to a fade.
+- **So:** when asking for an anime face, repeat the anchors that drift most *in the
+  same sentence*: "anime style, but keep the broad round face, full cheeks, soft jaw,
+  and fair skin with pink cheeks". Hair: "short at the sides, not shaved".
