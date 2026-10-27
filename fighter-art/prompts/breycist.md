@@ -32,3 +32,17 @@ Redo with the likeness sheet once photos arrive.
 > *(Same opening paragraph and style block as Version A.)*
 >
 > **Pose:** a no-look launch. He is already turning away from the stadium, mid-stride, and rips the cord behind him without looking, launcher arm extended back. He glances back over his shoulder toward the viewer with a cocky smirk, face clearly visible. The red, black and silver Beyblade is just leaving the launcher, already spinning in a blazing red-and-white vortex. Seen three-quarter from behind, low camera.
+
+## Version C: no-look launch with likeness (2026-10-27)
+
+New chat. Attachments: `1-style-pugilist.png`, `2-photo-front.jpg`, `3-photo-smile.jpg`
+(from `reference-photos/breycist/upload/`, cropped to Conor only).
+
+The prompt was the Version B pose, plus the likeness text from
+[`likeness/breycist.md`](../likeness/breycist.md), the outfit as text, the updated
+style block (plain Beyblade centre, hands rule) and "cocky closed-mouth smirk".
+Images 2 and 3 were labelled "for likeness only … not photorealistic and not a
+photo pasted onto a drawing".
+
+Result: `candidates/breycist-C-likeness.png`. The face is much closer to Conor, and
+the face detector finds it at 0.92 confidence. The ripcord still ends in a small red tab.
