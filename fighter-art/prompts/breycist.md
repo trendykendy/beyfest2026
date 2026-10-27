@@ -46,3 +46,29 @@ photo pasted onto a drawing".
 
 Result: `candidates/breycist-C-likeness.png`. The face is much closer to Conor, and
 the face detector finds it at 0.92 confidence. The ripcord still ends in a small red tab.
+
+## Versions D to J (2026-10-27), and where it stands
+
+All are in `candidates/` (not committed). None is approved; the user is still not
+happy with the look.
+
+| Version | How | Result |
+|---|---|---|
+| D | Same chat as C: "more anime face" + upright turned-away pose | The pose the user liked; anime face, but leaner and more generic |
+| E | Edit of D: about 10 years older | The user liked it, "almost spot on" |
+| F | Edit of E: full smile | Smile preferred, but "like a filter on an image" |
+| G | Edit of F: more stylised anime head | More anime, face narrower |
+| H | New chat: G + photos, "simpler, less detail" (no Pugilist) | Too far from the Pugilist look; rejected |
+| I | New chat: G (pose) + Pugilist (style) + photos, exaggerated expression | Big laugh, eyes shut; not uncanny |
+| J | Edit of I: eyes open, narrowed | The latest; the user was still not happy |
+
+**What we learned**
+- The user's real complaint is the "uncanny" look: a real person's natural expression,
+  painted in anime style. Taking detail away (H) was the wrong fix. Exaggerating the
+  expression (I, J) helped.
+- The Pugilist's level of detail is the target. Keep it as the style reference.
+- Chained edits drift; a new chat with all references works better for big changes.
+
+**To pick up:** ask the user what still feels wrong with J (face shape? age? style?).
+Then try a fresh generation in a new chat with `0-pose-breycist-G.png`,
+`1-style-pugilist.png` and both photos.
