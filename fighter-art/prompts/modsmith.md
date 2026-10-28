@@ -36,3 +36,18 @@ were waiting in the chat.)
 ## Left as is
 
 - A small, symmetric crown in the Beyblade's centre.
+
+## Victory images (2026-10-28): approved
+
+- **Belt A** used the approved cut-out + photo for the face; the user said it didn't
+  look enough like the reference photos (a generic lean action-hero face).
+- The user supplied a **poster** of the Modsmith (`reference-photos/modsmith/upload/
+  5-concept-poster.jpg`) that "captures his features quite well". It became the MAIN
+  FACE REFERENCE for both victory images (the action image was left as approved).
+  The prompt named the poster's features: a long face and a strong straight nose;
+  heavy, flat brows low over narrowed, deep-set eyes; a moustache joined to a short
+  goatee; told it not to copy the poster's lettering, glue gun or flat colouring.
+- **Belt B** and **Royale A**, both with five attachments (template, approved cut-out
+  for the outfit, Pugilist close-up, photo, poster) and a smug, cocked-brow grin.
+  Approved: `approved/victory-modsmith.png`, `approved/royale-victory-modsmith.png`.
+- The hair stayed tousled to match the action image, rather than the poster's neat cut.
