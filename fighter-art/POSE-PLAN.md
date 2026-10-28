@@ -83,9 +83,10 @@ twelve versions of one shot.
 
 **10. The Stancemancer** (McHale): glasses, blue jumper, purple
 - **Bio:** "A master of posture and precision. His beyblade flows like water — but hits like a freight train. Don't let the glasses fool you." He "dropped into a wide stance" in the Frostbite Kid match.
-- **Pose:** a deep, wide martial-arts stance, perfectly balanced, launcher held level at chest height, the free hand open and flat. The Beyblade's trail ripples like flowing water.
+- **Pose:** a deep, wide martial-arts stance, perfectly balanced, caught at the launch: one hand holds the launcher level at chest height as the Beyblade leaves it, the other draws the ripcord out in a smooth, flat line. The Beyblade's trail ripples like flowing water.
 - **Camera:** front, square-on.
-- **Mood:** calm, focused, unshakeable.
+- **Mood:** calm, focused, unshakeable, but exaggerated: a cool, knowing half-smile, eyes sharp behind the glasses, catching a glint of light.
+- **Likeness:** see `likeness/stancemancer.md`. McHale's reddish-brown hair, stubble and slim build replace the blond, broad-shouldered version.
 
 **11. The Torque Warden** (Moss): fedora, full beard, black coat, black and silver; *redesign, in the target style*
 - **Pose:** a deep, wide crouch, launching downward: the Beyblade slams into the floor in a burst of silver sparks and cracked stone, coat spread out behind him. Taken from the user's poster.
