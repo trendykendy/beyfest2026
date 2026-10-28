@@ -19,7 +19,7 @@ part of it, and it reads fine either way):
 
 The Torque Warden's "T.W" coat badge (the shield's symmetric, so the whole
 badge is turned):
-  python scripts/unflip-text.py web/static/starter-fighters/torquewarden.png     web/static/starter-fighters/torquewarden-mirrored.png 747 258 747 310 22
+  python scripts/unflip-text.py web/static/starter-fighters/torquewarden.png     web/static/starter-fighters/torquewarden-mirrored.png 935 346 941 428 32
 """
 import sys
 import cv2
