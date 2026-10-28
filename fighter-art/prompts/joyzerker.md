@@ -40,3 +40,19 @@ reference, since there was no earlier approved version.
 - Photos give a strong likeness on the first try; the face then needs pushing toward
   anime ("bigger expressive eyes, simplified nose and mouth, bold clumps").
 - After any edit, check the file for real alpha: a grey checkerboard can be painted in.
+
+## Victory images (2026-10-28): approved
+
+Same recipe as the Breycist: a new chat with the old victory image (scene template),
+`approved/joyzerker.png` (character) and the Pugilist head close-up (rendering). The
+prompt spelled out the split (centre line, which colour and eye goes on each half)
+and asked for the big screens to show the split face too.
+
+- **Belt (`approved/victory-joyzerker.png`):** first try. The arms stayed rather
+  muscular from the old template.
+- **Royale (`approved/royale-victory-joyzerker.png`):** first try, with "heavy-set,
+  thick arms, no visible veins". The split stops at the waist (plain black trousers)
+  and the purple-side arm isn't shaded purple; the user accepted it.
+
+The attachments were sent once without a prompt; that's harmless, since the prompt
+can follow as the next message ("the three images above, in order…").
