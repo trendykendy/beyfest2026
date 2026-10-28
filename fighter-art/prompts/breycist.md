@@ -47,10 +47,9 @@ photo pasted onto a drawing".
 Result: `candidates/breycist-C-likeness.png`. The face is much closer to Conor, and
 the face detector finds it at 0.92 confidence. The ripcord still ends in a small red tab.
 
-## Versions D to J (2026-10-27), and where it stands
+## Versions D to J (2026-10-27)
 
-All are in `candidates/` (not committed). None is approved; the user is still not
-happy with the look.
+All are in `candidates/` (not committed). None was approved.
 
 | Version | How | Result |
 |---|---|---|
@@ -69,6 +68,53 @@ happy with the look.
 - The Pugilist's level of detail is the target. Keep it as the style reference.
 - Chained edits drift; a new chat with all references works better for big changes.
 
-**To pick up:** ask the user what still feels wrong with J (face shape? age? style?).
-Then try a fresh generation in a new chat with `0-pose-breycist-G.png`,
-`1-style-pugilist.png` and both photos.
+## Versions K to M2 (2026-10-28): approved
+
+The user's problem with J: "too clean… the Pugilist has skin highlights, lines, detail
+in the hair, it looks hand drawn. J looks like a filter placed on an image."
+
+| Version | How | Result |
+|---|---|---|
+| K | New chat: G (pose) + Pugilist + Pugilist head close-up + both photos; rendering spelled out (inked hair strands, face lines, sharp highlights, varied line weight) | Hand-drawn at last; face lean and tanned |
+| L | Edit of K: rounder face, fuller cheeks, fair skin, sides not shaved | Better likeness, but **the edit flattened the background** to solid colour |
+| L2 | ChatGPT's **Remove BG** on L | Same picture, clean cut-out |
+| M1, M2 | Edit of L2: exaggerated cocky smirk (ChatGPT returned two) | **M2 approved**, with the sharper smirk |
+
+**Approved: `approved/breycist.png`** (a copy of `candidates/breycist-M2-smirk.png`).
+1536×1024, transparent, face found at 0.89. Not yet in the app.
+
+### Version K prompt (the one that worked)
+
+Attachments: `0-pose-breycist-G.png`, `1b-style-pugilist-face.png`,
+`1-style-pugilist.png`, `2-photo-front.jpg`, `3-photo-smile.jpg`.
+
+> Please generate a new image. Five images are attached, in this order. IMAGE 1 (man
+> in a white tracksuit): copy its pose, camera angle, framing, outfit, launcher,
+> ripcord, Beyblade and red energy effects closely, but NOT its rendering, which is
+> too smooth and clean. IMAGES 2 AND 3 (man with tinted glasses; image 2 is a
+> close-up of his head): THE STYLE REFERENCE. Match their hand-drawn rendering
+> exactly; do not copy his face, glasses, beard or outfit. IMAGES 4 AND 5: photos of
+> the real person, for likeness only. RENDERING (the most important part): it must
+> look hand-drawn and inked like images 2 and 3, not like a filter over a smooth
+> render. Hair drawn as many individual inked strands and clumps with varied colour
+> and bright highlights on the tips. Visible ink lines inside the face: forehead and
+> brow creases, lines around the nose, cheekbones and laugh lines, the folds of the
+> open mouth. Sharp-edged specular highlights on the skin (nose, cheeks, forehead)
+> and strong, crisp cel-shadow shapes. Line weight that varies like a brush or pen,
+> thicker on the outer contour. The same level of detail on the tracksuit folds and
+> the launcher. Fine hand-drawn line detail, but no heavy comic-book cross-hatching.
+> No airbrushed gradients, no soft blur. EXPRESSION: … LIKENESS, in the same breath:
+> hand-drawn anime, but with his broad round face, full lifted cheeks, soft rounded
+> jaw, short brown hair close at the sides (not shaved) with short spikes on top,
+> ears that stand out slightly, fair skin with ruddy cheeks, and clearly adult
+> late-30s proportions. No glasses, clean-shaven. Keep: [outfit, hands rule, plain
+> Beyblade centre, 3:2, transparent background, no text].
+
+### Version M edit (expression)
+
+> Change only his expression to a cocky smirk, exaggerated anime-style like a
+> confident rival character: mouth closed or barely open, pulled up hard on one side
+> into a lopsided smirk that pushes that cheek up; one eyebrow raised high, the
+> other lowered; eyes half-lidded and narrowed, looking sideways at the viewer as if
+> he can't even be bothered to watch his own launch. Smug, too-cool, larger than
+> life, not a realistic subtle smirk. Keep the transparent background.
