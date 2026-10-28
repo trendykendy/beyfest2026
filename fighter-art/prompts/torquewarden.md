@@ -32,3 +32,23 @@ Moss alone). The user's poster (`5-concept-poster.jpg`) set the camera and pose 
 
 - A small, symmetric crown in the Beyblade's centre.
 - Cracked floor rubble along the bottom edge, which gives the launch some weight.
+
+## Badge mirror image (2026-10-28)
+
+`approved/torquewarden-mirrored.png`, made with
+`scripts/unflip-text.py … 935 346 941 428 32` (the shield's up axis in the new art).
+The plain flip reads "W.T"; the fixed one reads "T.W" with no visible seam. The royale
+lab with 8 fighters puts him on the flipped side and uses it.
+
+## Victory images (2026-10-28): approved
+
+Same recipe as the others: a new chat with the old victory image (scene template),
+`approved/torquewarden.png` (character) and the Pugilist head close-up (rendering).
+Both came out right first time.
+
+- The attachments landed in a different order, so the prompt named each image by
+  what it shows ("THE ARENA IMAGE…", "THE CUT-OUT ILLUSTRATION…") rather than by
+  position. That's the safer way to write these prompts.
+- Expression: "not smiling: a fierce, triumphant roar with the mouth open", which
+  suits his stern character better than a grin.
+- Victory images are never flipped, so the T.W badge on them needs no mirror image.
