@@ -127,3 +127,26 @@ Attachments: `0-pose-breycist-G.png`, `1b-style-pugilist-face.png`,
 > other lowered; eyes half-lidded and narrowed, looking sideways at the viewer as if
 > he can't even be bothered to watch his own launch. Smug, too-cool, larger than
 > life, not a realistic subtle smirk. Keep the transparent background.
+
+## Victory images (2026-10-28): approved
+
+Both are full scenes (not cut-outs) with lettering. The champion screen never flips
+them, so the lettering is fine. Each was made in a new chat with three attachments
+(from `reference-photos/breycist/victory-upload/` and `royale-upload/`):
+
+1. The old victory image, as the **scene template** ("keep the arena, crowd, belt or
+   trophy, pose, outfit and ALL the lettering exactly").
+2. `approved/breycist.png`, as the **character** (face, cheeks, fair skin, hair).
+3. The Pugilist head close-up, as the **rendering reference**.
+
+The expression asked for was the same as the action image: an exaggerated cocky,
+triumphant grin, lopsided, one brow raised.
+
+- **Belt (`approved/victory-breycist.png`):** the first try kept everything but came out
+  with spiky hair; one edit ("only his hair, on him and on the big screen… no sharp
+  spikes") fixed it.
+- **Royale (`approved/royale-victory-breycist.png`):** the hair wording was in the
+  first prompt, so it came out right first time.
+
+**Lesson:** put the full hair description in the first prompt; "match image 2" alone
+isn't enough, and ChatGPT drifts back to spikes.
