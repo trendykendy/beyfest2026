@@ -95,6 +95,7 @@ twelve versions of one shot.
 - **Mood:** calculating, exaggerated: one eye narrowed down the sight, a sly, knowing half-smile.
 - **Likeness:** from Cuffe's photos (`likeness/modsmith.md`): a long lean face, tousled dark hair, a thin moustache and chinstrap, slim.
 - **Outfit, leaning cyberpunk (user's choice), same silhouette:** the white lab coat becomes a white tech lab coat with panel seams, glowing orange trim and gadget pockets; navy shirt; a tool belt; a smartwatch.
+- **Status:** **approved 2026-10-28** as `approved/modsmith.png`: winking, launching a heavily modded Beyblade (circuits, LEDs, wires, antenna) from a plain launcher, the ripcord fully pulled free. History in `prompts/modsmith.md`. Not yet in the app; the victory images still need redoing.
 
 **9. The Pugilist** (Shane): black and red gear, tinted glasses
 - **Pose:** keeps the current punch-at-camera lunge, which suits a boxer. It's the one fighter that keeps this pose.
