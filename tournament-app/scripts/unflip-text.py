@@ -13,9 +13,9 @@ usage: unflip-text.py in.png out.png ax ay bx by halfwidth [preview.png]
   (ax, ay) -> (bx, by): the lettering's up axis in the ORIGINAL picture,
   top to bottom; halfwidth: how far either side of the axis to fix (px).
 
-The Cheatseeker's "RULE BOOK" (its crest is left mirrored; the hand covers
-part of it, and it reads fine either way):
-  python scripts/unflip-text.py web/static/starter-fighters/cheatseeker.png     web/static/starter-fighters/cheatseeker-mirrored.png 1010 55 1057 180 55
+The Cheatseeker's "RULE BOOK" (the band covers the lettering and the
+symmetric crest below it; a wider band catches his thumb):
+  python scripts/unflip-text.py web/static/starter-fighters/cheatseeker.png     web/static/starter-fighters/cheatseeker-mirrored.png 318 104 400 330 88
 
 The Torque Warden's "T.W" coat badge (the shield's symmetric, so the whole
 badge is turned):
