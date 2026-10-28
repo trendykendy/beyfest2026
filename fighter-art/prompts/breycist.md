@@ -78,10 +78,19 @@ in the hair, it looks hand drawn. J looks like a filter placed on an image."
 | K | New chat: G (pose) + Pugilist + Pugilist head close-up + both photos; rendering spelled out (inked hair strands, face lines, sharp highlights, varied line weight) | Hand-drawn at last; face lean and tanned |
 | L | Edit of K: rounder face, fuller cheeks, fair skin, sides not shaved | Better likeness, but **the edit flattened the background** to solid colour |
 | L2 | ChatGPT's **Remove BG** on L | Same picture, clean cut-out |
-| M1, M2 | Edit of L2: exaggerated cocky smirk (ChatGPT returned two) | **M2 approved**, with the sharper smirk |
+| M1, M2 | Edit of L2: exaggerated cocky smirk (ChatGPT returned two) | M2 picked, with the sharper smirk |
+| N | Edit of M2 (via the image's own Edit button): hair less spiky | Soft, tousled, short hair |
+| O | Edit of N: mouth a little lower, away from the nose | **Approved**; smirk slightly softer |
 
-**Approved: `approved/breycist.png`** (a copy of `candidates/breycist-M2-smirk.png`).
-1536×1024, transparent, face found at 0.89. Not yet in the app.
+**Approved: `approved/breycist.png`** (a copy of `candidates/breycist-O-mouth.png`).
+1536×1024, transparent, face found at 0.90. Not yet in the app.
+
+Tips from N and O:
+- When ChatGPT returns two images, open the one you want and use its own **Edit**
+  button, so the edit lands on that one. To check which image is showing, compare
+  its byte size with the downloaded file.
+- Small, single-feature edits ("only the hair", "only move the mouth lower")
+  worked well here, with the rest kept intact.
 
 ### Version K prompt (the one that worked)
 

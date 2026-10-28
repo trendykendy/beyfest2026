@@ -43,7 +43,7 @@ twelve versions of one shot.
 - **Pose:** a no-look launch. Already turning away, he rips the cord behind him without watching, launcher arm thrown out, and glances back over his shoulder.
 - **Camera:** three-quarter from behind, low, face turned toward the viewer.
 - **Mood:** too cool to watch *(assumed)*. A closed-mouth smirk.
-- **Status:** **approved 2026-10-28** as `approved/breycist.png`. The final pose is an upright, turned-away launch (glancing back over his shoulder) with an exaggerated cocky smirk. The full history is in `prompts/breycist.md`. Not yet in the app, and the victory images still need regenerating to match.
+- **Status:** **approved 2026-10-28** as `approved/breycist.png` (version O). The final pose is an upright, turned-away launch (glancing back over his shoulder) with an exaggerated cocky smirk and soft, tousled short hair. The full history is in `prompts/breycist.md`. Not yet in the app, and the victory images still need regenerating to match.
 
 **4. The Buzzsaw** (Sean): bald, glasses, beard, white T-shirt, jeans, blue
 - **Pose:** a full-body twist like a discus thrower, mid-rotation, launching sideways. The Beyblade's trail curves around him like a saw blade.
