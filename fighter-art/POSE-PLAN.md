@@ -48,7 +48,9 @@ twelve versions of one shot.
 **4. The Buzzsaw** (Sean): bald, glasses, beard, white T-shirt, jeans, blue
 - **Pose:** a full-body twist like a discus thrower, mid-rotation, launching sideways. The Beyblade's trail curves around him like a saw blade.
 - **Camera:** front, slightly high.
-- **Mood:** gleeful power.
+- **Mood:** gleeful power, exaggerated: a wide, wild grin, eyes bright behind the glasses.
+- **Likeness:** from Sean's photos (`likeness/buzzsaw.md`): bald, browline glasses, a short beard greying at the chin, slim build.
+- **Outfit, leaning cyberpunk (user's choice), same silhouette:** a fitted white technical T-shirt with panel seams and thin glowing blue and orange trim; jeans with reinforced panels and a glowing seam line; a smartwatch.
 - **Note:** this replaces the current fist-at-camera lunge, which stays with the Pugilist.
 
 **5. The Cheatseeker** (Tadhg): blue jacket, red top, rule book
