@@ -46,12 +46,15 @@ twelve versions of one shot.
 - **Status:** **approved 2026-10-28** as `approved/breycist.png` (version O). The final pose is an upright, turned-away launch (glancing back over his shoulder) with an exaggerated cocky smirk and soft, tousled short hair. The full history is in `prompts/breycist.md`. Not yet in the app, and the victory images still need regenerating to match.
 
 **4. The Buzzsaw** (Sean): bald, glasses, beard, white T-shirt, jeans, blue
-- **Pose:** a full-body twist like a discus thrower, mid-rotation, launching sideways. The Beyblade's trail curves around him like a saw blade.
-- **Camera:** front, slightly high.
+- **Character:** his launches are stylish and absurd.
+- **Pose:** upside down at the top of a backflip, firing the Beyblade straight down, the ripcord whipped out in an arc. (Replaces the discus twist, which wasn't absurd enough.)
+- **Camera:** front.
 - **Mood:** gleeful power, exaggerated: a wide, wild grin, eyes bright behind the glasses.
 - **Likeness:** from Sean's photos (`likeness/buzzsaw.md`): bald, browline glasses, a short beard greying at the chin, slim build.
 - **Outfit, leaning cyberpunk (user's choice), same silhouette:** a fitted white technical T-shirt with panel seams and thin glowing blue and orange trim; jeans with reinforced panels and a glowing seam line; a smartwatch.
+- **Glasses:** browline glasses leaning cyberpunk: a glowing blue line along the rim and blue HUD-tinted lenses.
 - **Note:** this replaces the current fist-at-camera lunge, which stays with the Pugilist.
+- **Status:** **approved 2026-10-28** as `approved/buzzsaw.png`. History in `prompts/buzzsaw.md`. His face is upside down, so face crops show it inverted. Not yet in the app; the victory images still need redoing.
 
 **5. The Cheatseeker** (Tadhg): blue jacket, red top, rule book
 - **Pose:** standing tall, rule book held up beside his face in one hand like a badge, launching one-handed with the other, the Beyblade dropping from the launcher toward his feet. A knowing squint.
