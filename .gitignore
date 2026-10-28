@@ -12,3 +12,6 @@ tournament-app/pb/pocketbase.exe
 .env
 *.log
 .DS_Store
+
+# Real photos of the people behind the fighters (never commit or publish)
+fighter-art/reference-photos/

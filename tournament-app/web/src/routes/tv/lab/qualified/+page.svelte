@@ -26,8 +26,9 @@
   let label = $state(q.get("label") ?? LABELS[0]);
   let noImg = $state(q.has("noimg"));
   let noFace = $state(q.has("noface"));
-  // The starters' face points and mirror images (fighters.json), by picture name.
+  // The starters' face points, mirror flags and mirror images (fighters.json), by picture name.
   const starterOf = (img: string) => starterList.find((s: { image?: string }) => s.image === `${img}.png`);
+  const mirrorOf = (img: string) => !!(starterOf(img) as { mirror?: boolean } | undefined)?.mirror;
   const faceOf = (img: string) => (noFace ? null : toFace(starterOf(img)?.face));
   const mirroredOf = (img: string) => {
     const m = (starterOf(img) as { imageMirrored?: string } | undefined)?.imageMirrored;
@@ -41,7 +42,7 @@
   let run = $state(0);
 
   const fighters = $derived(
-    STARTERS.slice(0, n).map(([name, kana, img]) => ({ name, kana, img: noImg || !img ? "" : `${SF}${img}.png`, face: faceOf(img), imgMirrored: noImg ? "" : mirroredOf(img) })),
+    STARTERS.slice(0, n).map(([name, kana, img]) => ({ name, kana, img: noImg || !img ? "" : `${SF}${img}.png`, face: faceOf(img), imgMirrored: noImg ? "" : mirroredOf(img), mirror: mirrorOf(img) })),
   );
   const voices = $derived(STARTERS.slice(0, n).map(([, , , v]) => (v ? `${SF}${v}.mp3` : "")));
 
