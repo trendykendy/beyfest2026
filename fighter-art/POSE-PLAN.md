@@ -55,7 +55,8 @@ twelve versions of one shot.
 - **Pose:** standing tall, rule book held up beside his face in one hand like a badge, launching one-handed with the other, the Beyblade dropping from the launcher toward his feet. A knowing squint.
 - **Hands:** the one exception to the hands rule: rule book and launcher, no ripcord.
 - **Camera:** slightly low, front.
-- **Mood:** "I've read the rules. Have you?" Exaggerated: a sly, knowing grin, one eyebrow raised, eyes narrowed.
+- **Mood:** quizzical and investigating, as if checking whether you've broken a rule: one brow raised, the other down in a squint, a lopsided closed smirk.
+- **Status:** **approved 2026-10-28** as `approved/cheatseeker.png`. History in `prompts/cheatseeker.md`. Not yet in the app; the RULE BOOK mirror image and both victory images are still to do.
 - **Likeness:** from Tadhg's photos (`likeness/cheatseeker.md`): short neat dark hair, ginger stubble, a round face, stocky.
 - **Outfit, leaning cyberpunk (user's choice), same silhouette:** the blue jacket becomes a navy tech jacket with glowing red and blue trim; red top; dark panelled trousers. The rule book can take a slightly high-tech look (metal corners, a faint glow), but the "RULE BOOK" lettering and crest stay readable.
 - **Note:** the "RULE BOOK" lettering stays. It needs a hand-made mirror image (`scripts/unflip-text.py`), as before.
