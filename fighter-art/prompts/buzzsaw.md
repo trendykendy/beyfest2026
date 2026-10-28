@@ -39,3 +39,20 @@ The user picked the backflip.
 
 His face is upside down, so screens that crop around the face point (royale draw
 wheel, qualified screen, phone card) show it inverted. The user approved it anyway.
+
+## Victory images (2026-10-28): approved
+
+The same recipe as the others (scene template + approved cut-out + Pugilist head
+close-up), plus a FOURTH attachment: his front-facing photo. His action image is
+upside down, so the photo gives ChatGPT a right-way-up face for the likeness. The
+prompt named each image by what it shows ("THE PHOTO… for LIKENESS", "THE UPSIDE-DOWN
+CUT-OUT… his outfit and glasses"). Both came out right first time, with the grey in
+the beard and the cyber glasses.
+
+- The royale template has the launcher fist toward the camera; that layout is kept,
+  since the one-lunge rule is for action images only.
+- The arms stayed a bit muscular from the templates, though slimmer than before.
+
+**Tip for other fighters:** when the approved action image hides or distorts the face
+(upside down, turned away, covered), add a photo as the likeness reference for the
+victory images.
