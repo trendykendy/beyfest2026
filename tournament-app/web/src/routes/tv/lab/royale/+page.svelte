@@ -23,8 +23,9 @@
   let label = $state(page.url.searchParams.get("label") ?? LABELS[0]);
   let noImg = $state(page.url.searchParams.has("noimg"));
   let noFace = $state(page.url.searchParams.has("noface"));
-  // The starters' face points and mirror images (fighters.json), by picture name.
+  // The starters' face points, mirror flags and mirror images (fighters.json), by picture name.
   const starterOf = (img: string) => starterList.find((s: { image?: string }) => s.image === `${img}.png`);
+  const mirrorOf = (img: string) => !!(starterOf(img) as { mirror?: boolean } | undefined)?.mirror;
   const faceOf = (img: string) => (noFace ? null : toFace(starterOf(img)?.face));
   const mirroredOf = (img: string) => {
     const m = (starterOf(img) as { imageMirrored?: string } | undefined)?.imageMirrored;
@@ -43,6 +44,7 @@
       img: noImg || !img ? "" : `/starter-fighters/${img}.png`,
       face: faceOf(img),
       imgMirrored: noImg ? "" : mirroredOf(img),
+      mirror: mirrorOf(img),
     })),
   );
 
