@@ -38,3 +38,15 @@ date for him; the original art wins.
 ## Left as is
 
 - A small, symmetric square-bracket emblem on the right sleeve (not lettering).
+
+## Victory images (2026-10-28): approved
+
+The same recipe as the others: a new chat with the old victory image (scene
+template), `approved/stancemancer.png` (character) and the Pugilist head close-up
+(rendering), named by what each shows. His face was already right, so the prompt kept
+the template's face and hair and changed only the outfit to the new tech top (high
+zip collar, glowing purple/blue seams, panelled trousers, smartwatch, tinted glasses).
+Both came out right first time.
+
+When saving downloads, check the file size against the generated image's size: the
+first save of the belt image grabbed an older file before the new one had finished.
