@@ -20,7 +20,7 @@ not smooth. The approved Breycist (`approved/breycist.png`) is the worked exampl
 |---|---|---|
 | Line art | Confident black ink lines whose weight varies like a pen or brush, thicker on the outer contour; fine interior lines | Even, uniform outlines (the "filter" look); Western comic inking with scratchy edges (Gemini pair) |
 | Shading | Crisp cel-shadow shapes in 2–3 tones, plus sharp-edged specular highlights on skin, hair and gear | Soft airbrushed gradients and blur (the "filter" look); heavy cross-hatching and muddy shadows (Gemini pair) |
-| Faces | Adult men with anime-leaning but grounded proportions; real features kept (beards, glasses, hairline); ink lines inside the face (creases, cheekbones, laugh lines); an **exaggerated** expression that fits the character | A realistic, natural expression; a smooth, line-free face; every face defaulting to the same toothy grin; face paint or split-colour skin |
+| Faces | Adult men with anime-leaning but grounded proportions; real features kept (beards, glasses, hairline); ink lines inside the face (creases, cheekbones, laugh lines); an **exaggerated** expression that fits the character | A realistic, natural expression; a smooth, line-free face; every face defaulting to the same toothy grin; face paint or split-colour skin (the Joyzerker's split is the one exception, see below) |
 | Hair | Many inked strands and clumps, varied colour, bright highlights on the tips | One smooth filled shape |
 | Bodies | Athletic, slightly heroic, believable build for the person | Over-muscled bodybuilder exaggeration |
 | Clothes | The person's real-world style (T-shirt and jeans, tracksuit, coat), with stylised trim in their colours | Generic costume that loses the person |
@@ -59,6 +59,12 @@ Learned the hard way on the Breycist (versions C to M2 in `prompts/breycist.md`)
   Not before it, not long after.
 - **Pose:** unique per fighter, from the pose plan, and suited to their personality.
   The fist-punched-at-camera lunge is retired as a default; only the Pugilist keeps it.
+- **The Joyzerker's split (his signature, nobody else's):** a jagged line straight
+  down the centre of his face and body. Joyful half: laughing, blue eye, clothes
+  mainly bright green with black trim. Manic half: snarling, glowing red eye,
+  purple-shaded skin, clothes mainly vivid purple with black trim. The energy splits
+  the same way. Taken from the user's own Joyzerker poster
+  (`reference-photos/joyzerker/upload/5-concept-poster.jpg`).
 - **Expression:** set per fighter in the pose plan, always exaggerated. Smiling is
   not the default.
 
@@ -168,6 +174,10 @@ heroic angle from below. That's intentional and stays. Rules:
 8. Transparent background with clean edges and no halo? (ChatGPT's website does
    transparent backgrounds fine. A preview may show the transparent area as dark,
    so check the alpha, not the preview.) **Check again after every edit:** an
-   edit can quietly flatten the background to solid colour. ChatGPT's **Remove BG**
-   button in the image viewer cuts it out again cleanly.
+   edit can quietly flatten the background to solid colour, or **paint a grey
+   checkerboard into it** that only looks transparent (Joyzerker E). ChatGPT's
+   **Remove BG** button cuts it out again cleanly. It works by sending a short
+   prompt and generating a new image, so compare the result with the original.
+   When ChatGPT returns two images, make sure the viewer is on the one you want
+   (compare byte sizes) before using Remove BG or Edit.
 9. Face found by `find-faces.py`?

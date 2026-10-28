@@ -65,9 +65,11 @@ twelve versions of one shot.
 
 **7. The Joyzerker** (Vhar): green and purple; *redesign, in the target style*
 - **Bio:** "Joy on the outside. Zerker on the inside."
-- **Pose:** leaning back after launching, arms thrown wide, head tipped back in a wild laugh-shout. Energy bursts outward: green on one side, purple on the other.
+- **Pose:** caught mid-rip: he tears the cord out with both arms flinging wide, chest open, chin up in a wild, joyful laugh-shout, the Beyblade just leaving the launcher. Energy bursts outward: green on one side, purple on the other.
 - **Camera:** low, front.
-- **Mood:** the duality lives in the green/purple energy, **not** face paint or split-colour skin.
+- **Mood:** joy and rage at once, as in the user's poster: a jagged split down the centre of his face and body. The joyful half laughs, with a blue eye and mainly green clothes; the manic half snarls, with a glowing red eye, purple-shaded skin and mainly purple clothes.
+- **Likeness:** see `likeness/joyzerker.md`. His real look (ginger beard, swept-back wavy hair, heavy-set build) replaces the Gemini design.
+- **Status:** **approved 2026-10-28** as `approved/joyzerker.png`. History in `prompts/joyzerker.md`. Not yet in the app; the victory images still need redoing.
 
 **8. The Modsmith** (Cuffe): white lab coat, blue shirt, orange and silver
 - **Pose:** a crouch on one knee, the launcher raised to eye level and sighted down like a precision instrument, the other hand on the ripcord. Small glowing parts or tools float around the launcher.
