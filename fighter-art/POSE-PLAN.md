@@ -7,6 +7,15 @@ Every pose catches **the launch moment**, and the hands follow the style guide's
 hands rule (launcher in one hand, plain ripcord in the other). Expressions vary:
 not everyone smiles.
 
+## Status (2026-10-28)
+
+- **Redone and on main (6e435de):** the Breycist, the Joyzerker, the Torque Warden,
+  the Stancemancer, the Cheatseeker and the Buzzsaw.
+- **Kept as they are (user's call):** the Beanblader, the Beyby, the Fairy Dancer and
+  the Pugilist. They were created recently and are fine; their plans below are not
+  needed.
+- **Still to do:** the Modsmith and the Underdogger.
+
 Only the Stancemancer and the Joyzerker have written bios (on the public site).
 The other poses are drawn from the fighter's name and current outfit; anything
 marked *(assumed)* is a guess to confirm.
