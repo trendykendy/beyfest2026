@@ -88,12 +88,13 @@ twelve versions of one shot.
 - **Mood:** calm, focused, unshakeable.
 
 **11. The Torque Warden** (Moss): fedora, full beard, black coat, black and silver; *redesign, in the target style*
-- **Pose:** standing completely still while everything moves around him. Only his arms move, ripping the cord, and the Beyblade drops from the launcher throwing sparks. The coat billows. A stern stare from under the hat brim.
-- **Camera:** low, front.
-- **Mood:** the guardian who doesn't move *(assumed)*. Stern, not smiling, but exaggerated: a fierce, unblinking glare from under the hat brim, heavy brows drawn down, jaw set.
+- **Pose:** a deep, wide crouch, launching downward: the Beyblade slams into the floor in a burst of silver sparks and cracked stone, coat spread out behind him. Taken from the user's poster.
+- **Camera:** almost at floor level, looking up at him over the Beyblade.
+- **Mood:** neutral but not bored: a focused, steely "final-boss" stare from under the hat brim, brows drawn down hard, jaw set.
 - **Likeness:** see `likeness/torquewarden.md`. Moss is bald with a big, long beard and a heavy-set build, which replaces the Gemini design.
 - **Colour:** mostly black, so the steel-silver energy, sparks and coat trim must carry the picture on a dark TV.
 - **Note:** the "T.W" coat badge stays. It needs a hand-made mirror image, as before.
+- **Status:** **approved 2026-10-28** as `approved/torquewarden.png`, with a shorter, squared-off beard. History in `prompts/torquewarden.md`. Not yet in the app; the badge's mirror image and both victory images are still to do.
 
 **12. The Underdogger** (Mark): long blond hair, waistcoat, bronze and orange
 - **Pose:** pushing up off one knee mid-launch, off-balance but grinning, hair flying. A comeback in progress.
