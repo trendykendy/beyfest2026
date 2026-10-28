@@ -86,7 +86,8 @@ twelve versions of one shot.
 - **Pose:** a deep, wide martial-arts stance, perfectly balanced, caught at the launch: one hand holds the launcher level at chest height as the Beyblade leaves it, the other draws the ripcord out in a smooth, flat line. The Beyblade's trail ripples like flowing water.
 - **Camera:** front, square-on.
 - **Mood:** calm, focused, unshakeable, but exaggerated: a cool, knowing half-smile, eyes sharp behind the glasses, catching a glint of light.
-- **Likeness:** see `likeness/stancemancer.md`. McHale's reddish-brown hair, stubble and slim build replace the blond, broad-shouldered version.
+- **Likeness:** the user prefers the original art's likeness (blond, clean-shaven, black rectangular glasses); `likeness/stancemancer.md` describes the photos and is superseded.
+- **Status:** **approved 2026-10-28** as `approved/stancemancer.png`: a side lunge with one leg straight and an outfit leaning cyberpunk (glowing purple/blue seams, high tech collar, smartwatch). History in `prompts/stancemancer.md`. Not yet in the app; the victory images still need redoing.
 
 **11. The Torque Warden** (Moss): fedora, full beard, black coat, black and silver; *redesign, in the target style*
 - **Pose:** a deep, wide crouch, launching downward: the Beyblade slams into the floor in a burst of silver sparks and cracked stone, coat spread out behind him. Taken from the user's poster.

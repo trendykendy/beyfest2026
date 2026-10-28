@@ -1,5 +1,10 @@
 # The Stancemancer: likeness sheet
 
+> **Superseded (2026-10-28):** the user prefers the original starter art's likeness
+> (blond hair swept up and to the side, clean-shaven, blue eyes, black rectangular
+> glasses). Use `reference-photos/stancemancer/upload/4-original-stancemancer.png` or
+> `approved/stancemancer.png` as the likeness reference, not this sheet.
+
 Player: McHale. From 3 reference photos (in the git-ignored `reference-photos/stancemancer/`),
 2026-10-28. Upload copies are in `reference-photos/stancemancer/upload/` (front smile,
 front neutral; both show only him, so they aren't cropped). The third photo is black
