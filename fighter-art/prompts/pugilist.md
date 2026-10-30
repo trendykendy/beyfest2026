@@ -32,3 +32,4 @@ purple wraparound shades, Beyblade and rendering stay. The original is kept as
 | Version | How | Result |
 |---|---|---|
 | A | Edit of the original: face, hair and build only; balcony photo as master (the first five images auto-sent; the balcony photo and prompt went in a second message) | Short neat dark hair (purple tint gone), a medium oval face, a shaped short beard, younger; the pose, shades, outfit, Beyblade and rendering unchanged; transparent. The punching arm is still big |
+| B | Edit of A: real boxing gloves in the cyberpunk design; face redrawn feature by feature from the balcony photo, eyes showing through clearer shades | Gloves unmistakable (padded, laced cuffs, red panel lines, crown). The face is closer (hairline, brows, ears, beard line) but more realistic, and the grin became a shout. The launcher has vanished into the front glove |
