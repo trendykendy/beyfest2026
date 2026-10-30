@@ -31,3 +31,4 @@ purple wraparound shades, Beyblade and rendering stay. The original is kept as
 
 | Version | How | Result |
 |---|---|---|
+| A | Edit of the original: face, hair and build only; balcony photo as master (the first five images auto-sent; the balcony photo and prompt went in a second message) | Short neat dark hair (purple tint gone), a medium oval face, a shaped short beard, younger; the pose, shades, outfit, Beyblade and rendering unchanged; transparent. The punching arm is still big |
