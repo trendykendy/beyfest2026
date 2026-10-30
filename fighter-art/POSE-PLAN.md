@@ -135,6 +135,8 @@ twelve versions of one shot.
 - **Pose:** pushing up off one knee mid-launch, off-balance but grinning, hair flying. A comeback in progress.
 - **Camera:** low, three-quarter.
 - **Mood:** never count him out.
+- **Likeness (user, 2026-10-30):** his photos are old and poor; his CURRENT action and victory art already matches how he looks now, so use that art as the likeness reference (as with the Stancemancer): long, swept-back light blond hair to the jaw, a short brown beard and moustache, dark brown eyes, a rugged grin.
+- **Current art:** a drinking horn in one hand and the fist-at-camera lunge with the launcher (the lunge is the Pugilist's), a cream shirt with rolled sleeves under a dark waistcoat.
 
 ## Decisions for the user
 
