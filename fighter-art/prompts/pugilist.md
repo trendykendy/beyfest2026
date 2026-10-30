@@ -44,7 +44,10 @@ mirror flag (same layout as before).
 | G | Edit of F with a close-up of B's face attached (`candidates/pugilist-B-face.png`) as the main face reference; keep F's inking, head angle and grin; gloves back to E | Face much closer to B (hairline, short hair, brows, nose, ears, beard line); head still leans in; inking partly kept, a little more painterly than F; transparent. The gloves did NOT go back to E's padded shell: they are still slim, like F |
 | H | Edit of G, gloves only: fingerless with a thick rounded padded boxing-glove shell, laced-look cuffs | Padded shell is now the main shape of both gloves, fingers bare, laced cuff on the raised glove, launcher still on the front glove; face identical to G; transparent |
 
-## Victory images (2026-10-30)
+## Victory images (2026-10-30): approved
+
+Approved first time: `approved/victory-pugilist.png`,
+`approved/royale-victory-pugilist.png`.
 
 Recipe change: the usual Pugilist close-up shows his OLD face, so both sets used a
 close-up of the approved H head (`candidates/pugilist-H-face.png`) as the face and

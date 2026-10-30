@@ -112,7 +112,7 @@ twelve versions of one shot.
 - **Camera:** front, wide-angle.
 - **Mood:** joyful brawler.
 - **Likeness:** from Shane's photos (`likeness/pugilist.md`), the balcony photo as master; the purple wraparound shades stay.
-- **Status:** **likeness pass approved 2026-10-30** as `approved/pugilist.png` (version H): his face, hair and build redrawn closer to Shane, fingerless cyberpunk gloves with a padded boxing-glove shell, the launcher strapped to the front glove. The pose, outfit and shades are unchanged. History in `prompts/pugilist.md`. In the app with a new face point; the victory images are not redone yet. The original stays the style reference (`approved/pugilist-original.png`).
+- **Status:** **likeness pass approved 2026-10-30** as `approved/pugilist.png` (version H): his face, hair and build redrawn closer to Shane, fingerless cyberpunk gloves with a padded boxing-glove shell, the launcher strapped to the front glove. The pose, outfit and shades are unchanged. History in `prompts/pugilist.md`. In the app with a new face point; both victory images redone (2026-10-30). The original stays the style reference (`approved/pugilist-original.png`).
 
 **10. The Stancemancer** (McHale): glasses, blue jumper, purple
 - **Bio:** "A master of posture and precision. His beyblade flows like water — but hits like a freight train. Don't let the glasses fool you." He "dropped into a wide stance" in the Frostbite Kid match.
