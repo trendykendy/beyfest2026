@@ -23,3 +23,4 @@ rugged, tanned, square-ish face; a solid, broad build.
 
 | Version | How | Result |
 |---|---|---|
+| A | New chat: Pugilist style + his current action, head close-up and victory as likeness; toast and launch; cyberpunk-lean waistcoat | Strong likeness and inking, a big rowdy laugh, horn raised with ale splashing, glowing bronze/orange trim; transparent. A thin cord stub sticks out of the launcher toward the Beyblade; the Beyblade is far from the launcher (it sits on the other side of his body); the horn is at head height rather than high overhead |
