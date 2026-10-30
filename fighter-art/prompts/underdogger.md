@@ -6,6 +6,10 @@ a head close-up of it and the current belt victory are the likeness references.
 User's choices: a toast-and-launch pose with the drinking horn in hand (his hands-rule
 exception, no ripcord), and a cyberpunk-lean outfit.
 
+**Approved: `approved/underdogger.png`** (a copy of `candidates/underdogger-E.png`).
+1536×1024, transparent, face found at 0.92. In the app with a new face point; no
+mirror flag. A touch of heavy metal on top of the cyberpunk lean (user's call).
+
 ## Attachments (new chat)
 
 From `reference-photos/underdogger/upload/`: `1-style-pugilist.png`,

@@ -137,6 +137,7 @@ twelve versions of one shot.
 - **Camera:** slightly low, three-quarter.
 - **Outfit, leaning cyberpunk (user's choice), same silhouette:** the cream shirt with rolled sleeves becomes tech fabric with panel seams; the dark waistcoat gets glowing bronze and orange trim; dark trousers, boots, a belt.
 - **Mood:** never count him out.
+- **Status:** **approved 2026-10-30** as `approved/underdogger.png` (version E): the face moved toward his photos (rounder, crinkled laughing eyes, a longer chin beard), tall heroic proportions, a heavy-metal edge (studded leather waistcoat, spiked wristbands, a belt chain, torn sleeves) over the cyberpunk lean, and a huge foreground Beyblade. History in `prompts/underdogger.md`. In the app with a new face point; the victory images still need redoing.
 - **Likeness (user, 2026-10-30):** his photos are old and poor; his CURRENT action and victory art already matches how he looks now, so use that art as the likeness reference (as with the Stancemancer): long, swept-back light blond hair to the jaw, a short brown beard and moustache, dark brown eyes, a rugged grin.
 - **Current art:** a drinking horn in one hand and the fist-at-camera lunge with the launcher (the lunge is the Pugilist's), a cream shirt with rolled sleeves under a dark waistcoat.
 
