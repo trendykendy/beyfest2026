@@ -125,6 +125,9 @@ Paste this into every action-pose prompt, unchanged:
 For the Cheatseeker, swap the hands sentence for: "One hand holds the launcher; the
 other hand holds up the rule book. No ripcord."
 
+For the Underdogger, swap it for: "One hand holds the launcher; the other hand raises
+a drinking horn in a toast. No ripcord."
+
 **Expression:** say it in the pose part of the prompt, name the mouth, eyes and
 brows, and say how far to push it: "as exaggerated as image 3's laugh, not a
 realistic smile". For the Breycist: "a lopsided smirk pulled up hard on one side,

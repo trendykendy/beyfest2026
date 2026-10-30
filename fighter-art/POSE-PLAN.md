@@ -26,11 +26,11 @@ marked *(assumed)* is a guess to confirm.
 
 | Silhouette | Fighters |
 |---|---|
-| Low to the ground | Underdogger (rising from a knee) |
+| Low to the ground | (none) |
 | Floating | Beanblader (levitating lotus) |
 | In the air | Beyby (leap) |
 | Twisting or spinning | Buzzsaw (discus spin), Fairy Dancer (pirouette) |
-| Still and planted | Stancemancer (wide stance), Torque Warden (immovable), Cheatseeker (rule book raised) |
+| Still and planted | Stancemancer (wide stance), Torque Warden (immovable), Cheatseeker (rule book raised), Underdogger (horn raised in a toast) |
 | Aiming | Modsmith (sight down the launcher) |
 | Punch at camera | Pugilist (the one keeper of the classic lunge) |
 | Big and open | Joyzerker (arms thrown wide) |
@@ -132,8 +132,10 @@ twelve versions of one shot.
 - **Status:** **approved 2026-10-28** as `approved/torquewarden.png`, with a shorter, squared-off beard. History in `prompts/torquewarden.md`. Not yet in the app; the badge's mirror image and both victory images are still to do.
 
 **12. The Underdogger** (Mark): long blond hair, waistcoat, bronze and orange
-- **Pose:** pushing up off one knee mid-launch, off-balance but grinning, hair flying. A comeback in progress.
-- **Camera:** low, three-quarter.
+- **Pose (user's choice, 2026-10-30):** toast and launch: standing tall, raising the drinking horn high in a toast (ale splashing) while firing the launcher with the other hand, the Beyblade just leaving it. Replaces the rising-from-a-knee plan.
+- **Hands:** an exception to the hands rule, like the Cheatseeker's rule book: horn in one hand, launcher in the other, no ripcord.
+- **Camera:** slightly low, three-quarter.
+- **Outfit, leaning cyberpunk (user's choice), same silhouette:** the cream shirt with rolled sleeves becomes tech fabric with panel seams; the dark waistcoat gets glowing bronze and orange trim; dark trousers, boots, a belt.
 - **Mood:** never count him out.
 - **Likeness (user, 2026-10-30):** his photos are old and poor; his CURRENT action and victory art already matches how he looks now, so use that art as the likeness reference (as with the Stancemancer): long, swept-back light blond hair to the jaw, a short brown beard and moustache, dark brown eyes, a rugged grin.
 - **Current art:** a drinking horn in one hand and the fist-at-camera lunge with the launcher (the lunge is the Pugilist's), a cream shirt with rolled sleeves under a dark waistcoat.
