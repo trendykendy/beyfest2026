@@ -25,7 +25,8 @@ marked *(assumed)* is a guess to confirm.
 
 | Silhouette | Fighters |
 |---|---|
-| Low to the ground | Beanblader (slide), Underdogger (rising from a knee) |
+| Low to the ground | Underdogger (rising from a knee) |
+| Floating | Beanblader (levitating lotus) |
 | In the air | Beyby (leap) |
 | Twisting or spinning | Buzzsaw (discus spin), Fairy Dancer (pirouette) |
 | Still and planted | Stancemancer (wide stance), Torque Warden (immovable), Cheatseeker (rule book raised) |
@@ -39,10 +40,14 @@ twelve versions of one shot.
 
 ## The poses
 
-**1. The Beanblader** (Ronan): red jacket, beads, bronze and cream Beyblade
-- **Pose:** a low sliding launch, one knee skimming the floor, the body leaning sideways into the slide, ripping the cord across the body. The jacket flares behind.
-- **Camera:** low, side-on.
-- **Mood:** playful and cocky *(assumed)*.
+**1. The Beanblader** (Ronan): a monk-like figure; red robe, prayer beads, bronze and cream Beyblade
+- **Character:** a monk. The pose expresses calm mastery, not effort.
+- **Pose (user's choice):** levitating cross-legged in a lotus position just above the ground, launching with no visible effort: the ripcord drawn out in one slow, unhurried arc, the big prayer beads floating in a ring around him. The robe drifts upward as if weightless.
+- **Camera:** front, slightly low.
+- **Mood:** serene, exaggerated: eyes closed in deep calm, brows lifted, a broad, peaceful smile.
+- **Likeness:** from Ronan's photos (`likeness/beanblader.md`), the newest one as master: a long narrow face, short dark brown hair, a short ginger-auburn beard, slim.
+- **Outfit, leaning cyberpunk (user's choice), same silhouette:** a crimson tech-monk robe with panel seams and glowing bronze trim over a cream undershirt; the big wooden beads carry faint glowing runes.
+- **Note:** replaces the old open-hand reach, which had no launcher or ripcord. This also replaces the earlier sliding-launch plan.
 
 **2. The Beyby** (Eamon): hoodie, face mask, pink and purple
 - **Pose:** leaping in mid-air, knees tucked, launching *downward* at the stadium below. The hood blows back.
