@@ -11,8 +11,9 @@ not everyone smiles.
 
 - **Redone and on main (6e435de):** the Breycist, the Joyzerker, the Torque Warden,
   the Stancemancer, the Cheatseeker and the Buzzsaw.
-- **Kept as they are (user's call):** the Beyby, the Fairy Dancer and the Pugilist.
-  They were created recently and are fine; their plans below are not needed.
+- **Kept as they are (user's call):** the Beyby and the Fairy Dancer. They were
+  created recently and are fine; their plans below are not needed.
+- **Likeness pass (2026-10-30):** the Pugilist (face, hair and build only).
 - **Redone on experiment/fighter-art, not merged:** the Modsmith.
 - **Still to do:** the Beanblader (added back 2026-10-30: the user says his likeness
   is off) and the Underdogger.
@@ -110,6 +111,8 @@ twelve versions of one shot.
 - **Pose:** keeps the current punch-at-camera lunge, which suits a boxer. It's the one fighter that keeps this pose.
 - **Camera:** front, wide-angle.
 - **Mood:** joyful brawler.
+- **Likeness:** from Shane's photos (`likeness/pugilist.md`), the balcony photo as master; the purple wraparound shades stay.
+- **Status:** **likeness pass approved 2026-10-30** as `approved/pugilist.png` (version H): his face, hair and build redrawn closer to Shane, fingerless cyberpunk gloves with a padded boxing-glove shell, the launcher strapped to the front glove. The pose, outfit and shades are unchanged. History in `prompts/pugilist.md`. In the app with a new face point; the victory images are not redone yet. The original stays the style reference (`approved/pugilist-original.png`).
 
 **10. The Stancemancer** (McHale): glasses, blue jumper, purple
 - **Bio:** "A master of posture and precision. His beyblade flows like water — but hits like a freight train. Don't let the glasses fool you." He "dropped into a wide stance" in the Frostbite Kid match.

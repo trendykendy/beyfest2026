@@ -149,6 +149,11 @@ need a new chat, because long edit chains drift.
    detail is visible (`reference-photos/breycist/upload/1b-style-pugilist-face.png`).
 4. Two photos of the person, cropped to them alone, "for likeness only".
 
+**The style reference is the ORIGINAL Pugilist** (`approved/pugilist-original.png`,
+the same image as every `1-style-pugilist.png` upload copy). The Pugilist's own art
+was redone for likeness on 2026-10-30; keep using the original as the reference, so
+the set stays matched to the look it was drawn against.
+
 ## 5. Victory and royale-victory images
 
 These are shared templates: the same arena, the same belt or trophy, the same

@@ -4,7 +4,11 @@ Likeness pass, 2026-10-30. The user asked for a better likeness of Shane. Becaus
 Pugilist is the style reference for the whole set, this is an **edit of the current
 image**, changing only his face, hair and build (user's call). The pose, outfit,
 purple wraparound shades, Beyblade and rendering stay. The original is kept as
-`approved/pugilist-original.png`.
+`approved/pugilist-original.png` and stays the style reference.
+
+**Approved: `approved/pugilist.png`** (a copy of `candidates/pugilist-H.png`).
+1536×1024, transparent, face found at 0.93. In the app with a new face point; no
+mirror flag (same layout as before).
 
 ## Attachments (new chat)
 
