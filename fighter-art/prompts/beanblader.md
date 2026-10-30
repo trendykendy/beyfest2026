@@ -62,3 +62,20 @@ master), `3-photo-smile.jpg`, `4-photo-older-front.jpg`.
 | B | Edit of A: no launcher or ripcord (the Beyblade spins off his open palm, user's idea), the other hand in a mudra; inked face, wider serene smile, headroom, beads float free, glow beneath | Palm launch, mudra, floating beads and headroom all landed; transparent. The face is a little more inked but still fairly smooth, and the smile is only a touch wider |
 | C | Edit of B: harder inking and a wider blissful smile; Beyblade closer to his palm; beads back on his neck; floating beans (coffee and broad beans, bronze/cream/crimson) in place of the bead ring | Face clearly more hand-drawn (crow's feet, laugh lines, inked hair), a bigger smile; beans read well; transparent. The hair tips come close to the top edge again, and the mudra fingers rest on a bead |
 | D | Edit of C, hands only: a rustic carved wooden launcher (wood grain, brass rivets, twine) in the outstretched hand; the other hand has pulled the ripcord free (replacing the mangled mudra fingers) | Both hands well formed; the launcher reads as rustic wood; the ripcord is free of the launcher; face, beans and beads unchanged; transparent. The ripcord doubles back on itself a little in his hand |
+
+## Victory images (2026-10-30): approved
+
+Approved first time: `approved/victory-beanblader.png`,
+`approved/royale-victory-beanblader.png`.
+
+Recipe: a new chat each, with four attachments (old victory image as the scene
+template, approved cut-out for the outfit, Pugilist head close-up for the rendering,
+and the master photo for an eyes-open likeness, since his action image has his eyes
+closed). A few floating beans drift through the confetti.
+
+- **Belt A** (`candidates/victory-beanblader-A.png`): an open-mouthed laugh with
+  crinkled eyes; good likeness; rune beads; beans in the confetti. The belt's name
+  plates are jumbled, as in the template.
+- **Royale A** (`candidates/royale-victory-beanblader-A.png`): a roar of joy with
+  eyes open; good likeness. The first send went without its images (the drag hadn't
+  finished); re-attaching in the same chat and saying "as described above" worked.
