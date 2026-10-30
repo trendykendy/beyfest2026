@@ -25,8 +25,8 @@ changing his art does not change the reference.
   cheek line, fuller at the chin, joined to a moustache.
 - **Eyes:** dark brown, fairly deep-set, slightly heavy-lidded; thick, straight dark
   brows.
-- **Glasses (real life):** round, tortoiseshell-and-gold "clubmaster"-style frames.
-  The current art has purple wraparound shades.
+- **Glasses:** in real life, round tortoiseshell-and-gold frames. **The art keeps its
+  purple wraparound shades** (user's call, 2026-10-30).
 - **Nose:** straight, medium, slightly broad at the tip.
 - **Mouth:** full lower lip; a dry, deadpan look is typical (the restaurant photo).
 - **Skin:** fair.
@@ -37,12 +37,11 @@ changing his art does not change the reference.
 The current `pugilist.png` has:
 - a long, chiselled, square-jawed hero face, where his is a medium oval, younger and softer
 - big, swept-up, purple-tinted hair, where his is short and neat
-- purple wraparound sunglasses, where he wears round tortoiseshell glasses
 - an older-looking, rugged face
 
 ## Exaggerate slightly
 
-The beard, the thick straight brows and the round glasses.
+The beard and the thick straight brows.
 
 ## Prompt text
 
