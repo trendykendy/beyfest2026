@@ -19,6 +19,16 @@ and out, a few strands across the brow; a short brown beard and moustache, fulle
 at the chin, darker than his hair; dark brown eyes under strong dark brows; a
 rugged, tanned, square-ish face; a solid, broad build.
 
+## Photos (added 2026-10-30, after version A)
+
+The user asked to move "a bit closer to the photos". Three old photos are in the
+git-ignored `reference-photos/underdogger/`; upload copies: `5-photo-laughing.jpg`
+(large, black and white, laughing) and `6-photo-front.jpg` (small, cropped to him
+alone). What they add over the art: a rounder, fuller face with full cheeks; small
+eyes that crinkle almost shut when he laughs; a longer chin beard (goatee) that is
+fuller than the moustache; reddish-blond facial hair; softer, less chiselled
+features. Keep the long hair from his current art (that's his look now).
+
 ## Versions
 
 | Version | How | Result |
