@@ -49,6 +49,7 @@ twelve versions of one shot.
 - **Mood:** serene, exaggerated: eyes closed in deep calm, brows lifted, a broad, peaceful smile.
 - **Likeness:** from Ronan's photos (`likeness/beanblader.md`), the newest one as master: a long narrow face, short dark brown hair, a short ginger-auburn beard, slim.
 - **Outfit, leaning cyberpunk (user's choice), same silhouette:** a crimson tech-monk robe with panel seams and glowing bronze trim over a cream undershirt; the big wooden beads carry faint glowing runes.
+- **Status:** **approved 2026-10-30** as `approved/beanblader.png` (version D). History in `prompts/beanblader.md`. In the app with a new face point; the victory images still need redoing.
 - **Note:** replaces the old open-hand reach, which had no launcher or ripcord. This also replaces the earlier sliding-launch plan.
 
 **2. The Beyby** (Eamon): hoodie, face mask, pink and purple
