@@ -42,7 +42,8 @@ twelve versions of one shot.
 
 **1. The Beanblader** (Ronan): a monk-like figure; red robe, prayer beads, bronze and cream Beyblade
 - **Character:** a monk. The pose expresses calm mastery, not effort.
-- **Pose (user's choice):** levitating cross-legged in a lotus position just above the ground, launching with no visible effort: the ripcord drawn out in one slow, unhurried arc, the big prayer beads floating in a ring around him. The robe drifts upward as if weightless.
+- **Pose (user's choice):** levitating cross-legged in a lotus position just above the ground, the big prayer beads floating in a ring around him, the robe drifting upward as if weightless.
+- **Hands:** an exception to the hands rule (user, 2026-10-30): no launcher and no ripcord. He is too wise for a launcher: the Beyblade spins on his open palm and slides off his fingertips. The other hand rests in a meditation mudra.
 - **Camera:** front, slightly low.
 - **Mood:** serene, exaggerated: eyes closed in deep calm, brows lifted, a broad, peaceful smile.
 - **Likeness:** from Ronan's photos (`likeness/beanblader.md`), the newest one as master: a long narrow face, short dark brown hair, a short ginger-auburn beard, slim.

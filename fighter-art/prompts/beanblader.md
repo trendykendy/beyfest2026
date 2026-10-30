@@ -54,3 +54,5 @@ master), `3-photo-smile.jpg`, `4-photo-older-front.jpg`.
 
 | Version | How | Result |
 |---|---|---|
+| A | New chat: style + 3 photos (polo = master) + levitating lotus + serene + tech-monk robe | Strong likeness (long face, receding temples, ginger beard greying at the chin); transparent. But the face is a bit smooth and realistic, the smile mild, the head clipped at the top edge, the bead strand runs into the launcher, the launcher is blocky, and he barely reads as floating |
+| B | Edit of A: no launcher or ripcord (the Beyblade spins off his open palm, user's idea), the other hand in a mudra; inked face, wider serene smile, headroom, beads float free, glow beneath | Palm launch, mudra, floating beads and headroom all landed; transparent. The face is a little more inked but still fairly smooth, and the smile is only a touch wider |
