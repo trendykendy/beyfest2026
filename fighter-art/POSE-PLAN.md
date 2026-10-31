@@ -14,7 +14,7 @@ not everyone smiles.
 - **Kept as they are (user's call):** the Beyby and the Fairy Dancer. They were
   created recently and are fine; their plans below are not needed.
 - **Likeness pass (2026-10-30):** the Pugilist (face, hair and build only).
-- **Redone on experiment/fighter-art, not merged:** the Modsmith.
+- **Redone 2026-10-28, merged 2026-10-30:** the Modsmith.
 - **Redone 2026-10-30:** the Beanblader and the Underdogger. Every fighter is now
   done.
 
