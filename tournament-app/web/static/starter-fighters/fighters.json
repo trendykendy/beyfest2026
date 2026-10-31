@@ -1,5 +1,5 @@
 [
-  { "name": "The Beanblader", "player": "Ronan", "kana": "ザ・ビーンブレイダー", "image": "beanblader.png", "victory": "victory-beanblader.png", "royaleVictory": "royale-victory-beanblader.png", "voice": "the-beanblader.mp3", "face": { "x": 0.521, "y": 0.139, "h": 0.2 } },
+  { "name": "The Beanblader", "player": "Ronan", "kana": "ザ・ビーンブレイダー", "image": "beanblader.png", "victory": "victory-beanblader.png", "royaleVictory": "royale-victory-beanblader.png", "voice": "the-beanblader.mp3", "face": { "x": 0.522, "y": 0.138, "h": 0.198 } },
   { "name": "The Beyby", "player": "Eamon", "kana": "ザ・ベイビー", "image": "beyby.png", "victory": "victory-beyby.png", "royaleVictory": "royale-victory-beyby.png", "voice": "the-baby.mp3", "face": { "x": 0.486, "y": 0.264, "h": 0.23 } },
   { "name": "The Breycist", "player": "Conor", "kana": "ザ・ブレイシスト", "image": "breycist.png", "victory": "victory-breycist.png", "royaleVictory": "royale-victory-breycist.png", "voice": "the-breycist.mp3", "mirror": true, "face": { "x": 0.686, "y": 0.189, "h": 0.224 } },
   { "name": "The Buzzsaw", "player": "Sean", "kana": "ザ・バズソー", "image": "buzzsaw.png", "victory": "victory-buzzsaw.png", "royaleVictory": "royale-victory-buzzsaw.png", "voice": "the-buzzsaw.mp3", "face": { "x": 0.444, "y": 0.364, "h": 0.237 } },

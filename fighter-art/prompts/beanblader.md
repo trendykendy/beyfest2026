@@ -4,7 +4,8 @@ Redesign, 2026-10-30. The user said his likeness was off; he is a monk-like figu
 so the pose expresses that: a levitating lotus launch, serene face, cyberpunk-lean
 robe (user's choices).
 
-**Approved: `approved/beanblader.png`** (a copy of `candidates/beanblader-D.png`).
+**Approved: `approved/beanblader.png`** (a copy of `candidates/beanblader-F.png`, 2026-10-31;
+version D with the legs redrawn so they read as two).
 1536×1024, transparent, face found at 0.93. In the app with a new face point; no
 mirror flag (he launches toward the viewer's left).
 
