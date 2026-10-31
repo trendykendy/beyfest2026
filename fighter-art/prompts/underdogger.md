@@ -43,7 +43,10 @@ features. Keep the long hair from his current art (that's his look now).
 | D | Edit of C: C overcorrected into a dwarf (big head, short arms); asked for a tall, ~7-heads-tall heroic build with long arms and legs and the head back to B's size | Tall, long-limbed, a smaller head on a visible neck, a wide planted stance; face, horn, launcher and Beyblade kept; transparent |
 | E | Edit of D: a touch more heavy metal (studded black leather waistcoat, spiked wristbands, a belt chain, a studded belt, torn sleeves, wilder hair); the Beyblade angled at the camera, big in the foreground | Metal look landed with the glowing trim kept; the Beyblade is now huge in the lower right with forced perspective; face and proportions kept; transparent background (the bottom corners are opaque only because the leg and the vortex run off the edge) |
 
-## Victory images (2026-10-30)
+## Victory images (2026-10-30): approved
+
+Approved first time: `approved/victory-underdogger.png`,
+`approved/royale-victory-underdogger.png`.
 
 Recipe as for the Pugilist: template, approved cut-out, a close-up of the approved
 head (`candidates/underdogger-E-face.png`) as the face and rendering reference, and
