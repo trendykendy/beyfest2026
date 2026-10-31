@@ -79,3 +79,4 @@ closed). A few floating beans drift through the confetti.
 - **Royale A** (`candidates/royale-victory-beanblader-A.png`): a roar of joy with
   eyes open; good likeness. The first send went without its images (the drag hadn't
   finished); re-attaching in the same chat and saying "as described above" worked.
+| E | Edit of the approved D in a new chat (the old chat was lost to a sign-out), legs only: two distinct legs in a lotus position | Two knees, both thighs and two crossed shins with ankle wraps now read clearly, one foot showing; everything else unchanged; transparent. A tiny white speck appeared near the end of the ripcord (top right) |
